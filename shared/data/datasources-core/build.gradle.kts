@@ -21,6 +21,7 @@ kotlin {
             implementation(project(":shared:core:common"))
             implementation(project(":shared:data:models"))
             implementation(project(":shared:data:datasources"))
+            implementation(libs.koin.core)
         }
         commonTest.dependencies { implementation(libs.kotlin.test) }
     }

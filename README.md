@@ -15,7 +15,7 @@ The module layout follows [afalabarce/kmp-template](https://github.com/afalabarc
 
 `androidApp` and `iosApp` are platform hosts. The iOS app imports the static `Shared` framework from `shared:presentation:ui`. Gradle dependencies enforce the layer direction: UI reaches ViewModels, use cases reach domain repository contracts, and data repository is positioned to implement those contracts. `core:di` assembles Koin modules exposed by the layers; these lists are empty until the first feature adds bindings.
 
-The generated greeting screen remains as a smoke-test UI. There is no pregnancy record model, persistence schema, API, or navigation flow yet. Those should be added as a feature slice when their requirements are defined, rather than copying the template's example data sources.
+The first migration slices provide a shared Compose pregnancy dating flow and profile-backed dashboard. Dating accepts FUM, a known due date, or an ultrasound/medical reference. The profile is stored locally through Android Keystore encrypted storage or iOS Keychain; iOS compilation and device behavior still require macOS verification. Prenatal record CRUD, cloud sync, and full navigation are not implemented. See `docs/MIGRATION_HANDOFF.md` and `docs/MIGRATION_CHECKLIST.md` for verified status and next steps.
 
 ## Build
 
