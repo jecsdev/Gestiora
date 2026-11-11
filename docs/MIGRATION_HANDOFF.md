@@ -2,7 +2,7 @@
 
 ## Current status
 
-Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-design-match` (read-only reference). Pregnancy dating and persisted onboarding slices are implemented. Android debug builds and host tests pass; physical-device and iOS validation remain.
+Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-design-match` (read-only reference). Pregnancy dating, persisted onboarding and an initial local appointments slice are implemented. Android debug builds and host tests pass; physical-device and iOS validation remain.
 
 ## Completed features
 
@@ -14,17 +14,21 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Explicit loading, empty, and error states. A failed read never opens a blank onboarding or silently replaces stored data.
 - Soft cream/lavender/rose Material 3 light and dark palette.
 - Plus Jakarta Sans for display, headline and title styles, and DM Sans for body and labels, bundled with OFL licenses in `shared/core/ui/licenses`.
+- Shared Material date picker for onboarding and profile editing, with optional FUM/due-date clearing and future-date limits for FUM and clinical reference dates.
+- Shared five-destination navigation shell, profile summary/edit entry and an offline baby-development explorer for weeks 4–40. Records explicitly indicates that it is not available yet.
+- Calendar lists local appointments and supports creating, editing and deleting them. Storage uses a versioned codec and a separate Android encrypted file/key or iOS Keychain item, isolated from the profile.
 
 ## Files and modules modified
 
 - `docs/MIGRATION_HANDOFF.md`, `docs/MIGRATION_CHECKLIST.md`.
 - `shared/domain/models`: `PregnancyDating.kt`.
 - `shared/domain/models`: `PregnancyProfile.kt`; `shared/domain/repository`: `PregnancyProfileRepository.kt`.
+- Appointment slice: `Appointment.kt`, `AppointmentRepository.kt`, `ManageAppointments.kt`, `SecureAppointmentsStore.kt`, platform adapters, `AppointmentCodec.kt`, `SecureAppointmentRepository.kt`, `AppointmentViewModel.kt`, `AppointmentsScreen.kt`, platform back handlers, DI and host tests.
 - `shared/domain/usecases`: `CalculatePregnancyAge.kt`, its host tests, DI registration and host-test Gradle configuration.
 - `shared/data/datasources`: `SecureProfileStore.kt` contract; `shared/data/datasources-core`: Android/iOS adapters and DI registration.
 - `shared/data/repository`: versioned `ProfileCodec.kt`, `SecurePregnancyProfileRepository.kt`, DI and host tests.
 - `shared/presentation/viewmodels`: `ProfileViewModel.kt`, tests, DI and Gradle; previous dating ViewModel remains.
-- `shared/presentation/ui`: `App.kt`, `OnboardingScreen.kt`, `PregnancyDashboard.kt`, fetal image, and Android/iOS `todayIsoDate` actual implementations.
+- `shared/presentation/ui`: `App.kt`, `NavigationShell.kt`, `BabyScreen.kt`, `DateField.kt`, `OnboardingScreen.kt`, `PregnancyDashboard.kt`, fetal illustrations, and Android/iOS `todayIsoDate` actual implementations.
 - `shared/core/ui`: `AppTheme.kt`.
 - `androidApp`: Context Koin binding, backup configuration and `data_extraction_rules.xml`.
 - Gradle catalog/relevant modules: coroutines core 1.10.2 for off-main storage operations.
@@ -34,27 +38,33 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 ## Decisions and rationale
 
 - Implement dating calculation first because it is a pure, independently testable rule used by onboarding, profile, and dashboard.
-- The first slice kept dating ephemeral. The current slice persists only the pregnancy profile; records and sync remain unimplemented.
+- The first slice kept dating ephemeral. The profile and appointments now have separate persistence; other records and sync remain unimplemented.
 - Preserve the React priority of medical/ultrasound reference over FUM and its 280-day due-date rule.
 - Date arithmetic uses ISO civil calendar days in common Kotlin; the host supplies today's local date, avoiding timezone shifts in gestational age.
+- Date picker values convert between ISO civil dates and UTC midnight, as required by Material's picker; domain validation remains the final check.
+- Baby development is an offline educational explorer, not an assessment; numeric lengths of unspecified measurement origin were omitted. If the actual week is outside 4–40, the UI displays it separately from the nearest available illustration week.
 - The UI only passes fields for the selected dating method so stale form values cannot produce a result under another method.
 - The new repository serializes reads/writes with a Mutex and runs blocking platform I/O off the UI thread. Coroutines core 1.10.2 was added for that purpose; no persistence framework was introduced.
 - Storage errors and unsupported codec versions remain explicit. Saving reads/decodes existing data before replacing it, so a corrupt or inaccessible profile is not silently overwritten.
+- Appointment mutations serialize the complete read/decode/change/encode/write cycle under a singleton repository mutex; corrupt or unsupported payloads are not overwritten. Local date and time remain civil values. Limits: 1,000 appointments, 1,000,000 payload characters, 512 characters per required text field and 4,096 for notes.
 - Android profile data is excluded from backup/device transfer because its Keystore key cannot be restored on another device. iOS Keychain item is device-only. Product recovery/export policy is still open.
 
 ## Pending tasks
 
-- Physical-device roundtrip and tamper test for Android encrypted profile; iOS compile and Keychain test on macOS.
-- Prenatal records, baby development, auth/sync, bottom navigation, accessible native date input and design polish.
+- Physical-device roundtrip and tamper tests for Android encrypted profile and appointments; iOS compile and Keychain tests on macOS.
+- Prenatal records, auth/sync, remaining navigation destinations and design polish.
 
 ## Known bugs and limitations
 
-- Only the profile is persisted. Prenatal records, sync, export/recovery, demo/account branches and account deletion are not implemented.
-- Date input is ISO text rather than a native date picker; form visual/device validation remains pending.
-- A physical Samsung phone was detected over Wi-Fi via ADB. Gestiora is already installed; no profile or UI/storage test was performed in this session.
+- Profile and appointments are persisted locally. Other prenatal records, sync, export/recovery, demo/account branches and account deletion are not implemented; no backup or device transfer is available.
+- Appointment list/create/edit/delete is implemented, but month calendar view and reminders are not. Host tests use a fake store; Android Keystore, persistence and UI interactions have not been tested on a device, and the iOS adapter has not been compiled or tested.
+- The shared Material date picker, including accessibility and localization, still needs physical-device visual and interaction validation.
+- A physical Samsung phone was previously detected over Wi-Fi; ADB listed no connected devices in the latest session. No profile or UI/storage test was performed.
 - iOS build/run requires macOS and Xcode.
 - iOS Keychain interop is provisional: Kotlin/Native CF pointer signatures and actual Keychain read/write must be compiled/tested on macOS. A Keychain item may survive uninstall/reinstall on the same device; deletion policy is unresolved.
 - Bundled fonts compile on Android; visual verification on device and iOS is pending.
+- The user stated that the reference illustrations were generated with Lovable; rights for distribution have not been verified. Development copy is inherited/adapted from the prototype and has no documented clinical review; obtain review before release.
+- Navigation, screen insets, larger text, TalkBack and baby explorer interactions remain unverified on a device. AI assistant is not included.
 - Prototype localStorage is unencrypted and its cloud sync is last-write-wins; do not port either behavior blindly for medical data.
 
 ## Tests and build
@@ -64,6 +74,9 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - `:shared:presentation:viewmodels:testAndroidHostTest`: passed, 3 tests, 0 failures (read failure is not empty; save success/failure).
 - `:androidApp:assembleDebug` with the above host tests, `--offline --no-configuration-cache`: passed. APK at `androidApp/build/outputs/apk/debug/androidApp-debug.apk`.
 - After adding typography, `:androidApp:assembleDebug --offline --no-configuration-cache` passed; no device visual test was performed.
+- After adding the date picker, `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed; the two host tests cover ISO/UTC conversion and invalid dates.
+- After adding navigation and baby development, the same Android build and host-test command passed; four UI host tests cover date conversion and stage/illustration boundaries. No UI or device test was run.
+- After the appointments slice, Android debug build and repository, presentation ViewModel and UI Android host tests passed. Appointment tests cover repository CRUD, validation, failures/corruption and concurrent adds using a fake store, plus ViewModel operations/errors. These do not validate platform encryption or UI interactions.
 - `git diff --check`: passed (Windows line-ending warnings only).
 - iOS compile/run: not executed on Windows.
 
@@ -74,7 +87,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 ## Exact next steps
 
-1. On a physical Android phone, verify onboarding save, process restart/reload, edit, ciphertext tamper/error state, and UI layout. No emulator requested by the user.
-2. On macOS, compile iOS framework and test Keychain save/reload/delete; correct any Kotlin/Native interop issues.
+1. On a physical Android phone, verify onboarding and appointments save, process restart/reload, edit/delete, ciphertext tamper/error states, navigation and UI layout without overwriting existing data. No emulator requested by the user.
+2. On macOS, compile iOS framework and test both Keychain items and their save/reload/delete behavior; correct any Kotlin/Native interop issues.
 3. Resolve recovery/export and uninstall/account-deletion policy before making portability promises.
-4. Implement native date input and accessibility polish, then bottom navigation and the first appointments CRUD slice with its own encrypted storage plan.
+4. Verify navigation, baby explorer, date picker and typography on the physical device, including accessibility and localization. Obtain clinical copy review and confirm illustration distribution rights.
+5. After validating the appointments slice, plan month view/reminders and the next prenatal records slice with an appropriate protected storage design.

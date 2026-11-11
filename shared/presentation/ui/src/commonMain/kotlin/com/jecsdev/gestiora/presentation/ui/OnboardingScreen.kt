@@ -142,10 +142,10 @@ fun OnboardingScreen(
                         }
                     }
                     if (method == DatingMethod.FUM) {
-                        DateField("Primer día de la última menstruación", lmp) { lmp = it }
-                        DateField("Fecha probable de parto (si la conoces)", dueDate) { dueDate = it }
+                        DateField("Primer día de la última menstruación", lmp, maxDate = todayIsoDate(), clearable = true) { lmp = it }
+                        DateField("Fecha probable de parto (si la conoces)", dueDate, clearable = true) { dueDate = it }
                     } else {
-                        DateField("Fecha en que se estableció", referenceDate) { referenceDate = it }
+                        DateField("Fecha en que se estableció", referenceDate, maxDate = todayIsoDate()) { referenceDate = it }
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedTextField(referenceWeeks, { referenceWeeks = it }, label = { Text("Semanas") }, modifier = Modifier.weight(1f), singleLine = true)
                             OutlinedTextField(referenceDays, { referenceDays = it }, label = { Text("Días") }, modifier = Modifier.weight(1f), singleLine = true)
@@ -184,7 +184,6 @@ fun OnboardingScreen(
         }
     }
 }
-
 @Composable
 private fun CountryField(value: String, onValueChange: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
@@ -194,9 +193,4 @@ private fun CountryField(value: String, onValueChange: (String) -> Unit) {
             countries.forEach { country -> DropdownMenuItem(text = { Text(country) }, onClick = { onValueChange(country); expanded = false }) }
         }
     }
-}
-
-@Composable
-private fun DateField(label: String, value: String, onValueChange: (String) -> Unit) {
-    OutlinedTextField(value = value, onValueChange = onValueChange, label = { Text(label) }, placeholder = { Text("AAAA-MM-DD") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 }

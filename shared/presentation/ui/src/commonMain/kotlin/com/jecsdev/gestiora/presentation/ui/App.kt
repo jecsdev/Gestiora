@@ -43,6 +43,7 @@ private fun ProfileRoot(viewModel: ProfileViewModel) {
     var loadAttempt by remember { mutableIntStateOf(0) }
     var state by remember { mutableStateOf<ProfileLoad>(ProfileLoad.Loading) }
     var editing by remember { mutableStateOf(false) }
+    var destination by remember { mutableStateOf(AppDestination.Home) }
     var pendingSave by remember { mutableStateOf<PregnancyProfile?>(null) }
     var saving by remember { mutableStateOf(false) }
     var saveFailed by remember { mutableStateOf(false) }
@@ -88,7 +89,7 @@ private fun ProfileRoot(viewModel: ProfileViewModel) {
                 onCancel = { editing = false; saveFailed = false },
             )
         } else {
-            PregnancyDashboard(current.profile, viewModel, onEdit = { editing = true })
+            NavigationShell(current.profile, viewModel, destination, onDestinationChange = { destination = it }, onEdit = { editing = true })
         }
     }
 }
