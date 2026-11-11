@@ -13,6 +13,7 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Local profile repository with a versioned codec. Android uses AES-GCM via Android Keystore and an atomic file in `noBackupFilesDir`; iOS Keychain adapter uses `WhenUnlockedThisDeviceOnly` (not compiled on Windows).
 - Explicit loading, empty, and error states. A failed read never opens a blank onboarding or silently replaces stored data.
 - Soft cream/lavender/rose Material 3 light and dark palette.
+- Plus Jakarta Sans for display, headline and title styles, and DM Sans for body and labels, bundled with OFL licenses in `shared/core/ui/licenses`.
 
 ## Files and modules modified
 
@@ -44,16 +45,16 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 ## Pending tasks
 
 - Physical-device roundtrip and tamper test for Android encrypted profile; iOS compile and Keychain test on macOS.
-- Prenatal records, baby development, auth/sync, bottom navigation, fonts, accessible native date input and design polish.
+- Prenatal records, baby development, auth/sync, bottom navigation, accessible native date input and design polish.
 
 ## Known bugs and limitations
 
 - Only the profile is persisted. Prenatal records, sync, export/recovery, demo/account branches and account deletion are not implemented.
 - Date input is ISO text rather than a native date picker; form visual/device validation remains pending.
-- Android crypto code compiled, but no physical device was connected for an encryption roundtrip or UI test (`adb devices` returned no devices).
+- A physical Samsung phone was detected over Wi-Fi via ADB. Gestiora is already installed; no profile or UI/storage test was performed in this session.
 - iOS build/run requires macOS and Xcode.
 - iOS Keychain interop is provisional: Kotlin/Native CF pointer signatures and actual Keychain read/write must be compiled/tested on macOS. A Keychain item may survive uninstall/reinstall on the same device; deletion policy is unresolved.
-- Plus Jakarta Sans and DM Sans are referenced in React but not bundled there; native font assets still need sourcing. Current UI uses system typography.
+- Bundled fonts compile on Android; visual verification on device and iOS is pending.
 - Prototype localStorage is unencrypted and its cloud sync is last-write-wins; do not port either behavior blindly for medical data.
 
 ## Tests and build
@@ -62,6 +63,7 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - `:shared:data:repository:testAndroidHostTest`: passed, 4 tests, 0 failures (codec/repository failures and non-overwrite).
 - `:shared:presentation:viewmodels:testAndroidHostTest`: passed, 3 tests, 0 failures (read failure is not empty; save success/failure).
 - `:androidApp:assembleDebug` with the above host tests, `--offline --no-configuration-cache`: passed. APK at `androidApp/build/outputs/apk/debug/androidApp-debug.apk`.
+- After adding typography, `:androidApp:assembleDebug --offline --no-configuration-cache` passed; no device visual test was performed.
 - `git diff --check`: passed (Windows line-ending warnings only).
 - iOS compile/run: not executed on Windows.
 

@@ -5,7 +5,7 @@ Statuses: Not started, In progress, Implemented, Verified, Blocked. Verified req
 | Feature | Status | Evidence / next step |
 | --- | --- | --- |
 | React inventory and KMP mapping | Implemented | Inspected routes, store, models, dating, styles and assets; mapping below. |
-| Shared design system | In progress | Light/dark palette applied; fonts and reusable components pending. |
+| Shared design system | In progress | Light/dark palette and bundled Plus Jakarta Sans/DM Sans applied; Android build passes, visual verification and reusable components pending. |
 | Shared navigation | Not started | React bottom nav: Inicio, Calendario, Registros, Mi bebé, Perfil. |
 | Pregnancy dating calculation | Verified | Five Android host tests pass; FUM, due date, medical/ultrasound reference, leap day, invalid input. |
 | Dating input and preview | Implemented | Shared Compose onboarding; Android build passes, device visual test pending. |
