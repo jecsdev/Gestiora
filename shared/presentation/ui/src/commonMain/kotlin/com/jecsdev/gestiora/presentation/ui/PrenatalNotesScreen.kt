@@ -78,9 +78,8 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
         return
     }
     Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Registros", style = MaterialTheme.typography.headlineLarge)
-        Text("Notas y seguimiento", style = MaterialTheme.typography.titleLarge)
-        Text("Tus notas se guardan en este dispositivo. Las demás secciones de registros estarán disponibles próximamente.")
+        Text("Notas y seguimiento", style = MaterialTheme.typography.headlineSmall)
+        Text("Tus notas se guardan en este dispositivo.")
         when {
             loadError -> {
                 Text("No pudimos leer tus notas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)

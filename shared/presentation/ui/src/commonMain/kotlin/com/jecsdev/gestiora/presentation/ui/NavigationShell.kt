@@ -35,6 +35,7 @@ import com.jecsdev.gestiora.domain.models.NoteTaskStatus
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
 import com.jecsdev.gestiora.presentation.viewmodels.AppointmentViewModel
+import com.jecsdev.gestiora.presentation.viewmodels.MedicalConditionViewModel
 import com.jecsdev.gestiora.presentation.viewmodels.PrenatalNoteViewModel
 import org.koin.compose.koinInject
 
@@ -53,6 +54,7 @@ internal fun NavigationShell(
     var navigationLocked by remember { mutableStateOf(false) }
     var calendarDate by remember { mutableStateOf<String?>(null) }
     var notesStatus by remember { mutableStateOf<NoteTaskStatus?>(null) }
+    var openConditions by remember { mutableStateOf(false) }
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
@@ -61,7 +63,7 @@ internal fun NavigationShell(
                     NavigationBarItem(
                         selected = destination == item,
                         enabled = !navigationLocked,
-                        onClick = { calendarDate = null; notesStatus = null; onDestinationChange(item) },
+                        onClick = { calendarDate = null; notesStatus = null; openConditions = false; onDestinationChange(item) },
                         icon = { DestinationIcon(item) },
                         label = { Text(item.label, maxLines = 1) },
                         alwaysShowLabel = true,
@@ -74,7 +76,13 @@ internal fun NavigationShell(
             when (destination) {
                 AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onEdit, followUpContent = {
                     PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
+                        openConditions = false
                         notesStatus = NoteTaskStatus.PENDING
+                        onDestinationChange(AppDestination.Records)
+                    }
+                    MedicalFollowUpSection(koinInject<MedicalConditionViewModel>()) {
+                        notesStatus = null
+                        openConditions = true
                         onDestinationChange(AppDestination.Records)
                     }
                 }) { date ->
@@ -82,7 +90,7 @@ internal fun NavigationShell(
                     onDestinationChange(AppDestination.Calendar)
                 }
                 AppDestination.Calendar -> AppointmentsScreen(koinInject<AppointmentViewModel>(), calendarDate) { navigationLocked = it }
-                AppDestination.Records -> PrenatalNotesScreen(koinInject<PrenatalNoteViewModel>(), notesStatus) { navigationLocked = it }
+                AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
                 AppDestination.Baby -> BabyScreen(profile, viewModel)
                 AppDestination.Profile -> ProfileScreen(profile, onEdit)
             }
