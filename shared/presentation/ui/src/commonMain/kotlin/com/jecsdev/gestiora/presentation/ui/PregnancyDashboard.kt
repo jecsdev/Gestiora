@@ -42,7 +42,7 @@ internal fun upcomingAppointments(appointments: List<Appointment>, today: String
         .toList()
 
 @Composable
-fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, appointmentViewModel: AppointmentViewModel, onEdit: () -> Unit, onCalendar: () -> Unit) {
+fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, appointmentViewModel: AppointmentViewModel, onEdit: () -> Unit, followUpContent: @Composable () -> Unit = {}, onCalendar: (String?) -> Unit) {
     val today = todayIsoDate()
     val age = viewModel.preview(profile.dating, today)
     var appointments by remember(appointmentViewModel) { mutableStateOf<List<Appointment>?>(null) }
@@ -97,7 +97,7 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
             appointments == null -> CircularProgressIndicator()
             appointments!!.isEmpty() -> Text("Sin citas próximas. Agrega tu próximo control prenatal.")
             else -> appointments!!.forEach { appointment ->
-                Card(onClick = onCalendar, modifier = Modifier.fillMaxWidth()) {
+                Card(onClick = { onCalendar(appointment.date) }, modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(appointment.reason, style = MaterialTheme.typography.titleMedium)
                         Text("${appointment.date} · ${appointment.time} · ${appointment.doctor}", style = MaterialTheme.typography.bodyMedium)
@@ -105,7 +105,8 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
                 }
             }
         }
-        OutlinedButton(onClick = onCalendar, modifier = Modifier.fillMaxWidth()) { Text("Ver calendario") }
+        OutlinedButton(onClick = { onCalendar(null) }, modifier = Modifier.fillMaxWidth()) { Text("Ver calendario") }
+        followUpContent()
         Text("Información orientativa. Gestiora no diagnostica; consulta siempre a tu equipo de salud.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.Appointment
 import com.jecsdev.gestiora.domain.models.AppointmentStatus
+import com.jecsdev.gestiora.domain.models.AppointmentReminder
 import com.jecsdev.gestiora.presentation.viewmodels.AppointmentViewModel
 import kotlinx.coroutines.launch
 
@@ -39,8 +40,16 @@ private fun AppointmentStatus.label(): String = when (this) {
     AppointmentStatus.CANCELLED -> "Cancelada"
 }
 
+private fun AppointmentReminder.label(): String = when (this) {
+    AppointmentReminder.NONE -> "Sin recordatorio"
+    AppointmentReminder.ONE_HOUR -> "1 hora antes"
+    AppointmentReminder.ONE_DAY -> "1 día antes"
+    AppointmentReminder.TWO_DAYS -> "2 días antes"
+    AppointmentReminder.ONE_WEEK -> "1 semana antes"
+}
+
 @Composable
-internal fun AppointmentsScreen(viewModel: AppointmentViewModel, onNavigationLockChange: (Boolean) -> Unit) {
+internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: String?, onNavigationLockChange: (Boolean) -> Unit) {
     val scope = rememberCoroutineScope()
     var appointments by remember { mutableStateOf<List<Appointment>?>(null) }
     var loadError by remember { mutableStateOf(false) }
@@ -49,9 +58,10 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, onNavigationLoc
     var editing by remember { mutableStateOf<Appointment?>(null) }
     var deleting by remember { mutableStateOf<Appointment?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
-    var selectedDate by remember { mutableStateOf("") }
     val today = todayIsoDate()
-    var displayedMonth by remember { mutableStateOf(today.take(7)) }
+    val validInitialDate = initialDate?.takeIf { isoToUtcMillis(it) != null }
+    var selectedDate by remember { mutableStateOf(validInitialDate.orEmpty()) }
+    var displayedMonth by remember { mutableStateOf((validInitialDate ?: today).take(7)) }
 
     AppointmentBackHandler(enabled = busy || editing != null || deleting != null) {
         when {
@@ -156,6 +166,9 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, onNavigationLoc
                             Text(appointment.clinic)
                             Text(appointment.reason)
                             Text(appointment.status.label(), style = MaterialTheme.typography.labelMedium)
+                            if (appointment.reminder != AppointmentReminder.NONE) {
+                                Text("Preferencia: ${appointment.reminder.label()} · sin notificación", style = MaterialTheme.typography.bodySmall)
+                            }
                             appointment.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(onClick = { operationError = false; onNavigationLockChange(true); editing = appointment }, enabled = !busy) { Text("Editar") }
@@ -165,7 +178,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, onNavigationLoc
                     }
                 }
                 if (operationError) Text("No pudimos eliminar la cita. Inténtalo de nuevo.", color = MaterialTheme.colorScheme.error)
-                Text("Los recordatorios todavía no están disponibles.", style = MaterialTheme.typography.bodySmall)
+                Text("Las preferencias de recordatorio se guardan; las notificaciones del sistema todavía no están disponibles.", style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -202,11 +215,12 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
     var reason by remember(initial) { mutableStateOf(initial.reason) }
     var notes by remember(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var status by remember(initial) { mutableStateOf(initial.status) }
+    var reminder by remember(initial) { mutableStateOf(initial.reminder) }
     var invalid by remember(initial) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva cita" else "Editar cita", style = MaterialTheme.typography.headlineLarge)
         DateField("Fecha", date, enabled = !busy) { date = it }
-        OutlinedTextField(time, { time = it }, label = { Text("Hora (HH:mm)") }, enabled = !busy, singleLine = true, modifier = Modifier.fillMaxWidth())
+        TimeField(time, enabled = !busy) { time = it }
         AppointmentTextField("Médico/a", doctor, 512, !busy, true) { doctor = it }
         AppointmentTextField("Especialidad", specialty, 512, !busy, true) { specialty = it }
         AppointmentTextField("Clínica", clinic, 512, !busy, true) { clinic = it }
@@ -214,12 +228,17 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
         AppointmentTextField("Notas (opcional)", notes, 4096, !busy, false) { notes = it }
         Text("Estado", style = MaterialTheme.typography.labelLarge)
         AppointmentStatus.entries.forEach { option -> FilterChip(selected = status == option, enabled = !busy, onClick = { status = option }, label = { Text(option.label()) }) }
+        Text("Preferencia de recordatorio", style = MaterialTheme.typography.labelLarge)
+        Text("Esta opción solo guarda tu preferencia. No se enviará una notificación.", style = MaterialTheme.typography.bodySmall)
+        AppointmentReminder.entries.forEach { option ->
+            FilterChip(selected = reminder == option, enabled = !busy, onClick = { reminder = option }, label = { Text(option.label()) })
+        }
         if (invalid) Text("Completa los campos, respeta sus límites y usa una hora válida en formato HH:mm.", color = MaterialTheme.colorScheme.error)
         if (saveError) Text("No pudimos guardar la cita. Revisa los campos e inténtalo de nuevo; el formulario sigue aquí.", color = MaterialTheme.colorScheme.error)
         Button(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
             val validTime = time.length == 5 && time[2] == ':' && time.substring(0, 2).toIntOrNull() in 0..23 && time.substring(3, 5).toIntOrNull() in 0..59 && time.filterIndexed { index, _ -> index != 2 }.all { it in '0'..'9' }
             invalid = isoToUtcMillis(date) == null || !validTime || listOf(doctor, specialty, clinic, reason).any { it.isBlank() || it.length > 512 } || notes.length > 4096
-            if (!invalid) onSave(Appointment(initial.id, date, time, doctor.trim(), specialty.trim(), clinic.trim(), reason.trim(), status, notes.trim().ifEmpty { null }))
+            if (!invalid) onSave(Appointment(initial.id, date, time, doctor.trim(), specialty.trim(), clinic.trim(), reason.trim(), status, notes.trim().ifEmpty { null }, reminder))
         }) { Text(if (busy) "Guardando…" else "Guardar cita") }
         OutlinedButton(onClick = onCancel, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
     }

@@ -6,17 +6,17 @@ Statuses: Not started, In progress, Implemented, Verified, Blocked. Verified req
 | --- | --- | --- |
 | React inventory and KMP mapping | Implemented | Inspected routes, store, models, dating, styles and assets; mapping below. |
 | Shared design system | In progress | Light/dark palette and bundled Plus Jakarta Sans/DM Sans applied; Android build passes, visual verification and reusable components pending. |
-| Shared navigation | In progress | Five-destination shell, profile summary and appointment list implemented; records and device/accessibility checks pending. |
+| Shared navigation | In progress | Five-destination shell, profile summary and appointment list implemented; notes in Records implemented; device/accessibility checks pending. |
 | Pregnancy dating calculation | Verified | Five Android host tests pass; FUM, due date, medical/ultrasound reference, leap day, invalid input. |
 | Dating input and preview | Implemented | Shared Compose onboarding and Material date picker; Android build and ISO/UTC conversion tests pass, device and accessibility validation pending. |
 | Onboarding and pregnancy profile | Implemented | Three-step form and encrypted local profile adapter; Android build/repository and presentation host tests pass. Device storage validation pending. |
 | Pregnancy dashboard | Implemented | Profile-backed pregnancy summary and up to three upcoming local appointments, including read failure state; Android build and selection host test pass, visual/device test pending. |
-| Medical appointments and calendar | In progress | List/create/edit/delete, date filtering, month grid with appointment markers and isolated local storage implemented; date-grid and fake-store host tests pass. Reminders and platform/device validation pending. |
+| Medical appointments and calendar | In progress | CRUD, date filtering, month grid, 24-hour time input and persisted reminder preferences implemented; compatible codec migration and host tests pass. Notifications, standalone reminders and platform/device validation pending. |
 | Consultations and vital signs | Not started | CRUD. |
 | Conditions and risks | Not started | CRUD. |
 | Vaccinations | Not started | CRUD. |
 | Examinations and results | Not started | CRUD. |
-| Notes and follow-up tasks | Not started | CRUD. |
+| Notes and follow-up tasks | Implemented | Local CRUD, categories, task/date, combined text/status filters, Home pending summary and isolated store adapters. Android build and repository/ViewModel/query tests pass; device/iOS checks and appointment linking pending. No notifications. |
 | Baby development and illustrations | In progress | Offline weeks 4–40, stages and seven reference illustrations implemented; boundaries tested. Device, clinical copy and asset rights review pending; AI separate. |
 | AI assistant | Not started | Inspect gateway contract and privacy. |
 | Authentication and account deletion | Not started | Inspect Lovable Cloud backend. |

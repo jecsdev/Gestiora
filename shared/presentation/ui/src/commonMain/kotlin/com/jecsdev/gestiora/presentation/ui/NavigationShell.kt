@@ -31,9 +31,11 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.DatingMethod
+import com.jecsdev.gestiora.domain.models.NoteTaskStatus
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
 import com.jecsdev.gestiora.presentation.viewmodels.AppointmentViewModel
+import com.jecsdev.gestiora.presentation.viewmodels.PrenatalNoteViewModel
 import org.koin.compose.koinInject
 
 internal enum class AppDestination(val label: String) {
@@ -49,6 +51,8 @@ internal fun NavigationShell(
     onEdit: () -> Unit,
 ) {
     var navigationLocked by remember { mutableStateOf(false) }
+    var calendarDate by remember { mutableStateOf<String?>(null) }
+    var notesStatus by remember { mutableStateOf<NoteTaskStatus?>(null) }
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
@@ -57,7 +61,7 @@ internal fun NavigationShell(
                     NavigationBarItem(
                         selected = destination == item,
                         enabled = !navigationLocked,
-                        onClick = { onDestinationChange(item) },
+                        onClick = { calendarDate = null; notesStatus = null; onDestinationChange(item) },
                         icon = { DestinationIcon(item) },
                         label = { Text(item.label, maxLines = 1) },
                         alwaysShowLabel = true,
@@ -68,9 +72,17 @@ internal fun NavigationShell(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             when (destination) {
-                AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onEdit) { onDestinationChange(AppDestination.Calendar) }
-                AppDestination.Calendar -> AppointmentsScreen(koinInject<AppointmentViewModel>()) { navigationLocked = it }
-                AppDestination.Records -> UnavailableScreen("Registros", "Los registros prenatales estarán disponibles próximamente.")
+                AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onEdit, followUpContent = {
+                    PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
+                        notesStatus = NoteTaskStatus.PENDING
+                        onDestinationChange(AppDestination.Records)
+                    }
+                }) { date ->
+                    calendarDate = date
+                    onDestinationChange(AppDestination.Calendar)
+                }
+                AppDestination.Calendar -> AppointmentsScreen(koinInject<AppointmentViewModel>(), calendarDate) { navigationLocked = it }
+                AppDestination.Records -> PrenatalNotesScreen(koinInject<PrenatalNoteViewModel>(), notesStatus) { navigationLocked = it }
                 AppDestination.Baby -> BabyScreen(profile, viewModel)
                 AppDestination.Profile -> ProfileScreen(profile, onEdit)
             }

@@ -7,10 +7,13 @@ import com.jecsdev.gestiora.domain.repository.AppointmentRepository
 import com.jecsdev.gestiora.domain.repository.PregnancyProfileRepository
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import com.jecsdev.gestiora.data.repository.SecurePrenatalNoteRepository
+import com.jecsdev.gestiora.domain.repository.PrenatalNoteRepository
 
 object DataRepositoryDependencyInjector : KoinModuleLoader {
     override val modules: List<Module> = listOf(module {
         single<PregnancyProfileRepository> { SecurePregnancyProfileRepository(get()) }
         single<AppointmentRepository> { SecureAppointmentRepository(get()) }
+        single<PrenatalNoteRepository> { SecurePrenatalNoteRepository(get()) }
     })
 }

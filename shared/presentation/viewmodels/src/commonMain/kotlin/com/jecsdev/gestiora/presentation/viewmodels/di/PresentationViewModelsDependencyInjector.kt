@@ -6,11 +6,13 @@ import com.jecsdev.gestiora.presentation.viewmodels.AppointmentViewModel
 import com.jecsdev.gestiora.presentation.viewmodels.PregnancyDatingViewModel
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import com.jecsdev.gestiora.presentation.viewmodels.PrenatalNoteViewModel
 
 object PresentationViewModelsDependencyInjector : KoinModuleLoader {
     override val modules: List<Module> = listOf(module {
         factory { PregnancyDatingViewModel(get()) }
         single { ProfileViewModel(get(), get()) }
         single { AppointmentViewModel(get()) }
+        single { PrenatalNoteViewModel(get()) }
     })
 }
