@@ -49,6 +49,9 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, onNavigationLoc
     var editing by remember { mutableStateOf<Appointment?>(null) }
     var deleting by remember { mutableStateOf<Appointment?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
+    var selectedDate by remember { mutableStateOf("") }
+    val today = todayIsoDate()
+    var displayedMonth by remember { mutableStateOf(today.take(7)) }
 
     AppointmentBackHandler(enabled = busy || editing != null || deleting != null) {
         when {
@@ -91,7 +94,14 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, onNavigationLoc
                 try {
                     operationError = false
                     val result = if (appointment.id.isEmpty()) viewModel.add(appointment) else viewModel.update(appointment)
-                    if (result.isSuccess) { editing = null; reload() } else operationError = true
+                    if (result.isSuccess) {
+                        if (selectedDate.isNotEmpty()) {
+                            selectedDate = appointment.date
+                            displayedMonth = appointment.date.take(7)
+                        }
+                        editing = null
+                        reload()
+                    } else operationError = true
                 } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
             }
         }
@@ -99,7 +109,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, onNavigationLoc
     }
 
     Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Mis citas", style = MaterialTheme.typography.headlineLarge)
+        Text("Calendario", style = MaterialTheme.typography.headlineLarge)
         Text("Tus citas se guardan en este dispositivo.", style = MaterialTheme.typography.bodyMedium)
         when {
             loadError -> {
@@ -114,13 +124,31 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, onNavigationLoc
             }
             appointments == null -> CircularProgressIndicator()
             else -> {
+                AppointmentCalendar(
+                    month = displayedMonth,
+                    selectedDate = selectedDate,
+                    today = today,
+                    markedDates = appointments!!.map { it.date }.toSet(),
+                    enabled = !busy,
+                    onMonthChange = { displayedMonth = it },
+                    onDateSelect = { selectedDate = it; displayedMonth = it.take(7) },
+                )
+                if (selectedDate.isNotEmpty()) {
+                    Text("Citas del $selectedDate", style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = { selectedDate = "" }, enabled = !busy) { Text("Ver todas las citas") }
+                } else {
+                    Text("Todas las citas", style = MaterialTheme.typography.titleMedium)
+                }
                 Button(onClick = {
                     operationError = false
                     onNavigationLockChange(true)
-                    editing = Appointment("", todayIsoDate(), "09:00", "", "", "", "", AppointmentStatus.SCHEDULED)
+                    editing = Appointment("", selectedDate.ifEmpty { todayIsoDate() }, "09:00", "", "", "", "", AppointmentStatus.SCHEDULED)
                 }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Nueva cita") }
-                if (appointments!!.isEmpty()) Text("Aún no tienes citas registradas.")
-                appointments!!.forEach { appointment ->
+                val visibleAppointments = appointments!!.filter { selectedDate.isEmpty() || it.date == selectedDate }
+                if (visibleAppointments.isEmpty()) {
+                    Text(if (selectedDate.isEmpty()) "Aún no tienes citas registradas." else "No tienes citas para esta fecha.")
+                }
+                visibleAppointments.forEach { appointment ->
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("${appointment.date} · ${appointment.time}", style = MaterialTheme.typography.titleMedium)

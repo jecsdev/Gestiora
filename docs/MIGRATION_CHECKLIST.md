@@ -10,8 +10,8 @@ Statuses: Not started, In progress, Implemented, Verified, Blocked. Verified req
 | Pregnancy dating calculation | Verified | Five Android host tests pass; FUM, due date, medical/ultrasound reference, leap day, invalid input. |
 | Dating input and preview | Implemented | Shared Compose onboarding and Material date picker; Android build and ISO/UTC conversion tests pass, device and accessibility validation pending. |
 | Onboarding and pregnancy profile | Implemented | Three-step form and encrypted local profile adapter; Android build/repository and presentation host tests pass. Device storage validation pending. |
-| Pregnancy dashboard | Implemented | Profile-backed week, trimester, progress, due date and edit entry; Android build passes, visual test pending. |
-| Medical appointments and calendar | In progress | List/create/edit/delete and isolated local storage implemented; build and fake-store host tests pass. Month view, reminders and platform/device validation pending. |
+| Pregnancy dashboard | Implemented | Profile-backed pregnancy summary and up to three upcoming local appointments, including read failure state; Android build and selection host test pass, visual/device test pending. |
+| Medical appointments and calendar | In progress | List/create/edit/delete, date filtering, month grid with appointment markers and isolated local storage implemented; date-grid and fake-store host tests pass. Reminders and platform/device validation pending. |
 | Consultations and vital signs | Not started | CRUD. |
 | Conditions and risks | Not started | CRUD. |
 | Vaccinations | Not started | CRUD. |
@@ -30,8 +30,8 @@ Statuses: Not started, In progress, Implemented, Verified, Blocked. Verified req
 | React route/source | KMP target |
 | --- | --- |
 | `/onboarding`, `lib/pregnancy.ts` | Domain dating + profile, encrypted storage adapter, three-step shared Compose onboarding. Demo/account branches pending. |
-| `/` dashboard | Profile-backed pregnancy summary in `presentation:ui`; appointment/condition sections pending. |
-| `/calendario` | Local appointment list and CRUD with separate protected storage; month view and reminders pending. |
+| `/` dashboard | Profile-backed pregnancy summary and upcoming appointments in `presentation:ui`; condition section pending. |
+| `/calendario` | Month grid and local appointment list and CRUD with separate protected storage; reminders pending. |
 | `/registros` | Consultation, vital, condition, vaccine, exam, note CRUD. |
 | `/bebe` | Offline weekly development and seven bundled reference illustrations; AI integration and reviews pending. |
 | `/perfil` | Profile and dating edits, data export/reset, account actions. |

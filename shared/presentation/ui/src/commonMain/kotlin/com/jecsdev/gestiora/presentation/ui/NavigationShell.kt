@@ -68,7 +68,7 @@ internal fun NavigationShell(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             when (destination) {
-                AppDestination.Home -> PregnancyDashboard(profile, viewModel, onEdit)
+                AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onEdit) { onDestinationChange(AppDestination.Calendar) }
                 AppDestination.Calendar -> AppointmentsScreen(koinInject<AppointmentViewModel>()) { navigationLocked = it }
                 AppDestination.Records -> UnavailableScreen("Registros", "Los registros prenatales estarán disponibles próximamente.")
                 AppDestination.Baby -> BabyScreen(profile, viewModel)

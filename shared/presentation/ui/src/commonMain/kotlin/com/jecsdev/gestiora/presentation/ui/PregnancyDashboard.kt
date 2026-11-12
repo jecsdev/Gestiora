@@ -14,19 +14,47 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
+import com.jecsdev.gestiora.domain.models.Appointment
+import com.jecsdev.gestiora.domain.models.AppointmentStatus
+import com.jecsdev.gestiora.presentation.viewmodels.AppointmentViewModel
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
 
+internal fun upcomingAppointments(appointments: List<Appointment>, today: String): List<Appointment> =
+    appointments.asSequence()
+        .filter { it.status == AppointmentStatus.SCHEDULED && it.date >= today }
+        .sortedWith(compareBy(Appointment::date, Appointment::time, Appointment::id))
+        .take(3)
+        .toList()
+
 @Composable
-fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, onEdit: () -> Unit) {
-    val age = viewModel.preview(profile.dating, todayIsoDate())
+fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, appointmentViewModel: AppointmentViewModel, onEdit: () -> Unit, onCalendar: () -> Unit) {
+    val today = todayIsoDate()
+    val age = viewModel.preview(profile.dating, today)
+    var appointments by remember(appointmentViewModel) { mutableStateOf<List<Appointment>?>(null) }
+    var loadError by remember(appointmentViewModel) { mutableStateOf(false) }
+    var loadAttempt by remember(appointmentViewModel) { mutableStateOf(0) }
+    LaunchedEffect(appointmentViewModel, loadAttempt) {
+        loadError = false
+        appointments = null
+        val result = appointmentViewModel.load()
+        appointments = result.getOrNull()?.let { upcomingAppointments(it, today) }
+        loadError = result.isFailure
+    }
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeContentPadding()
             .verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 20.dp),
@@ -60,7 +88,24 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, o
             }
         }
         Button(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text("Editar mi perfil y fechas") }
+        Text("Próximas citas", style = MaterialTheme.typography.titleLarge)
+        when {
+            loadError -> {
+                Text("No pudimos leer tus citas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
+                OutlinedButton(onClick = { loadAttempt++ }) { Text("Reintentar") }
+            }
+            appointments == null -> CircularProgressIndicator()
+            appointments!!.isEmpty() -> Text("Sin citas próximas. Agrega tu próximo control prenatal.")
+            else -> appointments!!.forEach { appointment ->
+                Card(onClick = onCalendar, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(appointment.reason, style = MaterialTheme.typography.titleMedium)
+                        Text("${appointment.date} · ${appointment.time} · ${appointment.doctor}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+        OutlinedButton(onClick = onCalendar, modifier = Modifier.fillMaxWidth()) { Text("Ver calendario") }
         Text("Información orientativa. Gestiora no diagnostica; consulta siempre a tu equipo de salud.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Tus citas y registros aparecerán aquí cuando estén disponibles.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

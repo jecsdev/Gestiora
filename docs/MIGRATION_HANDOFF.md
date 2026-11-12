@@ -17,6 +17,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Shared Material date picker for onboarding and profile editing, with optional FUM/due-date clearing and future-date limits for FUM and clinical reference dates.
 - Shared five-destination navigation shell, profile summary/edit entry and an offline baby-development explorer for weeks 4–40. Records explicitly indicates that it is not available yet.
 - Calendar lists local appointments and supports creating, editing and deleting them. Storage uses a versioned codec and a separate Android encrypted file/key or iOS Keychain item, isolated from the profile.
+- Calendar displays a Monday-first month grid with appointment markers, date selection and month navigation. It can show all appointments and prefills a selected date for new appointments. When an edited appointment changes date, the active filter and displayed month follow it.
+- Dashboard loads up to three scheduled appointments dated today or later, sorted by date and time, with loading, empty and retryable error states and navigation to the calendar. As in the prototype, today's appointments remain listed regardless of their time.
 
 ## Files and modules modified
 
@@ -57,9 +59,9 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 ## Known bugs and limitations
 
 - Profile and appointments are persisted locally. Other prenatal records, sync, export/recovery, demo/account branches and account deletion are not implemented; no backup or device transfer is available.
-- Appointment list/create/edit/delete is implemented, but month calendar view and reminders are not. Host tests use a fake store; Android Keystore, persistence and UI interactions have not been tested on a device, and the iOS adapter has not been compiled or tested.
+- Appointment list/create/edit/delete, date filtering and the inline month grid are implemented; reminders are not. Host tests use a fake store; Android Keystore, persistence and UI interactions have not been tested on a device, and the iOS adapter has not been compiled or tested.
 - The shared Material date picker, including accessibility and localization, still needs physical-device visual and interaction validation.
-- A physical Samsung phone was previously detected over Wi-Fi; ADB listed no connected devices in the latest session. No profile or UI/storage test was performed.
+- A physical Samsung phone was previously detected over Wi-Fi; ADB listed no connected devices on 2026-11-12. No profile or UI/storage test was performed.
 - iOS build/run requires macOS and Xcode.
 - iOS Keychain interop is provisional: Kotlin/Native CF pointer signatures and actual Keychain read/write must be compiled/tested on macOS. A Keychain item may survive uninstall/reinstall on the same device; deletion policy is unresolved.
 - Bundled fonts compile on Android; visual verification on device and iOS is pending.
@@ -77,6 +79,9 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - After adding the date picker, `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed; the two host tests cover ISO/UTC conversion and invalid dates.
 - After adding navigation and baby development, the same Android build and host-test command passed; four UI host tests cover date conversion and stage/illustration boundaries. No UI or device test was run.
 - After the appointments slice, Android debug build and repository, presentation ViewModel and UI Android host tests passed. Appointment tests cover repository CRUD, validation, failures/corruption and concurrent adds using a fake store, plus ViewModel operations/errors. These do not validate platform encryption or UI interactions.
+- On 2026-11-12, after adding date filtering, `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed. Existing host tests do not cover the new filter interaction; device UI validation remains pending.
+- After the inline month grid, the same Android build and UI host tests passed. New tests cover Monday-first grids, leap February, adjacent days, year rollover and supported date bounds. They do not test Compose interaction or accessibility.
+- After adding upcoming appointments to the dashboard, the same Android build and UI host tests passed. A host test checks status/date filtering, ordering, the three-item limit and the empty result; loading and UI interactions remain untested on a device.
 - `git diff --check`: passed (Windows line-ending warnings only).
 - iOS compile/run: not executed on Windows.
 
@@ -91,4 +96,4 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 2. On macOS, compile iOS framework and test both Keychain items and their save/reload/delete behavior; correct any Kotlin/Native interop issues.
 3. Resolve recovery/export and uninstall/account-deletion policy before making portability promises.
 4. Verify navigation, baby explorer, date picker and typography on the physical device, including accessibility and localization. Obtain clinical copy review and confirm illustration distribution rights.
-5. After validating the appointments slice, plan month view/reminders and the next prenatal records slice with an appropriate protected storage design.
+5. After validating the appointments slice, plan reminders and the next prenatal records slice with an appropriate protected storage design.
