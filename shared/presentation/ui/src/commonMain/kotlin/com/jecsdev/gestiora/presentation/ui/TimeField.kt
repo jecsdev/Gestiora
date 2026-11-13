@@ -16,6 +16,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,7 +26,11 @@ internal fun TimeField(value: String, enabled: Boolean, onValueChange: (String) 
     var open by remember { mutableStateOf(false) }
     Column {
         Text("Hora", style = MaterialTheme.typography.labelLarge)
-        OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text(value) }
+        OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().semantics {
+            contentDescription = "Hora: $value"
+        }) {
+            Text(value, modifier = Modifier.clearAndSetSemantics { })
+        }
     }
     if (open) {
         val state = rememberTimePickerState(

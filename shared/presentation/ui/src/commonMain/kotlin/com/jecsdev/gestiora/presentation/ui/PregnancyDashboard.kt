@@ -2,6 +2,8 @@ package com.jecsdev.gestiora.presentation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +21,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,9 +29,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
+import com.jecsdev.gestiora.domain.models.PregnancyAge
 import com.jecsdev.gestiora.domain.models.Appointment
 import com.jecsdev.gestiora.domain.models.AppointmentStatus
 import com.jecsdev.gestiora.presentation.viewmodels.AppointmentViewModel
@@ -42,7 +48,7 @@ internal fun upcomingAppointments(appointments: List<Appointment>, today: String
         .toList()
 
 @Composable
-fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, appointmentViewModel: AppointmentViewModel, onEdit: () -> Unit, followUpContent: @Composable () -> Unit = {}, onCalendar: (String?) -> Unit) {
+fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, appointmentViewModel: AppointmentViewModel, onEdit: () -> Unit, onBaby: () -> Unit, followUpContent: @Composable () -> Unit = {}, onCalendar: (String?) -> Unit) {
     val today = todayIsoDate()
     val age = viewModel.preview(profile.dating, today)
     var appointments by remember(appointmentViewModel) { mutableStateOf<List<Appointment>?>(null) }
@@ -70,24 +76,26 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
                     Text("Revisa las fechas de tu perfil.", style = MaterialTheme.typography.bodySmall)
                 } else {
                     Text("TRIMESTRE ${age.trimester} · SEMANA ACTUAL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Text("${age.weeks} sem", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
-                    Text("${age.days} días · ${age.weeks} sem ${age.days} d", style = MaterialTheme.typography.bodyMedium)
+                    PregnancyWeekIllustration(age)
                     Text("Tu recorrido · ${(age.progress * 100).toInt()}%", style = MaterialTheme.typography.labelMedium)
                     LinearProgressIndicator(progress = { age.progress.toFloat() }, modifier = Modifier.fillMaxWidth())
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text("FECHA PROBABLE", style = MaterialTheme.typography.labelSmall)
-                            Text(age.dueDate, fontWeight = FontWeight.Bold)
-                        }
-                        Column {
-                            Text("POR CONOCERTE", style = MaterialTheme.typography.labelSmall)
-                            Text("${age.daysLeft.coerceAtLeast(0)} días", fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    PregnancyDateSummary(age)
                 }
             }
         }
         Button(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text("Editar mi perfil y fechas") }
+        if (age != null) {
+            Text(if (age.weeks in 4..40) "Esta semana" else "Explora su desarrollo", style = MaterialTheme.typography.titleLarge)
+            TextButton(onClick = onBaby) { Text("Ver bebé") }
+            Card(onClick = onBaby, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp)) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (age.weeks !in 4..40) Text("Tu semana actual es ${age.weeks}. Referencia educativa de la semana ${age.weeks.coerceIn(4, 40)}; el explorador cubre las semanas 4 a 40.", style = MaterialTheme.typography.bodySmall)
+                    val stage = babyStage(age.weeks)
+                    Text("Tamaño aproximado de ${stage.size}", style = MaterialTheme.typography.titleMedium)
+                    Text(stage.text, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
         Text("Próximas citas", style = MaterialTheme.typography.titleLarge)
         when {
             loadError -> {
@@ -108,5 +116,58 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
         OutlinedButton(onClick = { onCalendar(null) }, modifier = Modifier.fillMaxWidth()) { Text("Ver calendario") }
         followUpContent()
         Text("Información orientativa. Gestiora no diagnostica; consulta siempre a tu equipo de salud.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun PregnancyWeekIllustration(age: PregnancyAge) {
+    val fontScale = LocalDensity.current.fontScale
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val stacked = maxWidth < 320.dp || fontScale > 1.2f
+        val summary: @Composable () -> Unit = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("${age.weeks} sem", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
+                Text("${age.days} días · ${age.weeks} sem ${age.days} d", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        val illustration: @Composable () -> Unit = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                BabyIllustration(age.weeks, Modifier.size(if (stacked) 160.dp else 128.dp))
+                Text("Referencia: semana ${babyReferenceWeek(age.weeks)}", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+        if (stacked) Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            summary()
+            illustration()
+        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) { summary() }
+            illustration()
+        }
+    }
+}
+
+@Composable
+private fun PregnancyDateSummary(age: PregnancyAge) {
+    val fontScale = LocalDensity.current.fontScale
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val due: @Composable () -> Unit = {
+            Column {
+                Text("FECHA PROBABLE", style = MaterialTheme.typography.labelSmall)
+                Text(age.dueDate, fontWeight = FontWeight.Bold)
+            }
+        }
+        val remaining: @Composable () -> Unit = {
+            Column {
+                Text("POR CONOCERTE", style = MaterialTheme.typography.labelSmall)
+                Text("${age.daysLeft.coerceAtLeast(0)} días", fontWeight = FontWeight.Bold)
+            }
+        }
+        if (maxWidth < 320.dp || fontScale > 1.2f) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            due()
+            remaining()
+        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            due()
+            remaining()
+        }
     }
 }

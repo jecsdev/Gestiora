@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.*
@@ -13,14 +14,14 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNavigationLockChange: (Boolean) -> Unit) {
-    val scope = rememberCoroutineScope()
-    var conditions by remember { mutableStateOf<List<MedicalCondition>?>(null) }
-    var loadError by remember { mutableStateOf(false) }
-    var operationError by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<MedicalCondition?>(null) }
-    var deleting by remember { mutableStateOf<MedicalCondition?>(null) }
-    var discard by remember { mutableStateOf(false) }
+    val scope = retainedOperationScope()
+    var conditions by retain { mutableStateOf<List<MedicalCondition>?>(null) }
+    var loadError by retain { mutableStateOf(false) }
+    var operationError by retain { mutableStateOf(false) }
+    var busy by retain { mutableStateOf(false) }
+    var editing by retain { mutableStateOf<MedicalCondition?>(null) }
+    var deleting by retain { mutableStateOf<MedicalCondition?>(null) }
+    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         conditions = result.getOrNull()
@@ -128,16 +129,16 @@ private fun MedicalConditionDetail(label: String, value: String) {
 
 @Composable
 private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (MedicalCondition) -> Unit) {
-    var name by remember(initial) { mutableStateOf(initial.name) }
-    var date by remember(initial) { mutableStateOf(initial.date) }
-    var professional by remember(initial) { mutableStateOf(initial.professional) }
-    var instructions by remember(initial) { mutableStateOf(initial.instructions.orEmpty()) }
-    var treatment by remember(initial) { mutableStateOf(initial.treatment.orEmpty()) }
-    var monitoring by remember(initial) { mutableStateOf(initial.monitoring.orEmpty()) }
-    var followUp by remember(initial) { mutableStateOf(initial.followUp.orEmpty()) }
-    var status by remember(initial) { mutableStateOf(initial.status) }
-    var notes by remember(initial) { mutableStateOf(initial.notes.orEmpty()) }
-    var invalid by remember(initial) { mutableStateOf(false) }
+    var name by retain(initial) { mutableStateOf(initial.name) }
+    var date by retain(initial) { mutableStateOf(initial.date) }
+    var professional by retain(initial) { mutableStateOf(initial.professional) }
+    var instructions by retain(initial) { mutableStateOf(initial.instructions.orEmpty()) }
+    var treatment by retain(initial) { mutableStateOf(initial.treatment.orEmpty()) }
+    var monitoring by retain(initial) { mutableStateOf(initial.monitoring.orEmpty()) }
+    var followUp by retain(initial) { mutableStateOf(initial.followUp.orEmpty()) }
+    var status by retain(initial) { mutableStateOf(initial.status) }
+    var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
+    var invalid by retain(initial) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva condición" else "Editar condición", style = MaterialTheme.typography.headlineLarge)
         Text("Solo condiciones y riesgos indicados por un profesional de salud. Gestiora no identifica ni diagnostica riesgos.", style = MaterialTheme.typography.bodySmall)

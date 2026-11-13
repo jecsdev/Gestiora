@@ -20,10 +20,10 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -51,10 +51,10 @@ internal fun NavigationShell(
     onDestinationChange: (AppDestination) -> Unit,
     onEdit: () -> Unit,
 ) {
-    var navigationLocked by remember { mutableStateOf(false) }
-    var calendarDate by remember { mutableStateOf<String?>(null) }
-    var notesStatus by remember { mutableStateOf<NoteTaskStatus?>(null) }
-    var openConditions by remember { mutableStateOf(false) }
+    var navigationLocked by retain { mutableStateOf(false) }
+    var calendarDate by retain { mutableStateOf<String?>(null) }
+    var notesStatus by retain { mutableStateOf<NoteTaskStatus?>(null) }
+    var openConditions by retain { mutableStateOf(false) }
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
@@ -74,7 +74,7 @@ internal fun NavigationShell(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             when (destination) {
-                AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onEdit, followUpContent = {
+                AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onEdit, onBaby = { onDestinationChange(AppDestination.Baby) }, followUpContent = {
                     PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
                         openConditions = false
                         notesStatus = NoteTaskStatus.PENDING

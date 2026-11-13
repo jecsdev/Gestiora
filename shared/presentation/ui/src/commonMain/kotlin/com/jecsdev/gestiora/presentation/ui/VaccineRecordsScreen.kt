@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.*
@@ -13,14 +14,14 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun VaccineRecordsScreen(viewModel: VaccineRecordViewModel, onNavigationLockChange: (Boolean) -> Unit) {
-    val scope = rememberCoroutineScope()
-    var vaccines by remember { mutableStateOf<List<VaccineRecord>?>(null) }
-    var loadError by remember { mutableStateOf(false) }
-    var operationError by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<VaccineRecord?>(null) }
-    var deleting by remember { mutableStateOf<VaccineRecord?>(null) }
-    var discard by remember { mutableStateOf(false) }
+    val scope = retainedOperationScope()
+    var vaccines by retain { mutableStateOf<List<VaccineRecord>?>(null) }
+    var loadError by retain { mutableStateOf(false) }
+    var operationError by retain { mutableStateOf(false) }
+    var busy by retain { mutableStateOf(false) }
+    var editing by retain { mutableStateOf<VaccineRecord?>(null) }
+    var deleting by retain { mutableStateOf<VaccineRecord?>(null) }
+    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         vaccines = result.getOrNull()
@@ -130,16 +131,16 @@ private fun VaccineRecordDetail(label: String, value: String) {
 
 @Composable
 private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (VaccineRecord) -> Unit) {
-    var name by remember(initial) { mutableStateOf(initial.name) }
-    var dose by remember(initial) { mutableStateOf(initial.dose.orEmpty()) }
-    var scheduled by remember(initial) { mutableStateOf(initial.scheduled.orEmpty()) }
-    var administered by remember(initial) { mutableStateOf(initial.administered.orEmpty()) }
-    var status by remember(initial) { mutableStateOf(initial.status) }
-    var provider by remember(initial) { mutableStateOf(initial.provider.orEmpty()) }
-    var location by remember(initial) { mutableStateOf(initial.location.orEmpty()) }
-    var proof by remember(initial) { mutableStateOf(initial.proof.orEmpty()) }
-    var notes by remember(initial) { mutableStateOf(initial.notes.orEmpty()) }
-    var invalid by remember(initial) { mutableStateOf(false) }
+    var name by retain(initial) { mutableStateOf(initial.name) }
+    var dose by retain(initial) { mutableStateOf(initial.dose.orEmpty()) }
+    var scheduled by retain(initial) { mutableStateOf(initial.scheduled.orEmpty()) }
+    var administered by retain(initial) { mutableStateOf(initial.administered.orEmpty()) }
+    var status by retain(initial) { mutableStateOf(initial.status) }
+    var provider by retain(initial) { mutableStateOf(initial.provider.orEmpty()) }
+    var location by retain(initial) { mutableStateOf(initial.location.orEmpty()) }
+    var proof by retain(initial) { mutableStateOf(initial.proof.orEmpty()) }
+    var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
+    var invalid by retain(initial) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva vacuna" else "Editar vacuna", style = MaterialTheme.typography.headlineLarge)
         VaccineRecordTextField("Vacuna", name, 512, busy, invalid && name.isBlank()) { name = it }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.*
@@ -13,14 +14,14 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLockChange: (Boolean) -> Unit) {
-    val scope = rememberCoroutineScope()
-    var records by remember { mutableStateOf<List<VitalRecord>?>(null) }
-    var loadError by remember { mutableStateOf(false) }
-    var operationError by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<VitalRecord?>(null) }
-    var deleting by remember { mutableStateOf<VitalRecord?>(null) }
-    var discard by remember { mutableStateOf(false) }
+    val scope = retainedOperationScope()
+    var records by retain { mutableStateOf<List<VitalRecord>?>(null) }
+    var loadError by retain { mutableStateOf(false) }
+    var operationError by retain { mutableStateOf(false) }
+    var busy by retain { mutableStateOf(false) }
+    var editing by retain { mutableStateOf<VitalRecord?>(null) }
+    var deleting by retain { mutableStateOf<VitalRecord?>(null) }
+    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         records = result.getOrNull()
@@ -138,15 +139,15 @@ private fun LatestVitalSummaries(records: List<VitalRecord>) {
 
 @Composable
 private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (VitalRecord) -> Unit) {
-    var date by remember(initial) { mutableStateOf(initial.date) }
-    var type by remember(initial) { mutableStateOf(initial.type) }
-    var value by remember(initial) { mutableStateOf(initial.value?.let(::formatVitalNumber).orEmpty()) }
-    var value2 by remember(initial) { mutableStateOf(initial.value2?.let(::formatVitalNumber).orEmpty()) }
-    var label by remember(initial) { mutableStateOf(initial.label.orEmpty()) }
-    var text by remember(initial) { mutableStateOf(initial.text.orEmpty()) }
-    var notes by remember(initial) { mutableStateOf(initial.notes.orEmpty()) }
-    var invalid by remember(initial) { mutableStateOf(false) }
-    var typeMenu by remember(initial) { mutableStateOf(false) }
+    var date by retain(initial) { mutableStateOf(initial.date) }
+    var type by retain(initial) { mutableStateOf(initial.type) }
+    var value by retain(initial) { mutableStateOf(initial.value?.let(::formatVitalNumber).orEmpty()) }
+    var value2 by retain(initial) { mutableStateOf(initial.value2?.let(::formatVitalNumber).orEmpty()) }
+    var label by retain(initial) { mutableStateOf(initial.label.orEmpty()) }
+    var text by retain(initial) { mutableStateOf(initial.text.orEmpty()) }
+    var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
+    var invalid by retain(initial) { mutableStateOf(false) }
+    var typeMenu by retain(initial) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nuevo registro de salud" else "Editar registro de salud", style = MaterialTheme.typography.headlineLarge)
         DateField("Fecha", date, enabled = !busy) { date = it }

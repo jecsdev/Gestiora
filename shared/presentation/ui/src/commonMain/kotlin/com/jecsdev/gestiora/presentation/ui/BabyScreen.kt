@@ -1,6 +1,5 @@
 package com.jecsdev.gestiora.presentation.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,7 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,15 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
-import gestiora.shared.presentation.ui.generated.resources.Res
-import gestiora.shared.presentation.ui.generated.resources.embryo_week_04
-import gestiora.shared.presentation.ui.generated.resources.embryo_week_08
-import gestiora.shared.presentation.ui.generated.resources.fetus_week_12
-import gestiora.shared.presentation.ui.generated.resources.fetus_week_16
-import gestiora.shared.presentation.ui.generated.resources.fetus_week_20
-import gestiora.shared.presentation.ui.generated.resources.fetus_week_28
-import gestiora.shared.presentation.ui.generated.resources.fetus_week_36
-import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
 
 internal data class BabyStage(val from: Int, val size: String, val text: String, val milestones: List<String>)
@@ -65,19 +55,10 @@ internal fun babyReferenceWeek(week: Int): Int = listOf(36, 28, 20, 16, 12, 8, 4
 fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
     val actualWeek = viewModel.preview(profile.dating, todayIsoDate())?.weeks
     val nearestWeek = actualWeek?.coerceIn(4, 40)
-    var chosen by remember(profile.dating) { mutableStateOf<Int?>(null) }
+    var chosen by retain(profile.dating) { mutableStateOf<Int?>(null) }
     val week = chosen ?: nearestWeek ?: 4
     val stage = babyStage(week)
     val referenceWeek = babyReferenceWeek(week)
-    val image = when (referenceWeek) {
-        4 -> Res.drawable.embryo_week_04
-        8 -> Res.drawable.embryo_week_08
-        12 -> Res.drawable.fetus_week_12
-        16 -> Res.drawable.fetus_week_16
-        20 -> Res.drawable.fetus_week_20
-        28 -> Res.drawable.fetus_week_28
-        else -> Res.drawable.fetus_week_36
-    }
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeContentPadding()
             .verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 20.dp),
@@ -90,12 +71,12 @@ fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
         Card(shape = RoundedCornerShape(30.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Explora su desarrollo", style = MaterialTheme.typography.labelMedium)
+                Text("Semana $week", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(onClick = { chosen = week - 1 }, enabled = week > 4, modifier = Modifier.semantics { contentDescription = "Semana anterior" }) { Text("‹") }
-                    Text("Semana $week", style = MaterialTheme.typography.titleLarge)
                     OutlinedButton(onClick = { chosen = week + 1 }, enabled = week < 40, modifier = Modifier.semantics { contentDescription = "Semana siguiente" }) { Text("›") }
                 }
-                Image(painterResource(image), contentDescription = "Ilustración fetal orientativa de la etapa de la semana $referenceWeek, no una ecografía", modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp))
+                BabyIllustration(week, Modifier.fillMaxWidth().heightIn(max = 280.dp))
                 Text("Etapa ilustrativa de referencia: semana $referenceWeek · No representa medidas exactas.", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
                 Slider(value = week.toFloat(), onValueChange = { chosen = it.roundToInt().coerceIn(4, 40) }, valueRange = 4f..40f, steps = 35, modifier = Modifier.semantics { contentDescription = "Semana del embarazo" })
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

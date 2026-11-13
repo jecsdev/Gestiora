@@ -6,6 +6,12 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 ## Completed features
 
+- Home/Baby parity: shared BabyIllustration uses the existing seven bundled assets and reference-week mapping. Home hero shows actual gestational week next to the labeled reference illustration; weekly stage card and Ver bebé both open Mi bebé. Invalid/unknown pregnancy age hides the illustration/stage card; out-of-explorer-range weeks remain explicit rather than silently replaced. Hero and due-date summaries stack below320dp content width or fontScale>1.2. Baby explorer keeps its chosen week in RAM across configuration recreation and places its title above the two navigation buttons.
+
+- MVP flow hardening: onboarding/profile System Back shares the visible Back policy, moves through steps, consumes Back during save and confirms discard when leaving profile editing. Personal-detail changes can preserve existing historical pregnancy dates outside the ongoing window, matching the React profile flow; new/changed dates still validate against the current day when submitted. Date/time button accessibility labels now identify their field and selected value, retaining native button semantics without duplicate child text.
+
+- Draft/configuration lifecycle: onboarding/profile, appointments and all six Records sections use in-memory Compose retain for user drafts/editing/error/busy states. Root and tab/navigation selectors retained. Koin graph and operation scopes are retained so the same repositories/mutexes and in-flight writes continue across configuration changes. Root preserves Ready/Empty and does not briefly remove drafts during reload; profile saves launch from events, without LaunchedEffect replay.
+
 - Examinations/results: protected local CRUD for five study types and three statuses, request/scheduled/completion dates, requesting physician, supplied results, medical notes and document text reference. Completion requires its date; changing status retains historical completion until explicitly cleared. All six Records sections now have local CRUD; remaining parity/platform work is listed below.
 
 - Vaccinations: protected local CRUD with four statuses, optional scheduled date, required application date when Applied, dose/provider/location, proof text reference and notes. Historical application dates remain editable and preserved after status changes unless explicitly cleared. Vacunas tab keeps existing Records routing/locks.
@@ -38,6 +44,12 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 ## Files and modules modified
 
+- BabyIllustration.kt, PregnancyDashboard.kt, BabyScreen.kt and NavigationShell.kt for shared artwork, weekly card/navigation, adaptive layout and selected-week retention.
+
+- OnboardingPolicy.kt/OnboardingPolicyTest.kt, OnboardingScreen.kt, DateField.kt and TimeField.kt for Back/discard, historical dating preservation and accessible button labels.
+
+- RetainedResources.kt and RetainedResourcesTest.kt; App.kt, NavigationShell.kt, RecordsScreen.kt, OnboardingScreen.kt and all seven record/appointment screens. No domain/data changes or new dependencies.
+
 - ExamRecord/ExamKind/ExamStatus, repository/use case/ViewModel and DI, strict codec/repository, isolated secure platform adapters; ExamRecordsScreen/draft/tests and Records Estudios tab.
 
 - VaccineRecord/VaccineStatus, repository contract/use case/ViewModel and DI, strict codec/repository, isolated secure platform adapters; VaccineRecordsScreen/draft/tests and Records tab.
@@ -66,6 +78,11 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Existing user change in `.gitignore` was left untouched.
 
 ## Decisions and rationale
+
+- Changing personal profile fields must not require inventing new pregnancy dates for a historical profile. Compare effective inputs for the selected dating method; if unchanged, keep the original dating object including inactive fields. Null referenceDays originally displays as zero and is treated accordingly; clearing the displayed value is not an unchanged input. The initial onboarding welcome still uses normal platform Back; unsaved process-exit recovery remains unsupported. Profile field-length policy is unchanged (codec16,384 chars); no new512-char cap was introduced.
+
+- Use Compose runtime-retain already exported by the installed Compose UI. Explicit draft values live in RAM, without SavedStateHandle/rememberSaveable serialization. App also provides a null LocalSaveableStateRegistry so Material picker internals do not serialize medical dates/time; scroll position and unconfirmed picker dialogs may reset. RetainObserver resources cancel/close onRetired/onUnused, not onExitedComposition (configuration handoff). KoinIsolatedContext wraps the retained local graph, keeping one repository/mutex instance. Android bindings use applicationContext. Unsaved drafts intentionally do not survive process death or finishing the Activity.
+- User deferred login/cloud synchronization and advertisement sections until the current local MVP/stability work is complete.
 
 - Study completion requires a valid completion date; request/scheduled dates are optional and validated if supplied. Historical completion survives status changes. Results are supplied text, never automatically interpreted. Attachments are text references; no file upload. No invented chronological constraints are added.
 
@@ -106,7 +123,7 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 - Health records have calendar dates without a time. Same-day summary ties use a deterministic ID order and cannot establish the actual most recent measurement time. Prototype numeric input bounds are retained; clinical review and physical-device validation remain pending. Vitals storage is isolated: Android pregnancy_vitals.gpr / com.jecsdev.gestiora.vitalRecords.v1 (GVT01 authenticated envelope), iOS service com.jecsdev.gestiora.vitalRecords / pregnancy-vitals-v1. Codec v1 limits 1,000 records, 1,000,000 payload characters, ID128, label512, text/notes4096.
 
-- Draft forms/navigation currently use Compose remember state. Activity recreation (for example rotation) can lose unsaved input and return to Home without a discard prompt; this affects existing forms, consultations, health-record and condition forms. Preserve draft/navigation lifecycle state in a dedicated follow-up before release.
+- Draft/navigation retention across configuration recreation is implemented but not verified on a real Activity/device. Host tests cover the actual retention store and resource callbacks, not the Android owner or rendered forms. Process-death recovery of unsaved drafts is unsupported by design. Unconfirmed date/time dialogs and scroll positions may reset after recreation.
 - Consultations: attachment references and appointment linking are not implemented. Android protected-store and Compose interaction need physical-device validation; iOS Keychain adapter remains uncompiled on Windows.
 
 - Profile, appointments, notes, consultations, health records, conditions, vaccinations and examinations are persisted locally. Sync, export/recovery, demo/account branches and account deletion are not implemented; no backup or device transfer is available.
@@ -121,6 +138,12 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Prototype localStorage is unencrypted and its cloud sync is last-write-wins; do not port either behavior blindly for medical data.
 
 ## Tests and build
+
+- Home/Baby parity (2026-11-12 local): `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed, 25 UI host tests/0 failures. Existing baby-stage/reference boundary and upcoming-appointment tests remain passing. No extra tests were added to mirror reversible visual changes. Read-only review confirmed asset mapping, null/out-of-range handling and Baby callback wiring. Layout thresholds are implementation choices, not visually verified measurements. ADB devices and mDNS reported no available phone/service; no screenshot, TalkBack or click/rotation interaction test performed. iOS remains uncompiled.
+
+- MVP flow hardening (2026-11-12 local): Android debug build and `:shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed, 25 UI host tests/0 failures. Three new policy tests cover saving/back/discard/step decisions, preserving historical/inactive dating fields and null-day normalization, and requiring ongoing validation for new/changed dates. Read-only review found and prompted submit-time date revalidation to avoid a stale day at final confirmation. Accessibility semantics compile but TalkBack and actual Back/dialog interactions are not device-verified. ADB devices and mDNS both listed no available phone/service.
+
+- Draft retention (2026-11-12): `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed; 22 UI host tests, 0 failures. Three new tests directly exercise ManagedRetainedValuesStore, draft identity/content, same Koin singleton, an in-flight suspended write completing once, retirement/unconsumed-resource cleanup and abandoned-resource cleanup. An attempted host Composition integration failed on Android Log stubs; it was replaced by real-store lifecycle tests without adding mocks or test frameworks. A test lifecycle setup mistake (exit before enter) was corrected, then the full command passed. No real Activity recreation or physical UI test performed. Wi-Fi ADB service advertised the phone but connection timed out (10060). iOS not compiled.
 
 - Examinations/results (2026-11-12): Android debug build and repository/ViewModel/UI Android host tasks passed (`--offline --no-configuration-cache`). Four new repository tests cover CRUD/concurrency/reload, kind/status combinations/nulls/Unicode/limits, required completion dates and historical retention, invalid payloads/enums/versions and I/O non-overwrite. One ViewModel test covers IDs/CRUD/errors/cancellation; two draft tests cover fields/dates/limits/status retention and explicit clearing. Read-only review found no new blockers. ADB devices listed no devices; mDNS advertised the known Samsung phone, but connecting to its advertised endpoint failed with connection refused (10061). No install or device test performed; iOS remains uncompiled.
 
@@ -165,4 +188,4 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 4. Verify navigation, baby explorer, date picker and typography on the physical device, including accessibility and localization. Obtain clinical copy review and confirm illustration distribution rights.
 5. After validating the appointments slice, plan reminders and the next prenatal records slice with an appropriate protected storage design.
 
-Next notes checks: physical-device CRUD, discard/delete confirmations, follow-up dates, restart persistence and tamper/error behavior. Compile/test notes Keychain on macOS. Next MVP-local work: preserve form/navigation drafts across Activity recreation, then physical-device UI/persistence/navigation/accessibility checks against the prototype. Actual document attachments, appointment links and standalone reminders remain deferred; auth/sync is a later slice.
+Next notes checks: physical-device CRUD, discard/delete confirmations, follow-up dates, restart persistence and tamper/error behavior. Compile/test notes Keychain on macOS. Next MVP-local work: validate the implemented draft retention with real Activity recreation (including in-flight save/delete, Ready/Empty root, section routing and explicit discard), then physical-device UI/persistence/navigation/accessibility checks against the prototype. Actual document attachments, appointment links and standalone reminders remain deferred; auth/sync is a later slice.

@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,16 +29,16 @@ private fun NoteTaskStatus.label() = when (this) {
 
 @Composable
 internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus: NoteTaskStatus? = null, onNavigationLockChange: (Boolean) -> Unit) {
-    val scope = rememberCoroutineScope()
-    var notes by remember { mutableStateOf<List<PrenatalNote>?>(null) }
-    var loadError by remember { mutableStateOf(false) }
-    var operationError by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<PrenatalNote?>(null) }
-    var deleting by remember { mutableStateOf<PrenatalNote?>(null) }
-    var discard by remember { mutableStateOf(false) }
-    var query by remember { mutableStateOf("") }
-    var statusFilter by remember { mutableStateOf(initialStatus) }
+    val scope = retainedOperationScope()
+    var notes by retain { mutableStateOf<List<PrenatalNote>?>(null) }
+    var loadError by retain { mutableStateOf(false) }
+    var operationError by retain { mutableStateOf(false) }
+    var busy by retain { mutableStateOf(false) }
+    var editing by retain { mutableStateOf<PrenatalNote?>(null) }
+    var deleting by retain { mutableStateOf<PrenatalNote?>(null) }
+    var discard by retain { mutableStateOf(false) }
+    var query by retain { mutableStateOf("") }
+    var statusFilter by retain { mutableStateOf(initialStatus) }
     suspend fun reload() {
         val result = viewModel.load()
         notes = result.getOrNull()
@@ -145,12 +146,12 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
 
 @Composable
 private fun PrenatalNoteForm(initial: PrenatalNote, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (PrenatalNote) -> Unit) {
-    var title by remember(initial) { mutableStateOf(initial.title) }
-    var body by remember(initial) { mutableStateOf(initial.body.orEmpty()) }
-    var category by remember(initial) { mutableStateOf(initial.category) }
-    var status by remember(initial) { mutableStateOf(initial.status) }
-    var followUp by remember(initial) { mutableStateOf(initial.followUp.orEmpty()) }
-    var invalid by remember(initial) { mutableStateOf(false) }
+    var title by retain(initial) { mutableStateOf(initial.title) }
+    var body by retain(initial) { mutableStateOf(initial.body.orEmpty()) }
+    var category by retain(initial) { mutableStateOf(initial.category) }
+    var status by retain(initial) { mutableStateOf(initial.status) }
+    var followUp by retain(initial) { mutableStateOf(initial.followUp.orEmpty()) }
+    var invalid by retain(initial) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva nota" else "Editar nota", style = MaterialTheme.typography.headlineLarge)
         OutlinedTextField(title, { title = it }, label = { Text("Título") }, singleLine = true, enabled = !busy, isError = title.length > 512, supportingText = { Text("${title.length}/512") }, modifier = Modifier.fillMaxWidth())

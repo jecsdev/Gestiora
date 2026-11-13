@@ -19,11 +19,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -50,18 +49,18 @@ private fun AppointmentReminder.label(): String = when (this) {
 
 @Composable
 internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: String?, onNavigationLockChange: (Boolean) -> Unit) {
-    val scope = rememberCoroutineScope()
-    var appointments by remember { mutableStateOf<List<Appointment>?>(null) }
-    var loadError by remember { mutableStateOf(false) }
-    var operationError by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<Appointment?>(null) }
-    var deleting by remember { mutableStateOf<Appointment?>(null) }
-    var confirmDiscard by remember { mutableStateOf(false) }
+    val scope = retainedOperationScope()
+    var appointments by retain { mutableStateOf<List<Appointment>?>(null) }
+    var loadError by retain { mutableStateOf(false) }
+    var operationError by retain { mutableStateOf(false) }
+    var busy by retain { mutableStateOf(false) }
+    var editing by retain { mutableStateOf<Appointment?>(null) }
+    var deleting by retain { mutableStateOf<Appointment?>(null) }
+    var confirmDiscard by retain { mutableStateOf(false) }
     val today = todayIsoDate()
     val validInitialDate = initialDate?.takeIf { isoToUtcMillis(it) != null }
-    var selectedDate by remember { mutableStateOf(validInitialDate.orEmpty()) }
-    var displayedMonth by remember { mutableStateOf((validInitialDate ?: today).take(7)) }
+    var selectedDate by retain { mutableStateOf(validInitialDate.orEmpty()) }
+    var displayedMonth by retain { mutableStateOf((validInitialDate ?: today).take(7)) }
 
     AppointmentBackHandler(enabled = busy || editing != null || deleting != null) {
         when {
@@ -207,16 +206,16 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
 
 @Composable
 private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (Appointment) -> Unit) {
-    var date by remember(initial) { mutableStateOf(initial.date) }
-    var time by remember(initial) { mutableStateOf(initial.time) }
-    var doctor by remember(initial) { mutableStateOf(initial.doctor) }
-    var specialty by remember(initial) { mutableStateOf(initial.specialty) }
-    var clinic by remember(initial) { mutableStateOf(initial.clinic) }
-    var reason by remember(initial) { mutableStateOf(initial.reason) }
-    var notes by remember(initial) { mutableStateOf(initial.notes.orEmpty()) }
-    var status by remember(initial) { mutableStateOf(initial.status) }
-    var reminder by remember(initial) { mutableStateOf(initial.reminder) }
-    var invalid by remember(initial) { mutableStateOf(false) }
+    var date by retain(initial) { mutableStateOf(initial.date) }
+    var time by retain(initial) { mutableStateOf(initial.time) }
+    var doctor by retain(initial) { mutableStateOf(initial.doctor) }
+    var specialty by retain(initial) { mutableStateOf(initial.specialty) }
+    var clinic by retain(initial) { mutableStateOf(initial.clinic) }
+    var reason by retain(initial) { mutableStateOf(initial.reason) }
+    var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
+    var status by retain(initial) { mutableStateOf(initial.status) }
+    var reminder by retain(initial) { mutableStateOf(initial.reminder) }
+    var invalid by retain(initial) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva cita" else "Editar cita", style = MaterialTheme.typography.headlineLarge)
         DateField("Fecha", date, enabled = !busy) { date = it }

@@ -17,6 +17,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 /** Stores calendar days as ISO strings; picker milliseconds are always UTC midnight. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,8 +35,10 @@ internal fun DateField(
     var open by remember { mutableStateOf(false) }
     Column {
         Text(label, style = MaterialTheme.typography.labelLarge)
-        OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-            Text(value.ifEmpty { "Seleccionar fecha" })
+        OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().semantics {
+            contentDescription = "$label: ${value.ifEmpty { "Seleccionar fecha" }}"
+        }) {
+            Text(value.ifEmpty { "Seleccionar fecha" }, modifier = Modifier.clearAndSetSemantics { })
         }
         if (clearable && value.isNotEmpty()) {
             TextButton(onClick = { onValueChange("") }, enabled = enabled) { Text("Borrar fecha: $label") }

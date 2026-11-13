@@ -12,11 +12,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.retain.retain
+import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,58 +28,62 @@ import com.jecsdev.gestiora.core.ui.AppTheme
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileLoad
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
-import org.koin.compose.KoinApplication
+import org.koin.compose.KoinIsolatedContext
 import org.koin.compose.koinInject
 import org.koin.core.module.Module
-import org.koin.dsl.koinConfiguration
+import kotlinx.coroutines.launch
 
 @Composable
 fun App(platformModules: List<Module> = emptyList()) {
-    KoinApplication(configuration = koinConfiguration { modules(CoreDependencyInjection.modules + platformModules) }) {
-        AppTheme { ProfileRoot(koinInject()) }
+    val graph = retain { RetainedAppGraph(CoreDependencyInjection.modules + platformModules) }
+    KoinIsolatedContext(context = graph.application) {
+        // Material controls also use rememberSaveable internally. Medical drafts stay in RAM.
+        CompositionLocalProvider(LocalSaveableStateRegistry provides null) {
+            AppTheme { ProfileRoot(koinInject()) }
+        }
     }
 }
 
 @Composable
 private fun ProfileRoot(viewModel: ProfileViewModel) {
-    var loadAttempt by remember { mutableIntStateOf(0) }
-    var state by remember { mutableStateOf<ProfileLoad>(ProfileLoad.Loading) }
-    var editing by remember { mutableStateOf(false) }
-    var destination by remember { mutableStateOf(AppDestination.Home) }
-    var pendingSave by remember { mutableStateOf<PregnancyProfile?>(null) }
-    var saving by remember { mutableStateOf(false) }
-    var saveFailed by remember { mutableStateOf(false) }
+    var loadAttempt by retain { mutableIntStateOf(0) }
+    var state by retain { mutableStateOf<ProfileLoad>(ProfileLoad.Loading) }
+    var editing by retain { mutableStateOf(false) }
+    var destination by retain { mutableStateOf(AppDestination.Home) }
+    var saving by retain { mutableStateOf(false) }
+    var saveFailed by retain { mutableStateOf(false) }
 
-    LaunchedEffect(viewModel, loadAttempt) {
-        state = ProfileLoad.Loading
-        state = viewModel.load()
+    val operations = retainedOperationScope()
+    LaunchedEffect(loadAttempt) {
+        // Recreating a Ready/Empty root must not remove the retained form subtree.
+        if (state == ProfileLoad.Loading) state = viewModel.load()
     }
-    LaunchedEffect(pendingSave) {
-        val profile = pendingSave ?: return@LaunchedEffect
+    fun save(profile: PregnancyProfile) {
+        if (saving) return
         saving = true
-        if (viewModel.save(profile)) {
-            state = ProfileLoad.Ready(profile)
-            editing = false
-            saveFailed = false
-        } else {
-            saveFailed = true
+        saveFailed = false
+        operations.launch {
+            try {
+                if (viewModel.save(profile)) {
+                    state = ProfileLoad.Ready(profile)
+                    editing = false
+                } else saveFailed = true
+            } finally { saving = false }
         }
-        saving = false
-        pendingSave = null
     }
 
     when (val current = state) {
         ProfileLoad.Loading -> CenterMessage { CircularProgressIndicator() }
         ProfileLoad.Error -> CenterMessage {
             Text("No pudimos leer tu perfil. Tus datos no se han borrado.", style = MaterialTheme.typography.bodyLarge)
-            Button(onClick = { loadAttempt++ }) { Text("Reintentar") }
+            Button(onClick = { state = ProfileLoad.Loading; loadAttempt++ }) { Text("Reintentar") }
         }
         ProfileLoad.Empty -> OnboardingScreen(
             initialProfile = null,
             viewModel = viewModel,
             saving = saving,
             saveFailed = saveFailed,
-            onSave = { saveFailed = false; pendingSave = it },
+            onSave = ::save,
         )
         is ProfileLoad.Ready -> if (editing) {
             OnboardingScreen(
@@ -85,7 +91,7 @@ private fun ProfileRoot(viewModel: ProfileViewModel) {
                 viewModel = viewModel,
                 saving = saving,
                 saveFailed = saveFailed,
-                onSave = { saveFailed = false; pendingSave = it },
+                onSave = ::save,
                 onCancel = { editing = false; saveFailed = false },
             )
         } else {

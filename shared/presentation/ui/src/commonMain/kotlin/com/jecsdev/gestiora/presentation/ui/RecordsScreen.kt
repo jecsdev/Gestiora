@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -18,8 +19,8 @@ import org.koin.compose.koinInject
 
 @Composable
 internal fun RecordsScreen(initialNotesStatus: NoteTaskStatus?, initialConditions: Boolean = false, onNavigationLockChange: (Boolean) -> Unit) {
-    var selected by remember { mutableStateOf(if (initialNotesStatus != null) RecordSection.NOTES else if (initialConditions) RecordSection.CONDITIONS else RecordSection.HEALTH) }
-    var locked by remember { mutableStateOf(false) }
+    var selected by retain { mutableStateOf(if (initialNotesStatus != null) RecordSection.NOTES else if (initialConditions) RecordSection.CONDITIONS else RecordSection.HEALTH) }
+    var locked by retain { mutableStateOf(false) }
     val lock: (Boolean) -> Unit = { locked = it; onNavigationLockChange(it) }
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

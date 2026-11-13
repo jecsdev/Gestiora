@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -13,14 +14,14 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationLockChange: (Boolean) -> Unit) {
-    val scope = rememberCoroutineScope()
-    var consultations by remember { mutableStateOf<List<Consultation>?>(null) }
-    var loadError by remember { mutableStateOf(false) }
-    var operationError by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<Consultation?>(null) }
-    var deleting by remember { mutableStateOf<Consultation?>(null) }
-    var discard by remember { mutableStateOf(false) }
+    val scope = retainedOperationScope()
+    var consultations by retain { mutableStateOf<List<Consultation>?>(null) }
+    var loadError by retain { mutableStateOf(false) }
+    var operationError by retain { mutableStateOf(false) }
+    var busy by retain { mutableStateOf(false) }
+    var editing by retain { mutableStateOf<Consultation?>(null) }
+    var deleting by retain { mutableStateOf<Consultation?>(null) }
+    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         consultations = result.getOrNull()
@@ -127,16 +128,16 @@ private fun ConsultationDetail(label: String, value: String) {
 
 @Composable
 private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (Consultation) -> Unit) {
-    var date by remember(initial) { mutableStateOf(initial.date) }
-    var ga by remember(initial) { mutableStateOf(initial.gestationalAge.orEmpty()) }
-    var doctor by remember(initial) { mutableStateOf(initial.doctor.orEmpty()) }
-    var observations by remember(initial) { mutableStateOf(initial.observations.orEmpty()) }
-    var instructions by remember(initial) { mutableStateOf(initial.instructions.orEmpty()) }
-    var medications by remember(initial) { mutableStateOf(initial.medications.orEmpty()) }
-    var exams by remember(initial) { mutableStateOf(initial.exams.orEmpty()) }
-    var followUp by remember(initial) { mutableStateOf(initial.followUp.orEmpty()) }
-    var nextDate by remember(initial) { mutableStateOf(initial.nextDate.orEmpty()) }
-    var invalid by remember(initial) { mutableStateOf(false) }
+    var date by retain(initial) { mutableStateOf(initial.date) }
+    var ga by retain(initial) { mutableStateOf(initial.gestationalAge.orEmpty()) }
+    var doctor by retain(initial) { mutableStateOf(initial.doctor.orEmpty()) }
+    var observations by retain(initial) { mutableStateOf(initial.observations.orEmpty()) }
+    var instructions by retain(initial) { mutableStateOf(initial.instructions.orEmpty()) }
+    var medications by retain(initial) { mutableStateOf(initial.medications.orEmpty()) }
+    var exams by retain(initial) { mutableStateOf(initial.exams.orEmpty()) }
+    var followUp by retain(initial) { mutableStateOf(initial.followUp.orEmpty()) }
+    var nextDate by retain(initial) { mutableStateOf(initial.nextDate.orEmpty()) }
+    var invalid by retain(initial) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva consulta" else "Editar consulta", style = MaterialTheme.typography.headlineLarge)
         DateField("Fecha de consulta", date, enabled = !busy) { date = it }
