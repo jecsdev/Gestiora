@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -62,7 +62,7 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
         loadError = result.isFailure
     }
     Column(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeContentPadding()
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
             .verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {

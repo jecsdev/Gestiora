@@ -59,7 +59,7 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Estudios", style = MaterialTheme.typography.headlineSmall)
         Text("Tus estudios y resultados se guardan en este dispositivo.")
         when {
@@ -144,7 +144,7 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
     var attachment by retain(initial) { mutableStateOf(initial.attachment.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var kindMenu by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nuevo estudio" else "Editar estudio", style = MaterialTheme.typography.headlineLarge)
         ExamRecordTextField("Nombre del estudio", name, 512, busy, invalid && name.isBlank()) { name = it }
         Text("Tipo", style = MaterialTheme.typography.labelLarge)

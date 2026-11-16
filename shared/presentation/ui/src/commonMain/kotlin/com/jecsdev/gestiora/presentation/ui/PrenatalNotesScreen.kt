@@ -78,7 +78,7 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Notas y seguimiento", style = MaterialTheme.typography.headlineSmall)
         Text("Tus notas se guardan en este dispositivo.")
         when {
@@ -152,7 +152,7 @@ private fun PrenatalNoteForm(initial: PrenatalNote, busy: Boolean, saveError: Bo
     var status by retain(initial) { mutableStateOf(initial.status) }
     var followUp by retain(initial) { mutableStateOf(initial.followUp.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva nota" else "Editar nota", style = MaterialTheme.typography.headlineLarge)
         OutlinedTextField(title, { title = it }, label = { Text("Título") }, singleLine = true, enabled = !busy, isError = title.length > 512, supportingText = { Text("${title.length}/512") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(body, { body = it }, label = { Text("Contenido (opcional)") }, enabled = !busy, isError = body.length > 4096, supportingText = { Text("${body.length}/4096") }, modifier = Modifier.fillMaxWidth())

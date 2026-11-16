@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -117,7 +117,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
         return
     }
 
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Calendario", style = MaterialTheme.typography.headlineLarge)
         Text("Tus citas se guardan en este dispositivo.", style = MaterialTheme.typography.bodyMedium)
         when {
@@ -216,7 +216,7 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
     var status by retain(initial) { mutableStateOf(initial.status) }
     var reminder by retain(initial) { mutableStateOf(initial.reminder) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva cita" else "Editar cita", style = MaterialTheme.typography.headlineLarge)
         DateField("Fecha", date, enabled = !busy) { date = it }
         TimeField(time, enabled = !busy) { time = it }

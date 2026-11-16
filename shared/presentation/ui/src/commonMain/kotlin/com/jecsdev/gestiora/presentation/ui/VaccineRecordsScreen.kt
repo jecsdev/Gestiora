@@ -59,7 +59,7 @@ internal fun VaccineRecordsScreen(viewModel: VaccineRecordViewModel, onNavigatio
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Vacunas", style = MaterialTheme.typography.headlineSmall)
         Text("Tus registros de vacunación se guardan en este dispositivo.")
         when {
@@ -141,7 +141,7 @@ private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: 
     var proof by retain(initial) { mutableStateOf(initial.proof.orEmpty()) }
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva vacuna" else "Editar vacuna", style = MaterialTheme.typography.headlineLarge)
         VaccineRecordTextField("Vacuna", name, 512, busy, invalid && name.isBlank()) { name = it }
         VaccineRecordTextField("Dosis (opcional)", dose, 512, busy) { dose = it }

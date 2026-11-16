@@ -59,7 +59,7 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Historial de salud", style = MaterialTheme.typography.headlineSmall)
         Text("Guarda la información indicada por tu equipo de salud. Tus registros se conservan en este dispositivo.")
         when {
@@ -148,7 +148,7 @@ private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Bool
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var typeMenu by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nuevo registro de salud" else "Editar registro de salud", style = MaterialTheme.typography.headlineLarge)
         DateField("Fecha", date, enabled = !busy) { date = it }
         Text("Tipo de registro", style = MaterialTheme.typography.labelLarge)

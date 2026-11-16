@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -102,7 +102,7 @@ internal fun NavigationShell(
 @Composable
 private fun UnavailableScreen(title: String, message: String) {
     Column(
-        Modifier.fillMaxSize().safeContentPadding().padding(22.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().padding(22.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(title, style = MaterialTheme.typography.headlineLarge)
@@ -113,7 +113,7 @@ private fun UnavailableScreen(title: String, message: String) {
 @Composable
 private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit, preferences: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         Text("Mi perfil", style = MaterialTheme.typography.headlineLarge)

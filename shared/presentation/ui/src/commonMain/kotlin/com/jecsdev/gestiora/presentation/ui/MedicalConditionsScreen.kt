@@ -59,7 +59,7 @@ internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNav
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Condiciones y riesgos", style = MaterialTheme.typography.headlineSmall)
         Text("Solo condiciones y riesgos indicados por un profesional de salud. Gestiora no identifica ni diagnostica riesgos.")
         when {
@@ -139,7 +139,7 @@ private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveE
     var status by retain(initial) { mutableStateOf(initial.status) }
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva condición" else "Editar condición", style = MaterialTheme.typography.headlineLarge)
         Text("Solo condiciones y riesgos indicados por un profesional de salud. Gestiora no identifica ni diagnostica riesgos.", style = MaterialTheme.typography.bodySmall)
         MedicalConditionTextField("Condición (indicada por un profesional)", name, 512, busy, invalid && name.isBlank()) { name = it }

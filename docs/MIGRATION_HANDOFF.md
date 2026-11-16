@@ -6,6 +6,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 ## Completed features
 
+- Welcome viewport layout (2026-11-16): separate shared welcome uses the reference's full-height composition, 36%-viewport illustration (240 dp minimum) without the artificial lavender card, and a full-width rounded lower panel. It fills tall windows and scrolls on short windows/large fonts. Existing local-only actions/copy remain; demo and account actions are still deferred. Screen containers now use safeDrawingPadding instead of safeContentPadding so system-gesture exclusion does not add lateral margins to ordinary content; system bars, cutouts and IME protection remain.
+
 - Spanish civil-date presentation (2026-11-14 local): compact dates match the prototype's `d MMM yyyy` convention across onboarding preview, profile, dashboard, appointments, all six Records sections and date fields. Picker/calendar accessibility labels use full Spanish month names. Calendar day semantics expose today, appointment markers and selection without also reading the child day number; weekday headings have full names. ISO model values, date ordering/filtering, picker callbacks and storage are unchanged.
 
 - Appearance preference (2026-11-13 local): Profile offers Seguir el sistema/Claro/Oscuro, applied at the app root without recreating the navigation/forms. The choice is stored separately from medical records and defaults to System only when absent. Read failures temporarily use System and expose retry in Profile; writes update the visible selection only after success. Retained state/operation scope prevents replaying a theme write on configuration recreation. Native system appearance is updated too; iOS clears its controller override when returning to System.
@@ -47,6 +49,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Appointment codec v2 reads legacy v1 records with reminder NONE; reading does not rewrite storage. A successful mutation writes v2 while preserving existing records.
 
 ## Files and modules modified
+
+- WelcomeScreen.kt and OnboardingScreen.kt for welcome composition; App, AppointmentsScreen, BabyScreen, ConsultationsScreen, ExamRecordsScreen, MedicalConditionsScreen, NavigationShell, PregnancyDashboard, PrenatalNotesScreen, VaccineRecordsScreen and VitalRecordsScreen for drawing-safe insets. Presentation-only; no persistence, dependency or host changes.
 
 - DateLabels.kt and DateLabelsTest.kt; DateField, AppointmentCalendar, AppointmentsScreen, ConsultationsScreen, ExamRecordsScreen, MedicalConditionsScreen, NavigationShell, OnboardingScreen, PendingNotesSection, PregnancyDashboard, PrenatalNotesScreen, VaccineRecordsScreen and VitalRecordsScreen. Presentation-only slice; no dependencies or persistence migrations.
 
@@ -123,6 +127,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 ## Known bugs and limitations
 
+- Welcome/inset correction: Android visual confirmation at normal/large font sizes, landscape, gesture/three-button navigation and iOS safe areas remains pending. ADB listed only an existing emulator during this slice; it was not used for tests under the user's physical-device-only preference. Do not claim pixel parity with React: gradient/decorative icons and deferred demo/account actions are not part of this spacing fix.
+
 - Date labels deliberately use Spanish, matching the current UI and React `es` formatter; a stored profile language is not an app-language selector. Calendar/picker TalkBack reading and layout with large fonts still require physical-device verification. Missing dates remain explicit; malformed nonempty dates display `Fecha no válida` instead of being normalized into another civil day.
 
 - Appearance: native preference adapters and system-bar appearance are not device-tested; iOS NSUserDefaults/controller integration is uncompiled on Windows. Until the initial asynchronous read completes, the app uses System; a brief appearance change at startup is possible. Android writes use checked synchronous SharedPreferences commit off the UI thread; iOS uses normal NSUserDefaults write semantics, without claiming synchronous disk durability. Only a non-medical display setting goes into these stores. Device/system theme switching and return from forced appearance need runtime verification.
@@ -150,6 +156,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Prototype localStorage is unencrypted and its cloud sync is last-write-wins; do not port either behavior blindly for medical data.
 
 ## Tests and build
+
+- Welcome/insets slice (2026-11-16): `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache --no-watch-fs` passed. Existing UI host tests are regression checks, not Compose layout or device verification. No emulator interaction or iOS build performed.
 
 - 2026-11-14 Spanish dates: `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed; 28 UI host tests, zero failures, including three date-label tests. `git diff --check` passed. ADB devices and mDNS discovery were empty; no physical-device or TalkBack test was possible, and no emulator was used. iOS remains uncompiled on Windows.
 

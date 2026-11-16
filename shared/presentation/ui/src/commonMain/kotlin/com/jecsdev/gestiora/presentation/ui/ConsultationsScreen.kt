@@ -59,7 +59,7 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Consultas prenatales", style = MaterialTheme.typography.headlineSmall)
         Text("Tu historial se guarda en este dispositivo. La edad gestacional registrada se conserva aunque cambies las fechas del embarazo.")
         when {
@@ -138,7 +138,7 @@ private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Bo
     var followUp by retain(initial) { mutableStateOf(initial.followUp.orEmpty()) }
     var nextDate by retain(initial) { mutableStateOf(initial.nextDate.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (initial.id.isEmpty()) "Nueva consulta" else "Editar consulta", style = MaterialTheme.typography.headlineLarge)
         DateField("Fecha de consulta", date, enabled = !busy) { date = it }
         ConsultationTextField("Edad gestacional registrada (opcional)", ga, 512, busy) { ga = it }
