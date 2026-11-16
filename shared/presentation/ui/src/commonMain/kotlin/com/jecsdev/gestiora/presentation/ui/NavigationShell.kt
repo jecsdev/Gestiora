@@ -18,6 +18,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.retain.retain
@@ -28,6 +30,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.DatingMethod
@@ -59,23 +63,33 @@ internal fun NavigationShell(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            NavigationBar {
-                AppDestination.entries.forEach { item ->
-                    NavigationBarItem(
-                        selected = destination == item,
-                        enabled = !navigationLocked,
-                        onClick = { calendarDate = null; notesStatus = null; openConditions = false; onDestinationChange(item) },
-                        icon = { DestinationIcon(item) },
-                        label = { Text(item.label, maxLines = 1) },
-                        alwaysShowLabel = true,
-                    )
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
+                    AppDestination.entries.forEach { item ->
+                        NavigationBarItem(
+                            selected = destination == item,
+                            enabled = !navigationLocked,
+                            onClick = { calendarDate = null; notesStatus = null; openConditions = false; onDestinationChange(item) },
+                            icon = { DestinationIcon(item) },
+                            label = { Text(item.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                            alwaysShowLabel = true,
+                        )
+                    }
                 }
             }
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             when (destination) {
-                AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onEdit, onBaby = { onDestinationChange(AppDestination.Baby) }, followUpContent = {
+                AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onProfile = { onDestinationChange(AppDestination.Profile) }, onBaby = { onDestinationChange(AppDestination.Baby) }, followUpContent = {
                     PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
                         openConditions = false
                         notesStatus = NoteTaskStatus.PENDING
@@ -152,18 +166,18 @@ private fun ProfileLine(label: String, value: String) {
 
 /** Simple local line icons; the navigation item's label supplies the accessible name. */
 @Composable
-private fun DestinationIcon(destination: AppDestination) {
+internal fun DestinationIcon(destination: AppDestination) {
     val color = androidx.compose.material3.LocalContentColor.current
     Canvas(Modifier.size(24.dp)) {
         val s = size.width / 24f
         fun line(x1: Float, y1: Float, x2: Float, y2: Float) =
-            drawLine(color, Offset(x1 * s, y1 * s), Offset(x2 * s, y2 * s), 2f * s)
+            drawLine(color, Offset(x1 * s, y1 * s), Offset(x2 * s, y2 * s), 1.75f * s, cap = StrokeCap.Round)
         fun outline(vararg points: Pair<Float, Float>) {
             val path = Path().apply {
                 moveTo(points[0].first * s, points[0].second * s)
                 points.drop(1).forEach { (x, y) -> lineTo(x * s, y * s) }
             }
-            drawPath(path, color, style = Stroke(2f * s))
+            drawPath(path, color, style = Stroke(1.75f * s, cap = StrokeCap.Round, join = StrokeJoin.Round))
         }
         when (destination) {
             AppDestination.Home -> outline(3f to 11f, 12f to 3f, 21f to 11f, 19f to 11f, 19f to 20f, 5f to 20f, 5f to 11f)
@@ -176,12 +190,12 @@ private fun DestinationIcon(destination: AppDestination) {
                 line(9f, 9f, 15f, 9f); line(9f, 13f, 15f, 13f); line(9f, 17f, 15f, 17f)
             }
             AppDestination.Baby -> {
-                drawCircle(color, 8f * s, Offset(12f * s, 12f * s), style = Stroke(2f * s))
+                drawCircle(color, 8f * s, Offset(12f * s, 12f * s), style = Stroke(1.75f * s))
                 drawCircle(color, 1f * s, Offset(9f * s, 11f * s)); drawCircle(color, 1f * s, Offset(15f * s, 11f * s))
                 line(10f, 15f, 14f, 15f)
             }
             AppDestination.Profile -> {
-                drawCircle(color, 3.5f * s, Offset(12f * s, 7f * s), style = Stroke(2f * s))
+                drawCircle(color, 3.5f * s, Offset(12f * s, 7f * s), style = Stroke(1.75f * s))
                 outline(5f to 21f, 5f to 19f, 7f to 16f, 10f to 15f, 14f to 15f, 17f to 16f, 19f to 19f, 19f to 21f)
             }
         }

@@ -1,6 +1,9 @@
 package com.jecsdev.gestiora.core.ui
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -75,5 +78,13 @@ fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable ()
         labelMedium = defaults.labelMedium.copy(fontFamily = body),
         labelSmall = defaults.labelSmall.copy(fontFamily = body),
     )
-    MaterialTheme(colorScheme = if (darkTheme) darkColors else lightColors, typography = typography, content = content)
+    MaterialTheme(colorScheme = if (darkTheme) darkColors else lightColors, typography = typography) {
+        // MaterialTheme supplies the palette; Surface supplies the default content color.
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.onBackground,
+            content = content,
+        )
+    }
 }

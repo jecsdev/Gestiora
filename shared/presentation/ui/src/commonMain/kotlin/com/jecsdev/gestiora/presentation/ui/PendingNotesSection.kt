@@ -1,10 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
-import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.PrenatalNote
 import com.jecsdev.gestiora.presentation.viewmodels.PrenatalNoteViewModel
 
@@ -20,27 +17,26 @@ internal fun PendingNotesSection(viewModel: PrenatalNoteViewModel, today: String
         notes = result.getOrNull()?.let(::datedPendingNotes)
         failed = result.isFailure
     }
-    Text("Seguimiento pendiente", style = MaterialTheme.typography.titleLarge)
-    when {
-        failed -> {
-            Text("No pudimos leer tus tareas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
-            OutlinedButton(onClick = { attempt++ }) { Text("Reintentar tareas") }
-        }
-        notes == null -> CircularProgressIndicator()
-        notes!!.isEmpty() -> Text("No tienes tareas pendientes con fecha de seguimiento.")
-        else -> notes!!.forEach { note ->
-            Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(note.title, style = MaterialTheme.typography.titleMedium)
-                    val date = requireNotNull(note.followUp)
-                    Text(when {
+    EditorialSection("Seguimiento pendiente", "Ver tareas", onAction = onOpen) {
+        when {
+            failed -> {
+                Text("No pudimos leer tus tareas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
+                OutlinedButton(onClick = { attempt++ }) { Text("Reintentar tareas") }
+            }
+            notes == null -> CircularProgressIndicator()
+            notes!!.isEmpty() -> Text("No tienes tareas pendientes con fecha de seguimiento.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else -> notes!!.forEach { note ->
+                val date = requireNotNull(note.followUp)
+                EditorialFollowUpRow(
+                    title = note.title,
+                    supporting = when {
                         date < today -> "Fecha pasada: ${dateLabel(date)} · sigue pendiente"
                         date == today -> "Seguimiento hoy"
                         else -> "Seguimiento: ${dateLabel(date)}"
-                    }, style = MaterialTheme.typography.bodyMedium)
-                }
+                    },
+                    onClick = onOpen,
+                )
             }
         }
     }
-    OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth()) { Text("Ver tareas pendientes") }
 }

@@ -1,10 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
-import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.ConditionStatus
 import com.jecsdev.gestiora.domain.models.MedicalCondition
 import com.jecsdev.gestiora.presentation.viewmodels.MedicalConditionViewModel
@@ -27,18 +24,15 @@ internal fun MedicalFollowUpSection(viewModel: MedicalConditionViewModel, onOpen
     }
     when {
         failed -> {
-            Text("Seguimiento médico", style = MaterialTheme.typography.titleLarge)
-            Text("No pudimos leer tus condiciones registradas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
-            OutlinedButton(onClick = { attempt++ }) { Text("Reintentar seguimiento médico") }
+            EditorialSection("Seguimiento médico") {
+                Text("No pudimos leer tus condiciones registradas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
+                OutlinedButton(onClick = { attempt++ }) { Text("Reintentar seguimiento médico") }
+            }
         }
         conditions == null -> CircularProgressIndicator()
         else -> firstMedicalFollowUp(conditions!!)?.let { condition ->
-            Text("Seguimiento médico", style = MaterialTheme.typography.titleLarge)
-            Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(condition.name, style = MaterialTheme.typography.titleMedium)
-                    Text(condition.instructions ?: "Revisa las indicaciones registradas.")
-                }
+            EditorialSection("Seguimiento médico") {
+                EditorialFollowUpRow(condition.name, condition.instructions ?: "Revisa las indicaciones registradas.", onOpen)
             }
         }
     }

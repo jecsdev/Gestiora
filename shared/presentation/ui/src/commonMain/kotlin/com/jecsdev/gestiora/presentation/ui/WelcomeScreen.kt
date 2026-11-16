@@ -74,6 +74,7 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
                         withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("en calma.") }
                     },
                     modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.displaySmall.copy(fontSize = 44.sp, lineHeight = 44.sp, fontWeight = FontWeight.Medium),
                 )
                 Text(

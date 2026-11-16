@@ -6,6 +6,10 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 ## Completed features
 
+- Dark-theme text correction (2026-11-16): AppTheme now supplies a root Material Surface with background/onBackground so uncolored text inherits the active palette. Welcome title explicitly uses onSurface while its accented span keeps primary. Android assembleDebug passed with offline/no-configuration-cache/no-watch-fs; visual confirmation on device remains pending.
+
+- Approved Calma editorial direction, first implementation slice (2026-11-16): Home now has a compact brand/profile header, prominent real gestational week and preserved baby artwork, separate due-date/days-left summary, appointment previews with calendar date tiles, and quieter task/medical follow-up rows. Upcoming appointments precede educational development content. The duplicated gestational-age line and full-width Home edit action were removed; Home profile access opens Profile, where editing remains. Navigation uses the existing five destinations with theme-aware selected colors, a quiet divider and rounded line-icon strokes. Narrow/large-font layouts retain stacked fallbacks and scroll. Data queries, reminder behavior and storage are unchanged.
+
 - Welcome viewport layout (2026-11-16): separate shared welcome uses the reference's full-height composition, 36%-viewport illustration (240 dp minimum) without the artificial lavender card, and a full-width rounded lower panel. It fills tall windows and scrolls on short windows/large fonts. Existing local-only actions/copy remain; demo and account actions are still deferred. Screen containers now use safeDrawingPadding instead of safeContentPadding so system-gesture exclusion does not add lateral margins to ordinary content; system bars, cutouts and IME protection remain.
 
 - Spanish civil-date presentation (2026-11-14 local): compact dates match the prototype's `d MMM yyyy` convention across onboarding preview, profile, dashboard, appointments, all six Records sections and date fields. Picker/calendar accessibility labels use full Spanish month names. Calendar day semantics expose today, appointment markers and selection without also reading the child day number; weekday headings have full names. ISO model values, date ordering/filtering, picker callbacks and storage are unchanged.
@@ -49,6 +53,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Appointment codec v2 reads legacy v1 records with reminder NONE; reading does not rewrite storage. A successful mutation writes v2 while preserving existing records.
 
 ## Files and modules modified
+
+- EditorialComponents.kt provides small shared Home section/card/follow-up row composables. PregnancyDashboard.kt, PendingNotesSection.kt, MedicalFollowUpSection.kt and NavigationShell.kt implement the approved Home/navigation slice. No new dependency, domain, data or persistence changes.
 
 - WelcomeScreen.kt and OnboardingScreen.kt for welcome composition; App, AppointmentsScreen, BabyScreen, ConsultationsScreen, ExamRecordsScreen, MedicalConditionsScreen, NavigationShell, PregnancyDashboard, PrenatalNotesScreen, VaccineRecordsScreen and VitalRecordsScreen for drawing-safe insets. Presentation-only; no persistence, dependency or host changes.
 
@@ -127,6 +133,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 ## Known bugs and limitations
 
+- Calma editorial is applied to Home and navigation; Calendar, Records lists/forms, Baby, Profile and onboarding still need subsequent design slices for visual consistency. Physical-device visual/TalkBack checks, long names/narratives, large fonts, landscape and iOS remain pending. The proposal's example data was not introduced into the app. Only an existing emulator was detected and was not used for testing.
+
 - Welcome/inset correction: Android visual confirmation at normal/large font sizes, landscape, gesture/three-button navigation and iOS safe areas remains pending. ADB listed only an existing emulator during this slice; it was not used for tests under the user's physical-device-only preference. Do not claim pixel parity with React: gradient/decorative icons and deferred demo/account actions are not part of this spacing fix.
 
 - Date labels deliberately use Spanish, matching the current UI and React `es` formatter; a stored profile language is not an app-language selector. Calendar/picker TalkBack reading and layout with large fonts still require physical-device verification. Missing dates remain explicit; malformed nonempty dates display `Fecha no válida` instead of being normalized into another civil day.
@@ -156,6 +164,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Prototype localStorage is unencrypted and its cloud sync is last-write-wins; do not port either behavior blindly for medical data.
 
 ## Tests and build
+
+- Calma editorial Home/navigation slice (2026-11-16): `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache --no-watch-fs` passed. Existing host tests verify data-selection/policy regressions; they do not verify rendered Compose layouts or touch interactions. `git diff --check` passed. No new tests were added for cosmetic layout; physical-device and iOS checks remain pending.
 
 - Welcome/insets slice (2026-11-16): `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache --no-watch-fs` passed. Existing UI host tests are regression checks, not Compose layout or device verification. No emulator interaction or iOS build performed.
 
@@ -205,6 +215,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Future cloud work requires inspecting Lovable Cloud contracts and secure credential handling.
 
 ## Exact next steps
+
+- Continue the user-approved Calma editorial direction with Calendar and Records lists/forms after reviewing the Home slice on a physical phone. Reuse the existing fields, validation, navigation locks and error handling; retain the baby artwork and current fonts/palette. Do not treat the Home redesign as a complete app-wide visual refresh.
 
 1. On a physical Android phone, verify onboarding and appointments save, process restart/reload, edit/delete, ciphertext tamper/error states, navigation and UI layout without overwriting existing data. No emulator requested by the user.
 2. On macOS, compile iOS framework and test all eight Keychain items and their save/reload/delete behavior; correct any Kotlin/Native interop issues.
