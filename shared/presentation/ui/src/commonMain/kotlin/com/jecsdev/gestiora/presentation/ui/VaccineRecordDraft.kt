@@ -1,13 +1,15 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import com.jecsdev.gestiora.domain.models.VaccineRecord
 import com.jecsdev.gestiora.domain.models.VaccineStatus
 
-internal fun VaccineStatus.label() = when (this) {
-    VaccineStatus.PENDING -> "Pendiente"
-    VaccineStatus.ADMINISTERED -> "Aplicada"
-    VaccineStatus.POSTPONED -> "Pospuesta"
-    VaccineStatus.NOT_INDICATED -> "No indicada"
+internal fun VaccineStatus.label(ui: UiCopy) = when (this) {
+    VaccineStatus.PENDING -> ui.s(Res.string.pending)
+    VaccineStatus.ADMINISTERED -> ui.s(Res.string.administered)
+    VaccineStatus.POSTPONED -> ui.s(Res.string.postponed)
+    VaccineStatus.NOT_INDICATED -> ui.s(Res.string.not_indicated)
 }
 
 internal fun vaccineRecordForSave(

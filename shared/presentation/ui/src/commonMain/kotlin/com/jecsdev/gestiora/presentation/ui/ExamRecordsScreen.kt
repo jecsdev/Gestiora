@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +16,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockChange: (Boolean) -> Unit) {
+    val ui = LocalUiCopy.current
     val scope = retainedOperationScope()
     var exams by retain { mutableStateOf<List<ExamRecord>?>(null) }
     var loadError by retain { mutableStateOf(false) }
@@ -38,10 +41,10 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
     }
     if (discard) AlertDialog(
         onDismissRequest = { discard = false },
-        title = { Text("¿Descartar cambios?") },
-        text = { Text("Los cambios que no hayas guardado se perderán.") },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text("Descartar") } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text("Seguir editando") } },
+        title = { Text(ui.s(Res.string.discard_changes)) },
+        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
+        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
+        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     if (editing != null) {
         ExamRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { exam ->
@@ -60,50 +63,50 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
         return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        EditorialHeader("Estudios", "Tus estudios y resultados se guardan en este dispositivo.", compact = true)
+        EditorialHeader(ui.s(Res.string.examinations), ui.s(Res.string.your_examinations_and_results_are_saved_on_this), compact = true)
         when {
             loadError -> {
-                Text("No pudimos leer tus estudios. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
+                Text(ui.s(Res.string.we_couldn_t_read_your_examinations_your_data), color = MaterialTheme.colorScheme.error)
                 OutlinedButton(enabled = !busy, onClick = {
                     busy = true
                     onNavigationLockChange(true)
                     scope.launch { try { reload() } finally { busy = false; onNavigationLockChange(false) } }
-                }) { Text("Reintentar") }
+                }) { Text(ui.s(Res.string.retry)) }
             }
             exams == null -> CircularProgressIndicator()
             else -> {
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = ExamRecord("", "", requested = todayIsoDate()); onNavigationLockChange(true) }) { Text("Nuevo estudio") }
-                if (exams!!.isEmpty()) Text("Aún no tienes estudios registrados.")
+                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = ExamRecord("", "", requested = todayIsoDate()); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_examination)) }
+                if (exams!!.isEmpty()) Text(ui.s(Res.string.you_haven_t_recorded_any_examinations_yet))
                 exams!!.forEach { exam ->
                     EditorialRecordCard {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            EditorialStatus(exam.status.label())
+                            EditorialStatus(exam.status.label(ui))
                             Text(exam.name, style = MaterialTheme.typography.titleMedium)
-                            Text(exam.kind.label(), style = MaterialTheme.typography.labelMedium)
-                            ExamRecordDetail("Fecha de referencia", (exam.completed ?: exam.scheduled ?: exam.requested)?.let { dateLabel(it) } ?: "Sin fecha registrada")
-                            exam.requested?.let { ExamRecordDetail("Fecha de solicitud", dateLabel(it)) }
-                            exam.scheduled?.let { ExamRecordDetail("Fecha programada", dateLabel(it)) }
-                            exam.completed?.let { ExamRecordDetail("Fecha de realización registrada", dateLabel(it)) }
-                            exam.physician?.let { ExamRecordDetail("Médico que lo solicitó", it) }
-                            exam.results?.let { ExamRecordDetail("Resumen de resultados", it) }
-                            exam.notes?.let { ExamRecordDetail("Observaciones médicas", it) }
-                            exam.attachment?.let { ExamRecordDetail("Documento o imagen (referencia)", it) }
+                            Text(exam.kind.label(ui), style = MaterialTheme.typography.labelMedium)
+                            ExamRecordDetail(ui.s(Res.string.reference_date), (exam.completed ?: exam.scheduled ?: exam.requested)?.let { dateLabel(ui, it) } ?: ui.s(Res.string.no_date_recorded))
+                            exam.requested?.let { ExamRecordDetail(ui.s(Res.string.request_date), dateLabel(ui, it)) }
+                            exam.scheduled?.let { ExamRecordDetail(ui.s(Res.string.scheduled_date), dateLabel(ui, it)) }
+                            exam.completed?.let { ExamRecordDetail(ui.s(Res.string.recorded_completion_date), dateLabel(ui, it)) }
+                            exam.physician?.let { ExamRecordDetail(ui.s(Res.string.requesting_doctor), it) }
+                            exam.results?.let { ExamRecordDetail(ui.s(Res.string.results_summary), it) }
+                            exam.notes?.let { ExamRecordDetail(ui.s(Res.string.medical_observations), it) }
+                            exam.attachment?.let { ExamRecordDetail(ui.s(Res.string.document_or_image_reference), it) }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(enabled = !busy, onClick = { operationError = false; editing = exam; onNavigationLockChange(true) }) { Text("Editar") }
-                                TextButton(enabled = !busy, onClick = { deleting = exam; onNavigationLockChange(true) }) { Text("Eliminar") }
+                                TextButton(enabled = !busy, onClick = { operationError = false; editing = exam; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
+                                TextButton(enabled = !busy, onClick = { deleting = exam; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }
                             }
                         }
                     }
                 }
-                if (operationError) Text("No pudimos eliminar el estudio. Inténtalo de nuevo.", color = MaterialTheme.colorScheme.error)
+                if (operationError) Text(ui.s(Res.string.we_couldn_t_delete_the_examination_try_again), color = MaterialTheme.colorScheme.error)
             }
         }
     }
     deleting?.let { exam ->
         AlertDialog(
             onDismissRequest = { if (!busy) { deleting = null; onNavigationLockChange(false) } },
-            title = { Text("¿Eliminar estudio?") },
-            text = { Text("Se eliminará este estudio de este dispositivo.") },
+            title = { Text(ui.s(Res.string.delete_examination)) },
+            text = { Text(ui.s(Res.string.this_examination_will_be_deleted_from_this_device)) },
             confirmButton = { TextButton(enabled = !busy, onClick = {
                 busy = true
                 scope.launch {
@@ -114,8 +117,8 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
                         if (result.isSuccess) reload() else operationError = true
                     } finally { busy = false; onNavigationLockChange(false) }
                 }
-            }) { Text("Eliminar") } },
-            dismissButton = { TextButton(enabled = !busy, onClick = { deleting = null; onNavigationLockChange(false) }) { Text("Cancelar") } },
+            }) { Text(ui.s(Res.string.delete)) } },
+            dismissButton = { TextButton(enabled = !busy, onClick = { deleting = null; onNavigationLockChange(false) }) { Text(ui.s(Res.string.cancel)) } },
         )
     }
 }
@@ -131,6 +134,7 @@ private fun ExamRecordDetail(label: String, value: String) {
 
 @Composable
 private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (ExamRecord) -> Unit) {
+    val ui = LocalUiCopy.current
     var name by retain(initial) { mutableStateOf(initial.name) }
     var kind by retain(initial) { mutableStateOf(initial.kind) }
     var requested by retain(initial) { mutableStateOf(initial.requested.orEmpty()) }
@@ -143,38 +147,38 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
     var attachment by retain(initial) { mutableStateOf(initial.attachment.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var kindMenu by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        EditorialHeader(if (initial.id.isEmpty()) "Nuevo estudio" else "Editar estudio")
-        ExamRecordTextField("Nombre del estudio", name, 512, busy, invalid && name.isBlank()) { name = it }
-        Text("Tipo", style = MaterialTheme.typography.labelLarge)
+    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_examination) else ui.s(Res.string.edit_examination))
+        ExamRecordTextField(ui.s(Res.string.examination_name), name, 512, busy, invalid && name.isBlank()) { name = it }
+        Text(ui.s(Res.string.type), style = MaterialTheme.typography.labelLarge)
         Box {
-            OutlinedButton(enabled = !busy, onClick = { kindMenu = true }, modifier = Modifier.fillMaxWidth()) { Text(kind.label()) }
+            OutlinedButton(enabled = !busy, onClick = { kindMenu = true }, modifier = Modifier.fillMaxWidth()) { Text(kind.label(ui)) }
             DropdownMenu(expanded = kindMenu, onDismissRequest = { kindMenu = false }) {
-                ExamKind.entries.forEach { option -> DropdownMenuItem(text = { Text(option.label()) }, onClick = { kind = option; kindMenu = false }) }
+                ExamKind.entries.forEach { option -> DropdownMenuItem(text = { Text(option.label(ui)) }, onClick = { kind = option; kindMenu = false }) }
             }
         }
-        DateField("Fecha de solicitud (opcional)", requested, clearable = true, enabled = !busy) { requested = it }
-        DateField("Fecha programada (opcional)", scheduled, clearable = true, enabled = !busy) { scheduled = it }
-        Text("Estado", style = MaterialTheme.typography.labelLarge)
+        DateField(ui.s(Res.string.request_date_optional), requested, clearable = true, enabled = !busy) { requested = it }
+        DateField(ui.s(Res.string.scheduled_date_optional), scheduled, clearable = true, enabled = !busy) { scheduled = it }
+        Text(ui.s(Res.string.status), style = MaterialTheme.typography.labelLarge)
         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ExamStatus.entries.forEach { option -> FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label()) }) }
+            ExamStatus.entries.forEach { option -> FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label(ui)) }) }
         }
-        DateField(if (status == ExamStatus.COMPLETED) "Fecha de realización" else "Fecha de realización registrada (opcional)", completed, clearable = true, enabled = !busy) { completed = it }
-        Text("Cambiar el estado conserva la fecha de realización registrada. Puedes borrarla explícitamente si necesitas corregirla.", style = MaterialTheme.typography.bodySmall)
-        ExamRecordTextField("Médico que lo solicitó (opcional)", physician, 512, busy) { physician = it }
-        ExamRecordTextField("Resumen de resultados (opcional)", results, 4096, busy) { results = it }
-        ExamRecordTextField("Observaciones médicas (opcional)", notes, 4096, busy) { notes = it }
-        ExamRecordTextField("Documento o imagen (referencia, opcional)", attachment, 512, busy) { attachment = it }
-        Text("La referencia es texto; no se adjuntan archivos en esta sección.", style = MaterialTheme.typography.bodySmall)
-        Text("Las fechas no crean citas ni notificaciones.", style = MaterialTheme.typography.bodySmall)
-        if (invalid) Text("Indica el estudio y, si está completado, la fecha de realización. Revisa las fechas y los límites de los campos.", color = MaterialTheme.colorScheme.error)
-        if (saveError) Text("No pudimos guardar el estudio. Tus cambios siguen en el formulario.", color = MaterialTheme.colorScheme.error)
+        DateField(if (status == ExamStatus.COMPLETED) ui.s(Res.string.completion_date) else ui.s(Res.string.recorded_completion_date_optional), completed, clearable = true, enabled = !busy) { completed = it }
+        Text(ui.s(Res.string.changing_status_preserves_the_recorded_completion_date_you), style = MaterialTheme.typography.bodySmall)
+        ExamRecordTextField(ui.s(Res.string.requesting_doctor_optional), physician, 512, busy) { physician = it }
+        ExamRecordTextField(ui.s(Res.string.results_summary_optional), results, 4096, busy) { results = it }
+        ExamRecordTextField(ui.s(Res.string.medical_observations_optional), notes, 4096, busy) { notes = it }
+        ExamRecordTextField(ui.s(Res.string.document_or_image_reference_optional), attachment, 512, busy) { attachment = it }
+        Text(ui.s(Res.string.the_reference_is_text_files_are_not_attached), style = MaterialTheme.typography.bodySmall)
+        Text(ui.s(Res.string.dates_do_not_create_appointments_or_notifications), style = MaterialTheme.typography.bodySmall)
+        if (invalid) Text(ui.s(Res.string.enter_the_examination_and_if_completed_its_completion), color = MaterialTheme.colorScheme.error)
+        if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_examination_your_changes), color = MaterialTheme.colorScheme.error)
         Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val exam = examRecordForSave(initial, name, kind, requested, scheduled, completed, status, physician, results, notes, attachment)
             invalid = exam == null
             if (exam != null) onSave(exam)
-        }) { Text(if (busy) "Guardando…" else "Guardar estudio") }
-        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text("Cancelar") }
+        }) { Text(if (busy) ui.s(Res.string.saving) else ui.s(Res.string.save_examination)) }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text(ui.s(Res.string.cancel)) }
     }
 }
 

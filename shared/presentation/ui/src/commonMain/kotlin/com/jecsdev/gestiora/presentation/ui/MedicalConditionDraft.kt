@@ -1,12 +1,14 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import com.jecsdev.gestiora.domain.models.ConditionStatus
 import com.jecsdev.gestiora.domain.models.MedicalCondition
 
-internal fun ConditionStatus.label() = when (this) {
-    ConditionStatus.ACTIVE -> "Activa"
-    ConditionStatus.FOLLOW_UP -> "En seguimiento"
-    ConditionStatus.RESOLVED -> "Resuelta"
+internal fun ConditionStatus.label(ui: UiCopy) = when (this) {
+    ConditionStatus.ACTIVE -> ui.s(Res.string.active)
+    ConditionStatus.FOLLOW_UP -> ui.s(Res.string.under_follow_up)
+    ConditionStatus.RESOLVED -> ui.s(Res.string.resolved)
 }
 
 internal fun medicalConditionForSave(

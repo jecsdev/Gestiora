@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import com.jecsdev.gestiora.domain.models.VitalRecord
 import com.jecsdev.gestiora.domain.models.VitalType
 import com.jecsdev.gestiora.domain.models.VitalRecordValidation
@@ -48,27 +50,33 @@ internal fun vitalRecordForSave(
     } catch (_: IllegalArgumentException) { null }
 }
 
-internal fun VitalType.label() = when (this) {
-    VitalType.WEIGHT -> "Peso materno (kg)"
-    VitalType.BLOOD_PRESSURE -> "Presión arterial (mmHg)"
-    VitalType.MATERNAL_HEART_RATE -> "Frecuencia cardíaca materna (lpm)"
-    VitalType.FETAL_HEART_RATE -> "Frecuencia cardíaca fetal (lpm)"
-    VitalType.FUNDAL_HEIGHT -> "Altura uterina (cm)"
-    VitalType.ULTRASOUND -> "Hallazgo ecográfico / medidas fetales"
-    VitalType.SYMPTOM -> "Síntoma"
-    VitalType.CUSTOM -> "Medida personalizada"
+internal fun VitalType.label(ui: UiCopy) = when (this) {
+    VitalType.WEIGHT -> ui.s(Res.string.maternal_weight_kg)
+    VitalType.BLOOD_PRESSURE -> ui.s(Res.string.blood_pressure_mmhg)
+    VitalType.MATERNAL_HEART_RATE -> ui.s(Res.string.maternal_heart_rate_bpm)
+    VitalType.FETAL_HEART_RATE -> ui.s(Res.string.fetal_heart_rate_bpm)
+    VitalType.FUNDAL_HEIGHT -> ui.s(Res.string.fundal_height_cm)
+    VitalType.ULTRASOUND -> ui.s(Res.string.ultrasound_findings_fetal_measurements)
+    VitalType.SYMPTOM -> ui.s(Res.string.symptom)
+    VitalType.CUSTOM -> ui.s(Res.string.custom_measurement)
 }
 
-internal fun vitalRecordValue(record: VitalRecord): String = when (record.type) {
+internal fun vitalRecordValue(record: VitalRecord, ui: UiCopy? = null): String = when (record.type) {
     VitalType.ULTRASOUND, VitalType.SYMPTOM -> record.text.orEmpty()
     VitalType.BLOOD_PRESSURE -> "${record.value?.let(::formatVitalNumber) ?: "—"}/${record.value2?.let(::formatVitalNumber) ?: "—"} mmHg"
     else -> {
         val value = record.value?.let(::formatVitalNumber) ?: "—"
-        when (record.type) {
-            VitalType.WEIGHT -> "$value kg"
-            VitalType.MATERNAL_HEART_RATE, VitalType.FETAL_HEART_RATE -> "$value lpm"
-            VitalType.FUNDAL_HEIGHT -> "$value cm"
-            else -> value
+        val unit = when (record.type) {
+            VitalType.WEIGHT -> Res.string.kg
+            VitalType.MATERNAL_HEART_RATE, VitalType.FETAL_HEART_RATE -> Res.string.bpm
+            VitalType.FUNDAL_HEIGHT -> Res.string.cm
+            else -> null
         }
+        val suffix = when (record.type) {
+            VitalType.WEIGHT -> "kg"
+            VitalType.FUNDAL_HEIGHT -> "cm"
+            else -> "bpm"
+        }
+        if (unit == null) value else ui?.s(unit, value) ?: "$value $suffix"
     }
 }

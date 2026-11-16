@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +54,8 @@ fun OnboardingScreen(
     onSave: (PregnancyProfile) -> Unit,
     onCancel: () -> Unit = {},
 ) {
+    val ui = LocalUiCopy.current
+    val deviceLanguage = androidx.compose.ui.text.intl.Locale.current.language.let { if (it in listOf("es", "en", "fr")) it else "en" }
     var step by retain(initialProfile) { mutableIntStateOf(if (initialProfile == null) 0 else 1) }
     var motherName by retain(initialProfile) { mutableStateOf(initialProfile?.motherName.orEmpty()) }
     var babyName by retain(initialProfile) { mutableStateOf(initialProfile?.babyName.orEmpty()) }
@@ -62,24 +66,24 @@ fun OnboardingScreen(
     var referenceDate by retain(initialProfile) { mutableStateOf(initialProfile?.dating?.referenceDate ?: todayIsoDate()) }
     var referenceWeeks by retain(initialProfile) { mutableStateOf(initialProfile?.dating?.referenceWeeks?.toString().orEmpty()) }
     var referenceDays by retain(initialProfile) { mutableStateOf(initialProfile?.dating?.referenceDays?.toString() ?: "0") }
-    var error by retain { mutableStateOf("") }
+    var error by retain { mutableStateOf<org.jetbrains.compose.resources.StringResource?>(null) }
     var discardOpen by retain(initialProfile) { mutableStateOf(false) }
 
     fun back() {
         when (onboardingBackAction(step, initialProfile != null, saving, discardOpen)) {
             OnboardingBackAction.BLOCK, OnboardingBackAction.SYSTEM -> Unit
             OnboardingBackAction.DISMISS_DISCARD -> discardOpen = false
-            OnboardingBackAction.PREVIOUS_STEP -> { step--; error = "" }
+            OnboardingBackAction.PREVIOUS_STEP -> { step--; error = null }
             OnboardingBackAction.CONFIRM_DISCARD -> discardOpen = true
         }
     }
     AppointmentBackHandler(saving || step > 0 || initialProfile != null || discardOpen, ::back)
     if (discardOpen) AlertDialog(
         onDismissRequest = { if (!saving) discardOpen = false },
-        title = { Text("¿Descartar cambios del perfil?") },
-        text = { Text("Los cambios que no hayas guardado se perderán.") },
-        confirmButton = { TextButton(enabled = !saving, onClick = { discardOpen = false; onCancel() }) { Text("Descartar") } },
-        dismissButton = { TextButton(enabled = !saving, onClick = { discardOpen = false }) { Text("Seguir editando") } },
+        title = { Text(ui.s(Res.string.discard_profile_changes)) },
+        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
+        confirmButton = { TextButton(enabled = !saving, onClick = { discardOpen = false; onCancel() }) { Text(ui.s(Res.string.discard)) } },
+        dismissButton = { TextButton(enabled = !saving, onClick = { discardOpen = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
 
     val dating = PregnancyDating(
@@ -100,16 +104,16 @@ fun OnboardingScreen(
 
     fun next() {
         error = when (step) {
-            1 -> if (country.isBlank()) "Selecciona tu país." else ""
-            2 -> if (datingToSave != null) "" else when {
-                method == DatingMethod.FUM && lmp.isBlank() && dueDate.isBlank() -> "Indica la fecha de tu última menstruación o la fecha probable de parto."
-                !validReference -> "Indica la fecha y una edad gestacional válida (0–42 semanas, 0–6 días)."
-                age == null -> "Las fechas no corresponden a un embarazo en curso. Revísalas."
-                else -> ""
+            1 -> if (country.isBlank()) Res.string.select_your_country else null
+            2 -> if (datingToSave != null) null else when {
+                method == DatingMethod.FUM && lmp.isBlank() && dueDate.isBlank() -> Res.string.enter_your_last_menstrual_period_or_estimated_due
+                !validReference -> Res.string.enter_a_date_and_a_valid_gestational_age
+                age == null -> Res.string.the_dates_do_not_correspond_to_an_ongoing
+                else -> null
             }
-            else -> ""
+            else -> null
         }
-        if (error.isEmpty()) step++
+        if (error == null) step++
     }
 
     if (step == 0) {
@@ -118,71 +122,71 @@ fun OnboardingScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
+        Modifier.fillMaxSize().screenEntrance().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
             .verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Text("GESTIORA", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
+        Text(ui.s(Res.string.brand), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextButton(onClick = ::back, enabled = !saving) { Text("Atrás") }
+            TextButton(onClick = ::back, enabled = !saving) { Text(ui.s(Res.string.back)) }
             Column(Modifier.weight(1f)) {
-                Text("TU CONFIGURACIÓN · $step DE 3", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(ui.s(Res.string.your_setup_of_3, step), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LinearProgressIndicator(progress = { step / 3f }, modifier = Modifier.fillMaxWidth())
             }
         }
         when (step) {
             1 -> {
-                EditorialHeader("Cuéntanos un poco de ti", "Los nombres son opcionales; puedes omitirlos.")
-                OutlinedTextField(motherName, { motherName = it }, label = { Text("Tu nombre (opcional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(babyName, { babyName = it }, label = { Text("Apodo del bebé (opcional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                EditorialHeader(ui.s(Res.string.tell_us_a_little_about_yourself), ui.s(Res.string.names_are_optional_you_can_skip_them))
+                OutlinedTextField(motherName, { motherName = it }, label = { Text(ui.s(Res.string.your_name_optional)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(babyName, { babyName = it }, label = { Text(ui.s(Res.string.baby_s_nickname_optional)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 CountryField(country) { country = it }
-                Text("Idioma preferido: Español", style = MaterialTheme.typography.bodyMedium)
-                Text("Más idiomas llegarán en próximas versiones.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(ui.s(Res.string.the_app_follows_your_device_language), style = MaterialTheme.typography.bodyMedium)
+                Text(ui.s(Res.string.available_in_spanish_english_and_french), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             2 -> {
-                EditorialHeader("Fechas del embarazo")
+                EditorialHeader(ui.s(Res.string.pregnancy_dates))
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf(
-                        DatingMethod.FUM to "Última menstruación",
-                        DatingMethod.ULTRASOUND to "Ecografía",
-                        DatingMethod.MEDICAL to "Ajuste médico",
+                        DatingMethod.FUM to ui.s(Res.string.last_menstrual_period),
+                        DatingMethod.ULTRASOUND to ui.s(Res.string.ultrasound),
+                        DatingMethod.MEDICAL to ui.s(Res.string.medical_adjustment),
                     ).forEach { (value, label) ->
-                        FilterChip(selected = method == value, onClick = { method = value; error = "" }, label = { Text(label) }, modifier = Modifier.fillMaxWidth())
+                        FilterChip(selected = method == value, onClick = { method = value; error = null }, label = { Text(label) }, modifier = Modifier.fillMaxWidth())
                     }
                 }
                 if (method == DatingMethod.FUM) {
-                    DateField("Primer día de la última menstruación", lmp, maxDate = todayIsoDate(), clearable = true) { lmp = it }
-                    DateField("Fecha probable de parto (si la conoces)", dueDate, clearable = true) { dueDate = it }
+                    DateField(ui.s(Res.string.first_day_of_your_last_menstrual_period), lmp, maxDate = todayIsoDate(), clearable = true) { lmp = it }
+                    DateField(ui.s(Res.string.estimated_due_date_if_known), dueDate, clearable = true) { dueDate = it }
                 } else {
-                    DateField("Fecha en que se estableció", referenceDate, maxDate = todayIsoDate()) { referenceDate = it }
+                    DateField(ui.s(Res.string.date_established), referenceDate, maxDate = todayIsoDate()) { referenceDate = it }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedTextField(referenceWeeks, { referenceWeeks = it }, label = { Text("Semanas") }, modifier = Modifier.weight(1f), singleLine = true)
-                        OutlinedTextField(referenceDays, { referenceDays = it }, label = { Text("Días") }, modifier = Modifier.weight(1f), singleLine = true)
+                        OutlinedTextField(referenceWeeks, { referenceWeeks = it }, label = { Text(ui.s(Res.string.weeks)) }, modifier = Modifier.weight(1f), singleLine = true)
+                        OutlinedTextField(referenceDays, { referenceDays = it }, label = { Text(ui.s(Res.string.days)) }, modifier = Modifier.weight(1f), singleLine = true)
                     }
                 }
                 if (age != null) {
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = RoundedCornerShape(20.dp)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text("Hoy: ${age.weeks} sem ${age.days} d", fontWeight = FontWeight.Bold)
-                            Text("Fecha probable de parto: ${dateLabel(age.dueDate)}")
+                            Text(ui.s(Res.string.today_wk_d, age.weeks, age.days), fontWeight = FontWeight.Bold)
+                            Text(ui.s(Res.string.estimated_due_date_2, dateLabel(ui, age.dueDate)))
                         }
                     }
                 }
-                if (age == null && datingToSave != null && initialProfile != null) Text("Tus fechas guardadas se conservarán. Puedes actualizar tus datos personales sin cambiarlas.", style = MaterialTheme.typography.bodySmall)
-                Text("Los cálculos son estimaciones. La fecha de ecografía o ajuste médico tiene prioridad.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (age == null && datingToSave != null && initialProfile != null) Text(ui.s(Res.string.your_saved_dates_will_be_preserved_you_can), style = MaterialTheme.typography.bodySmall)
+                Text(ui.s(Res.string.calculations_are_estimates_ultrasound_or_medical_dating_takes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             3 -> {
-                EditorialHeader("Tu información es tuya")
+                EditorialHeader(ui.s(Res.string.your_information_belongs_to_you))
                 EditorialRecordCard {
-                        Text("Este perfil se guardará protegido en el dispositivo. Aún no hay cuenta ni sincronización Cloud.")
-                        Text("Gestiora no diagnostica ni reemplaza a tu equipo de salud.")
-                        Text("La recuperación de datos en otro dispositivo todavía no está disponible.")
+                        Text(ui.s(Res.string.this_profile_will_be_saved_securely_on_this))
+                        Text(ui.s(Res.string.gestiora_does_not_diagnose_or_replace_your_care))
+                        Text(ui.s(Res.string.data_recovery_on_another_device_is_not_available))
                 }
             }
         }
-        if (error.isNotEmpty()) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        if (saveFailed) Text("No pudimos guardar tu perfil. Reintenta; tus datos del formulario siguen aquí.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        error?.let { Text(ui.s(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        if (saveFailed) Text(ui.s(Res.string.we_couldn_t_save_your_profile_try_again), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         Button(
             onClick = {
                 if (step < 3) next()
@@ -192,22 +196,23 @@ fun OnboardingScreen(
                     val submittedDating = profileDatingToSave(dating, initialProfile?.dating,
                         validReference && (method == DatingMethod.FUM || referenceDate <= submitToday) &&
                             viewModel.preview(dating, submitToday) != null)
-                    if (submittedDating == null) { step = 2; error = "Revisa las fechas del embarazo antes de guardar." }
-                    else onSave(PregnancyProfile(motherName.trim().ifEmpty { null }, babyName.trim().ifEmpty { null }, country, "Español", submittedDating))
+                    if (submittedDating == null) { step = 2; error = Res.string.check_the_pregnancy_dates_before_saving }
+                    else onSave(PregnancyProfile(motherName.trim().ifEmpty { null }, babyName.trim().ifEmpty { null }, country, initialProfile?.language ?: deviceLanguage, submittedDating))
                 }
             },
             enabled = !saving,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (saving) "Guardando…" else if (step < 3) "Continuar" else "Empezar a usar Gestiora") }
+        ) { Text(if (saving) ui.s(Res.string.saving) else if (step < 3) ui.s(Res.string.action_continue) else ui.s(Res.string.start_using_gestiora)) }
     }
 }
 @Composable
 private fun CountryField(value: String, onValueChange: (String) -> Unit) {
+    val ui = LocalUiCopy.current
     var expanded by retain { mutableStateOf(false) }
     Box {
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(if (value.isEmpty()) "País * · Selecciona…" else "País * · $value") }
+        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(if (value.isEmpty()) ui.s(Res.string.country_select) else ui.s(Res.string.country_2, countryLabel(value, ui))) }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            countries.forEach { country -> DropdownMenuItem(text = { Text(country) }, onClick = { onValueChange(country); expanded = false }) }
+            countries.forEach { country -> DropdownMenuItem(text = { Text(countryLabel(country, ui)) }, onClick = { onValueChange(country); expanded = false }) }
         }
     }
 }

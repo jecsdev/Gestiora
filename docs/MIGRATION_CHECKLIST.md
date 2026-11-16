@@ -6,6 +6,10 @@ Statuses: Not started, In progress, Implemented, Verified, Blocked. Verified req
 | --- | --- | --- |
 | React inventory and KMP mapping | Implemented | Inspected routes, store, models, dating, styles and assets; mapping below. |
 | Shared design system | Implemented | Light/dark palette and bundled Plus Jakarta Sans/DM Sans applied; Android build passes, Reusable editorial components/shapes are shared across screens; full rendered/accessibility verification remains pending. |
+| ES/EN/FR localization | Implemented | Shared Compose XML resources, localized labels/errors/accessibility/dates/FAQ and source metadata display; Android/iOS locale declarations. Real XML contracts and localized date/user-text tests pass. Full device/language/clinical review pending; see LOCALIZATION_AND_MOTION.md. |
+| FAQ and navigation motion | Implemented | Finite FAQ fade/expansion and entry-only destination/form fade/slide. Native reduced-motion adapters; no background timers or auto-rotation. Android build passes; motion/device accessibility and iOS verification pending. |
+| Home WHO questions | Implemented | Reuses two WHO-backed answers with manual previous/next, position and citations; selection test passes. Phone visual/source-link checks pending. |
+| Room integration | Not started | Explicitly selected by user as next database technology. Preserve encryption, legacy IDs/history and transactional/idempotent import. Current app still uses protected files/Keychain. |
 | Calma editorial redesign | Implemented | User approved the Calma editorial proposal. Home hierarchy, week/artwork hero, separate date summary, calendar-date appointment previews, quieter follow-up rows and navigation styling implemented. Profile editing lives in Profile. Android build and UI host regressions pass; Editorial headers/cards/status chips, shapes and wrapping actions now cover Calendar/Records/forms/Baby/Profile/onboarding. Samsung dark Home/calendar inspected; broader phone/TalkBack/large-font and iOS checks pending. |
 | Welcome and screen spacing | Implemented | Welcome follows the reference's viewport-height composition, proportional illustration and full-width lower panel, with scroll fallback. Drawing-safe insets replace gesture-safe padding across screen containers to remove gesture-related lateral margins. Physical-device/large-font/landscape and iOS visual validation pending; demo/account actions remain deferred. |
 | Spanish date presentation | Implemented | Shared compact Spanish civil-date labels across forms, Home, Profile, calendar and all Records sections; expanded picker/calendar accessibility labels and calendar selection semantics. ISO storage/filtering unchanged. Host coverage for months, leap days, year boundaries and invalid/missing dates; device/TalkBack and iOS validation pending. |
@@ -29,7 +33,8 @@ Statuses: Not started, In progress, Implemented, Verified, Blocked. Verified req
 | Local export and reset-all | Not started | Reference Profile has JSON export/reset. Implement consistent export and transactional reset on the new data layer; not removed from scope. |
 | Consultation/note appointment associations | Not started | Model/demo association in React is not yet represented in KMP. Define historical deletion behavior when adding DB relations. |
 | Demo mode | Not started | Must be isolated from real medical data; never replace existing records implicitly. |
-| AI assistant | Not started | Inspect gateway contract and privacy. |
+| AI assistant (future update) | Not started | Deferred explicitly by the user on 2026-11-16; outside current migration closure. No AI backend is configured. Revisit managed server-side options, provider access, usage limits and privacy in a later feature. |
+| Offline sourced educational questions | Implemented | Seven Spanish FAQ summaries with specific OMS/UNICEF/NHS citations, date consulted, stage selection and external-source links. Android build and 30 UI host tests pass. Clinical review, device link/render checks and iOS pending; see EDUCATIONAL_CONTENT.md. |
 | Authentication and account deletion | Not started | Deferred by user until MVP-local stability; then inspect Lovable Cloud backend. |
 | Advertisement sections | Not started | Deferred by user until current local migration/stability work is complete. |
 | Secure offline persistence | In progress | Separate profile, appointment, note, consultation, health-record, condition, vaccine and exam Android Keystore and iOS Keychain adapters; fake-store host tests pass, physical-device roundtrip/tamper and iOS validation pending. Includes the ninth protected store for personal reminders. Samsung reminder roundtrip/envelope passed; no backup/sync. |
@@ -45,7 +50,7 @@ Statuses: Not started, In progress, Implemented, Verified, Blocked. Verified req
 | `/` dashboard | Profile-backed pregnancy summary and upcoming appointments in `presentation:ui`; medical condition follow-up card implemented. |
 | `/calendario` | Month grid and local appointment list and CRUD with separate protected storage; reminders pending. |
 | `/registros` | Consultation, vital, condition, vaccine, exam, note CRUD. |
-| `/bebe` | Offline weekly development and seven bundled reference illustrations; AI integration and reviews pending. |
+| `/bebe` | Offline weekly development and seven bundled reference illustrations; AI deferred to a future update; content/asset reviews pending. |
 | `/perfil` | Profile and dating edits, data export/reset, account actions. |
 | `/auth`, `/reset-password` | Optional cloud account integration after backend contract review. |
 

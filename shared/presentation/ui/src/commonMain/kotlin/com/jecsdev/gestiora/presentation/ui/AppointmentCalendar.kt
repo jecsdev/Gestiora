@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,7 +21,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 private const val DAY_MILLIS = 86_400_000L
-private val months = listOf("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre")
+private val months = listOf(Res.string.january, Res.string.february, Res.string.march, Res.string.april, Res.string.may, Res.string.june, Res.string.july, Res.string.august, Res.string.september, Res.string.october, Res.string.november, Res.string.december)
 
 internal fun shiftCalendarMonth(month: String, offset: Int): String? {
     if (month.length != 7 || isoToUtcMillis("$month-01") == null) return null
@@ -53,8 +55,10 @@ internal fun AppointmentCalendar(
     enabled: Boolean,
     onMonthChange: (String) -> Unit,
     onDateSelect: (String) -> Unit,
-    markedDescription: String = "tiene citas",
+    markedDescription: String? = null,
 ) {
+    val ui = LocalUiCopy.current
+    val markedLabel = markedDescription ?: ui.s(Res.string.has_appointments)
     val previous = shiftCalendarMonth(month, -1)
     val next = shiftCalendarMonth(month, 1)
     val days = calendarMonthDays(month)
@@ -62,15 +66,15 @@ internal fun AppointmentCalendar(
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))) {
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = { previous?.let(onMonthChange) }, enabled = enabled && previous != null, modifier = Modifier.semantics { contentDescription = "Mes anterior" }) { Text("‹") }
-                Text("${months[month.substring(5, 7).toInt() - 1]} ${month.substring(0, 4)}", style = MaterialTheme.typography.titleMedium,
+                TextButton(onClick = { previous?.let(onMonthChange) }, enabled = enabled && previous != null, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.previous_month) }) { Text("‹") }
+                Text(ui.s(Res.string.calendar_month_title, ui.s(months[month.substring(5, 7).toInt() - 1]), month.substring(0, 4)), style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                TextButton(onClick = { next?.let(onMonthChange) }, enabled = enabled && next != null, modifier = Modifier.semantics { contentDescription = "Mes siguiente" }) { Text("›") }
+                TextButton(onClick = { next?.let(onMonthChange) }, enabled = enabled && next != null, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.next_month) }) { Text("›") }
             }
             Row(Modifier.fillMaxWidth()) {
-                listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo").forEachIndexed { index, day ->
+                listOf(ui.s(Res.string.monday), ui.s(Res.string.tuesday), ui.s(Res.string.wednesday), ui.s(Res.string.thursday), ui.s(Res.string.friday), ui.s(Res.string.saturday), ui.s(Res.string.sunday)).forEachIndexed { index, day ->
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text(listOf("L", "M", "X", "J", "V", "S", "D")[index], style = MaterialTheme.typography.labelSmall,
+                        Text(ui.s(Res.string.weekday_initials).split("|")[index], style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.clearAndSetSemantics { contentDescription = day })
                     }
                 }
@@ -92,7 +96,7 @@ internal fun AppointmentCalendar(
                         }
                         Box(Modifier.weight(1f).heightIn(min = 48.dp).padding(2.dp).background(background, CircleShape)
                             .then(if (date == null) Modifier else Modifier.semantics {
-                                contentDescription = "${dateLabel(date, expanded = true)}${if (date == today) ", hoy" else ""}${if (marked) ", $markedDescription" else ""}"
+                                contentDescription = ui.s(Res.string.calendar_day_accessibility, dateLabel(ui, date, expanded = true), if (date == today) ", " + ui.s(Res.string.today) else "", if (marked) ", $markedLabel" else "")
                                 selected = isSelected
                             }.clickable(enabled = enabled, role = Role.Button) { onDateSelect(date) }),
                             contentAlignment = Alignment.Center) {

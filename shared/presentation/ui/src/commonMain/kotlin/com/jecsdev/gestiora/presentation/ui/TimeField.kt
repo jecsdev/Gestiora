@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
@@ -23,13 +25,14 @@ import androidx.compose.ui.semantics.semantics
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TimeField(value: String, enabled: Boolean, onValueChange: (String) -> Unit) {
+    val ui = LocalUiCopy.current
     var open by remember { mutableStateOf(false) }
     Column {
-        Text("Hora", style = MaterialTheme.typography.labelLarge)
+        Text(ui.s(Res.string.time), style = MaterialTheme.typography.labelLarge)
         OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().semantics {
-            contentDescription = "Hora: ${value.ifEmpty { "Todo el día" }}"
+            contentDescription = ui.s(Res.string.time_accessibility, value.ifEmpty { ui.s(Res.string.all_day) })
         }) {
-            Text(value.ifEmpty { "Todo el día" }, modifier = Modifier.clearAndSetSemantics { })
+            Text(value.ifEmpty { ui.s(Res.string.all_day) }, modifier = Modifier.clearAndSetSemantics { })
         }
     }
     if (open) {
@@ -40,15 +43,15 @@ internal fun TimeField(value: String, enabled: Boolean, onValueChange: (String) 
         )
         AlertDialog(
             onDismissRequest = { open = false },
-            title = { Text("Selecciona una hora") },
+            title = { Text(ui.s(Res.string.select_a_time)) },
             text = { TimeInput(state = state) },
             confirmButton = {
                 TextButton(onClick = {
                     onValueChange("${state.hour.toString().padStart(2, '0')}:${state.minute.toString().padStart(2, '0')}")
                     open = false
-                }) { Text("Aceptar") }
+                }) { Text(ui.s(Res.string.ok)) }
             },
-            dismissButton = { TextButton(onClick = { open = false }) { Text("Cancelar") } },
+            dismissButton = { TextButton(onClick = { open = false }) { Text(ui.s(Res.string.cancel)) } },
         )
     }
 }

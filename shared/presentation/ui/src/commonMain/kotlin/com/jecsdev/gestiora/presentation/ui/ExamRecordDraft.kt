@@ -1,21 +1,23 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import com.jecsdev.gestiora.domain.models.ExamKind
 import com.jecsdev.gestiora.domain.models.ExamRecord
 import com.jecsdev.gestiora.domain.models.ExamStatus
 
-internal fun ExamKind.label() = when (this) {
-    ExamKind.ULTRASOUND -> "Ecografía"
-    ExamKind.BLOOD_TEST -> "Análisis de sangre"
-    ExamKind.URINE_TEST -> "Análisis de orina"
-    ExamKind.GLUCOSE -> "Glucosa"
-    ExamKind.OTHER -> "Otro"
+internal fun ExamKind.label(ui: UiCopy) = when (this) {
+    ExamKind.ULTRASOUND -> ui.s(Res.string.ultrasound)
+    ExamKind.BLOOD_TEST -> ui.s(Res.string.blood_test)
+    ExamKind.URINE_TEST -> ui.s(Res.string.urine_test)
+    ExamKind.GLUCOSE -> ui.s(Res.string.glucose)
+    ExamKind.OTHER -> ui.s(Res.string.other)
 }
 
-internal fun ExamStatus.label() = when (this) {
-    ExamStatus.PENDING -> "Pendiente"
-    ExamStatus.SCHEDULED -> "Programado"
-    ExamStatus.COMPLETED -> "Completado"
+internal fun ExamStatus.label(ui: UiCopy) = when (this) {
+    ExamStatus.PENDING -> ui.s(Res.string.pending)
+    ExamStatus.SCHEDULED -> ui.s(Res.string.scheduled_2)
+    ExamStatus.COMPLETED -> ui.s(Res.string.completed_2)
 }
 
 internal fun examRecordForSave(

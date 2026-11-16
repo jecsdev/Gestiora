@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,13 +40,18 @@ fun App(platformModules: List<Module> = emptyList()) {
     KoinIsolatedContext(context = graph.application) {
         // Material controls also use rememberSaveable internally. Medical drafts stay in RAM.
         CompositionLocalProvider(LocalSaveableStateRegistry provides null) {
-            ThemeRoot(koinInject()) { preferences -> ProfileRoot(koinInject(), preferences) }
+            UiCopyProvider {
+                MotionPreferences {
+                    ThemeRoot(koinInject()) { preferences -> ProfileRoot(koinInject(), preferences) }
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable () -> Unit) {
+    val ui = LocalUiCopy.current
     var loadAttempt by retain { mutableIntStateOf(0) }
     var state by retain { mutableStateOf<ProfileLoad>(ProfileLoad.Loading) }
     var editing by retain { mutableStateOf(false) }
@@ -74,8 +81,8 @@ private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable ()
     when (val current = state) {
         ProfileLoad.Loading -> CenterMessage { CircularProgressIndicator() }
         ProfileLoad.Error -> CenterMessage {
-            Text("No pudimos leer tu perfil. Tus datos no se han borrado.", style = MaterialTheme.typography.bodyLarge)
-            Button(onClick = { state = ProfileLoad.Loading; loadAttempt++ }) { Text("Reintentar") }
+            Text(ui.s(Res.string.we_couldn_t_read_your_profile_your_data), style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = { state = ProfileLoad.Loading; loadAttempt++ }) { Text(ui.s(Res.string.retry)) }
         }
         ProfileLoad.Empty -> OnboardingScreen(
             initialProfile = null,

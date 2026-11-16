@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import com.jecsdev.gestiora.domain.models.ConditionStatus
@@ -12,6 +14,7 @@ internal fun firstMedicalFollowUp(conditions: List<MedicalCondition>): MedicalCo
 
 @Composable
 internal fun MedicalFollowUpSection(viewModel: MedicalConditionViewModel, onOpen: () -> Unit) {
+    val ui = LocalUiCopy.current
     var conditions by remember(viewModel) { mutableStateOf<List<MedicalCondition>?>(null) }
     var failed by remember(viewModel) { mutableStateOf(false) }
     var attempt by remember(viewModel) { mutableStateOf(0) }
@@ -24,15 +27,15 @@ internal fun MedicalFollowUpSection(viewModel: MedicalConditionViewModel, onOpen
     }
     when {
         failed -> {
-            EditorialSection("Seguimiento médico") {
-                Text("No pudimos leer tus condiciones registradas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
-                OutlinedButton(onClick = { attempt++ }) { Text("Reintentar seguimiento médico") }
+            EditorialSection(ui.s(Res.string.medical_follow_up)) {
+                Text(ui.s(Res.string.we_couldn_t_read_your_recorded_conditions_your), color = MaterialTheme.colorScheme.error)
+                OutlinedButton(onClick = { attempt++ }) { Text(ui.s(Res.string.retry_medical_follow_up)) }
             }
         }
         conditions == null -> CircularProgressIndicator()
         else -> firstMedicalFollowUp(conditions!!)?.let { condition ->
-            EditorialSection("Seguimiento médico") {
-                EditorialFollowUpRow(condition.name, condition.instructions ?: "Revisa las indicaciones registradas.", onOpen)
+            EditorialSection(ui.s(Res.string.medical_follow_up)) {
+                EditorialFollowUpRow(condition.name, condition.instructions ?: ui.s(Res.string.review_the_recorded_instructions), onOpen)
             }
         }
     }

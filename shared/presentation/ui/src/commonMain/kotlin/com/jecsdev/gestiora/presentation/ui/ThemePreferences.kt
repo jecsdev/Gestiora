@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -80,14 +82,15 @@ private fun ThemePreferences(
     onRetry: () -> Unit,
     onSelect: (ThemeMode) -> Unit,
 ) {
-    EditorialSection("Preferencias") {
+    val ui = LocalUiCopy.current
+    EditorialSection(ui.s(Res.string.preferences)) {
         EditorialRecordCard {
             Column(Modifier.fillMaxWidth().selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Apariencia", style = MaterialTheme.typography.titleMedium)
-                Text("Elige cómo se muestra Gestiora.", style = MaterialTheme.typography.bodyMedium)
+                Text(ui.s(Res.string.appearance), style = MaterialTheme.typography.titleMedium)
+                Text(ui.s(Res.string.choose_how_gestiora_looks), style = MaterialTheme.typography.bodyMedium)
                 if (readFailed) {
-                    Text("No pudimos leer tu preferencia. Usamos el tema del sistema por ahora.", color = MaterialTheme.colorScheme.error)
-                    OutlinedButton(onClick = onRetry, enabled = !busy) { Text("Reintentar") }
+                    Text(ui.s(Res.string.we_couldn_t_read_your_preference_we_are), color = MaterialTheme.colorScheme.error)
+                    OutlinedButton(onClick = onRetry, enabled = !busy) { Text(ui.s(Res.string.retry)) }
                 } else {
                     ThemeMode.entries.forEach { option ->
                         Row(
@@ -102,15 +105,15 @@ private fun ThemePreferences(
                         ) {
                             RadioButton(selected = mode == option, onClick = null, enabled = !busy)
                             Text(when (option) {
-                                ThemeMode.SYSTEM -> "Seguir el sistema"
-                                ThemeMode.LIGHT -> "Claro"
-                                ThemeMode.DARK -> "Oscuro"
+                                ThemeMode.SYSTEM -> ui.s(Res.string.follow_system)
+                                ThemeMode.LIGHT -> ui.s(Res.string.light)
+                                ThemeMode.DARK -> ui.s(Res.string.dark)
                             })
                         }
                     }
                 }
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-                if (saveFailed) Text("No pudimos guardar la apariencia. Vuelve a seleccionarla para reintentar.", color = MaterialTheme.colorScheme.error)
+                if (saveFailed) Text(ui.s(Res.string.we_couldn_t_save_the_appearance_select_it), color = MaterialTheme.colorScheme.error)
             }
         }
     }

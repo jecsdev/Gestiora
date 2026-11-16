@@ -6,6 +6,10 @@ Migration in progress; full parity is not declared complete. See `docs/MIGRATION
 
 ## Completed features
 
+- Localization and motion (2026-11-16): shared ES/EN/FR Compose string resources cover UI labels, errors, accessibility, dates, stage copy and FAQ answers. UiCopyProvider resolves stringResource at the root for composables/event callbacks without rewriting user data. OS locale selection, Android per-app locales and iOS locale declarations added. FAQ expands/fades; destinations/forms have short entry transitions, with native reduced-motion adapters. Home now reuses two WHO FAQ answers with manual previous/next controls, position, citations and source links. No auto-rotation, backend or data write. Android build and 91 host tests pass; see LOCALIZATION_AND_MOTION.md for exact device/clinical/iOS limitations.
+
+- Offline educational questions (2026-11-16): Mi bebé now includes a deterministic seven-question Spanish catalog, showing one stage and four general entries for the explored week. Each expandable answer identifies its OMS/UNICEF/NHS source, official external link, source language and consultation date; links expose a copyable fallback when opening fails. No AI, backend, medical-record access or new dependency. Sources/claim mapping and clinical-review limitation are in EDUCATIONAL_CONTENT.md. Android build and 30 UI host tests passed; device FAQ/link and iOS checks pending.
+
 - Closure slice (2026-11-16): Calma editorial now extends to Calendar, all six Records lists/forms, Baby, Profile/preferences and onboarding. Shared editorial headers/record surfaces/status chips and rounded Material shapes unify spacing/contrast; action/chip rows wrap and calendar rows have a 48dp minimum height. Fields, errors, draft retention and navigation locks remain.
 - Independent personal reminders: five types, optional 24-hour time/all-day, completion, date filtering/marked calendar and protected local CRUD. Citas/Recordatorios tabs have independent calendars and are disabled during edit/delete/write. Android AES-GCM/AtomicFile and provisional iOS Keychain adapters follow existing boundaries. No system notifications.
 - Consultations now include the prototype attachment text reference. Codec v2 reads legacy v1 without a rewrite on load and upgrades on mutation while preserving historical content.
@@ -58,6 +62,8 @@ Migration in progress; full parity is not declared complete. See `docs/MIGRATION
 
 ## Files and modules modified
 
+- Localization/motion slice: presentation UI `values`, `values-es`, `values-en`, `values-fr`; UiCopy, ProfileLabels, Motion/common and Android/iOS actuals, HomeQuestions, all screen/label/date helpers; resource-backed FAQ and stage models; real-XML LocalizationContractTest and adjusted date/catalog tests. Compose animation dependency uses the existing Compose version. Android manifest/locales_config and iOS Info.plist declare the supported locales. Domain, repository contracts and encrypted storage formats are unchanged.
+
 - Closure slice: AppTheme shapes; EditorialComponents, CalendarScreen, PersonalRemindersScreen, AppointmentCalendar, TimeField, all Records screens, RecordsScreen, BabyScreen, NavigationShell, ThemePreferences and OnboardingScreen. PersonalReminder/ReminderKind, domain repository/use case, secure datasource and Android/iOS adapters, bounded codec/serialized repository, ViewModel and DI. Consultation model/codec/form and backward-compatibility tests. New reminder repository/ViewModel host tests.
 
 - EditorialComponents.kt provides small shared Home section/card/follow-up row composables. PregnancyDashboard.kt, PendingNotesSection.kt, MedicalFollowUpSection.kt and NavigationShell.kt implement the approved Home/navigation slice. No new dependency, domain, data or persistence changes.
@@ -103,6 +109,12 @@ Migration in progress; full parity is not declared complete. See `docs/MIGRATION
 
 ## Decisions and rationale
 
+- User selected Room for the next database phase. Complete/review the present UI/resource slice first; do not treat Room as integrated. Preserve protected legacy stores and implement transactional/idempotent import before replacing their repositories.
+- All new movement is finite and user-triggered. Main navigation animates the incoming destination only, keeping one active editable subtree and the existing retained-state/operation boundaries. Reduced-motion settings disable added transitions. Home cards are manual rather than auto-advancing while someone reads.
+- Localization follows the platform rather than adding another persisted preference. Resource-backed strings are resolved once per root composition and shared with callbacks; existing canonical metadata and all patient-entered text are preserved. Translated educational text still requires clinical/language review.
+
+- Scope decision (2026-11-16): user explicitly deferred AI to a future update because there is no configured AI backend. AI is outside current migration closure; prioritize local migration and database integration. Managed server-side hosting can be evaluated later, without introducing an AI service or credentials now.
+
 - Changing personal profile fields must not require inventing new pregnancy dates for a historical profile. Compare effective inputs for the selected dating method; if unchanged, keep the original dating object including inactive fields. Null referenceDays originally displays as zero and is treated accordingly; clearing the displayed value is not an unchanged input. The initial onboarding welcome still uses normal platform Back; unsaved process-exit recovery remains unsupported. Profile field-length policy is unchanged (codec16,384 chars); no new512-char cap was introduced.
 
 - Use Compose runtime-retain already exported by the installed Compose UI. Explicit draft values live in RAM, without SavedStateHandle/rememberSaveable serialization. App also provides a null LocalSaveableStateRegistry so Material picker internals do not serialize medical dates/time; scroll position and unconfirmed picker dialogs may reset. RetainObserver resources cancel/close onRetired/onUnused, not onExitedComposition (configuration handoff). KoinIsolatedContext wraps the retained local graph, keeping one repository/mutex instance. Android bindings use applicationContext. Unsaved drafts intentionally do not survive process death or finishing the Activity.
@@ -135,7 +147,7 @@ Migration in progress; full parity is not declared complete. See `docs/MIGRATION
 ## Pending tasks
 
 - Physical-device roundtrip and tamper tests for Android encrypted profile and appointments; iOS compile and Keychain tests on macOS.
-- Physical-device validation of all six implemented Records sections, navigation/forms, appearance and design parity. Standalone personal reminders and consultation text references are implemented. Appointment associations, export/reset, demo and AI remain open migration items; native file attachments/notification delivery are additional features. Auth/sync and advertisements follow the user's later phase.
+- Physical-device validation of all six implemented Records sections, navigation/forms, appearance and design parity. Standalone personal reminders and consultation text references are implemented. Appointment associations, export/reset and demo remain open migration items; AI is explicitly deferred to a future update; native file attachments/notification delivery are additional features. Auth/sync and advertisements follow the user's later phase.
 
 ## Known bugs and limitations
 
@@ -172,6 +184,8 @@ Migration in progress; full parity is not declared complete. See `docs/MIGRATION
 - Prototype localStorage is unencrypted and its cloud sync is last-write-wins; do not port either behavior blindly for medical data.
 
 ## Tests and build
+
+- 2026-11-16 resources/motion: assembleDebug and domain use-case/repository/ViewModel/UI host tasks passed (5 + 38 + 13 + 35 = 91 tests, zero failures). New checks read shipping XML for key/placeholder parity, test all three date formats and prevent formatting of user-supplied token-like text. Android build/UI tests passed again after final entrance changes. Native phone: initial ES/EN/FR Home/card rendering exposed a Spanish counter-format fragment and French apostrophe escapes; both were fixed and regression-tested. EN/FR manual next/previous worked, and English form/date text rendered. Final corrected-build verification awaits the phone after automatic screen lock. User form was left intact; original per-app locale selection restored. Full motion/accessibility and iOS runtime matrix remains pending; no emulator used.
 
 - Closure slice (2026-11-16): Android assembleDebug plus domain use-case/repository/ViewModel/UI host tests passed with offline/no-configuration-cache/no-watch-fs: 5 + 38 + 13 + 28 = 84 tests, zero failures. New tests cover reminder corruption/concurrent CRUD/validation/IO, ViewModel IDs/cancellation, and consultation v1 compatibility. Samsung SM-A546E: install -r preserved visible existing data; dark Home/calendar inspection; temporary reminder create, process force-stop/reload, edit completion, delete confirmation and resulting empty state passed. Reminder encrypted envelope present and test title absent from plaintext bytes; no tamper test and no claim for every store. No emulator/iOS test. Read-only navigation smoke opened all six Records sections, Baby and Profile. Light theme survived process restart, then the app was left in Dark. Profile Back/discard returned without saving. Final compact Records headings passed Android build/UI host tests. See MIGRATION_CLOSURE.md.
 
@@ -226,12 +240,17 @@ Migration in progress; full parity is not declared complete. See `docs/MIGRATION
 
 ## Exact next steps
 
-- Read MIGRATION_CLOSURE.md first. The app-wide design implementation and local reminder/reference gaps are closed in code; full migration is still open. Review remaining parity scope with the user, then implement the database as an incremental data-layer replacement with protected, transactional/idempotent import. Export/reset should use a consistent database transaction/snapshot. Keep iOS/device/AI/demo/association gaps explicit.
+- Review LOCALIZATION_AND_MOTION.md. On the available physical phone, inspect ES/EN/FR Home/manual WHO cards, FAQ expand/collapse/source actions, navigation/form entries, configuration retention and animation-disable preference; restore any temporary per-app locale/system setting after tests. Do not discard a user's active form to run a smoke test. Then begin the user-selected Room data-layer slice with protected legacy import and transaction/retry tests; no Room dependency has been added yet.
+
+- Read MIGRATION_CLOSURE.md first. The app-wide design implementation and local reminder/reference gaps are closed in code; full migration is still open. Review remaining parity scope with the user, then implement the database as an incremental data-layer replacement with protected, transactional/idempotent import. Export/reset should use a consistent database transaction/snapshot. Keep iOS/device/demo/association gaps explicit; AI belongs to the user-deferred future phase.
 
 1. On a physical Android phone, verify onboarding and appointments save, process restart/reload, edit/delete, ciphertext tamper/error states, navigation and UI layout without overwriting existing data. No emulator requested by the user.
 2. On macOS, compile iOS framework and test all nine Keychain items and their save/reload/delete behavior; correct any Kotlin/Native interop issues.
 3. Resolve recovery/export and uninstall/account-deletion policy before making portability promises.
 4. Verify navigation, baby explorer, date picker and typography on the physical device, including accessibility and localization. Obtain clinical copy review and confirm illustration distribution rights.
-5. Validate Profile appearance selection across restart, rotation, system dark-mode changes and return to System, including native bars and failed writes. Then choose the next remaining local parity slice from the reference; all six prenatal Records sections already have CRUD.
+5. Validate Profile appearance selection across restart, rotation, system dark-mode changes and return to System, including native bars and failed writes. Then continue the user-selected Room slice with protected legacy import; all six prenatal Records sections already have CRUD.
 
 Next notes checks: physical-device CRUD, discard/delete confirmations, follow-up dates, restart persistence and tamper/error behavior. Compile/test notes Keychain on macOS. Next MVP-local work: validate the implemented draft retention with real Activity recreation (including in-flight save/delete, Ready/Empty root, section routing and explicit discard), then physical-device UI/persistence/navigation/accessibility checks against the prototype. Independent reminders are implemented; native document attachments and appointment links remain pending; auth/sync is a later slice.
+
+
+Session stop (2026-11-16, requested by user): the final Samsung locale pass completed successfully for ES/EN/FR before shutdown. In each language, Home title, manual second/previous WHO card, clean formatting and absence of visible apostrophe escapes passed. Original system app-locale selection and charging-screen preference were restored; temporary phone captures were removed. No further device work was performed. FAQ animation/reduced-motion toggles, full accessibility matrix and iOS remain pending. Code/build status remains 91 passing host tests; no commit/push performed. Next implementation: user-selected Room, after reviewing this UI slice.

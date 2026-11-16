@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.DatePicker
@@ -32,16 +34,17 @@ internal fun DateField(
     enabled: Boolean = true,
     onValueChange: (String) -> Unit,
 ) {
+    val ui = LocalUiCopy.current
     var open by remember { mutableStateOf(false) }
     Column {
         Text(label, style = MaterialTheme.typography.labelLarge)
         OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().semantics {
-            contentDescription = "$label: ${if (value.isEmpty()) "Seleccionar fecha" else dateLabel(value, expanded = true)}"
+            contentDescription = ui.s(Res.string.date_field_accessibility, label, if (value.isEmpty()) ui.s(Res.string.select_date) else dateLabel(ui, value, expanded = true))
         }) {
-            Text(if (value.isEmpty()) "Seleccionar fecha" else dateLabel(value), modifier = Modifier.clearAndSetSemantics { })
+            Text(if (value.isEmpty()) ui.s(Res.string.select_date) else dateLabel(ui, value), modifier = Modifier.clearAndSetSemantics { })
         }
         if (clearable && value.isNotEmpty()) {
-            TextButton(onClick = { onValueChange("") }, enabled = enabled) { Text("Borrar fecha: $label") }
+            TextButton(onClick = { onValueChange("") }, enabled = enabled) { Text(ui.s(Res.string.clear_date, label)) }
         }
     }
     if (open) {
@@ -66,11 +69,11 @@ internal fun DateField(
                 TextButton(onClick = {
                     state.selectedDateMillis?.let { onValueChange(utcMillisToIso(it)) }
                     open = false
-                }, enabled = state.selectedDateMillis != null) { Text("Aceptar") }
+                }, enabled = state.selectedDateMillis != null) { Text(ui.s(Res.string.ok)) }
             },
-            dismissButton = { TextButton(onClick = { open = false }) { Text("Cancelar") } },
+            dismissButton = { TextButton(onClick = { open = false }) { Text(ui.s(Res.string.cancel)) } },
         ) {
-            DatePicker(state = state, title = { Text("Selecciona una fecha") }, showModeToggle = false)
+            DatePicker(state = state, title = { Text(ui.s(Res.string.select_a_date)) }, showModeToggle = false)
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +16,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLockChange: (Boolean) -> Unit) {
+    val ui = LocalUiCopy.current
     val scope = retainedOperationScope()
     var records by retain { mutableStateOf<List<VitalRecord>?>(null) }
     var loadError by retain { mutableStateOf(false) }
@@ -38,10 +41,10 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
     }
     if (discard) AlertDialog(
         onDismissRequest = { discard = false },
-        title = { Text("¿Descartar cambios?") },
-        text = { Text("Los cambios que no hayas guardado se perderán.") },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text("Descartar") } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text("Seguir editando") } },
+        title = { Text(ui.s(Res.string.discard_changes)) },
+        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
+        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
+        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     if (editing != null) {
         VitalRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { record ->
@@ -60,44 +63,44 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
         return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        EditorialHeader("Historial de salud", "Guarda la información indicada por tu equipo de salud. Tus registros se conservan en este dispositivo.", compact = true)
+        EditorialHeader(ui.s(Res.string.health_history), ui.s(Res.string.save_information_provided_by_your_care_team_your), compact = true)
         when {
             loadError -> {
-                Text("No pudimos leer tus registros de salud. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
+                Text(ui.s(Res.string.we_couldn_t_read_your_health_records_your), color = MaterialTheme.colorScheme.error)
                 OutlinedButton(enabled = !busy, onClick = {
                     busy = true
                     onNavigationLockChange(true)
                     scope.launch { try { reload() } finally { busy = false; onNavigationLockChange(false) } }
-                }) { Text("Reintentar") }
+                }) { Text(ui.s(Res.string.retry)) }
             }
             records == null -> CircularProgressIndicator()
             else -> {
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = VitalRecord("", todayIsoDate(), VitalType.WEIGHT); onNavigationLockChange(true) }) { Text("Nuevo registro de salud") }
+                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = VitalRecord("", todayIsoDate(), VitalType.WEIGHT); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_health_record)) }
                 LatestVitalSummaries(records!!)
-                if (records!!.isEmpty()) Text("Aún no tienes registros de salud.")
+                if (records!!.isEmpty()) Text(ui.s(Res.string.you_haven_t_recorded_any_health_data_yet))
                 orderedVitalRecords(records!!).forEach { record ->
                     EditorialRecordCard {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(if (record.type == VitalType.CUSTOM) record.label.orEmpty() else record.type.label(), style = MaterialTheme.typography.titleMedium)
-                            Text(dateLabel(record.date), style = MaterialTheme.typography.labelLarge)
-                            Text(vitalRecordValue(record), style = MaterialTheme.typography.titleLarge)
+                            Text(if (record.type == VitalType.CUSTOM) record.label.orEmpty() else record.type.label(ui), style = MaterialTheme.typography.titleMedium)
+                            Text(dateLabel(ui, record.date), style = MaterialTheme.typography.labelLarge)
+                            Text(vitalRecordValue(record, ui), style = MaterialTheme.typography.titleLarge)
                             record.notes?.let { Text(it) }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(enabled = !busy, onClick = { operationError = false; editing = record; onNavigationLockChange(true) }) { Text("Editar") }
-                                TextButton(enabled = !busy, onClick = { deleting = record; onNavigationLockChange(true) }) { Text("Eliminar") }
+                                TextButton(enabled = !busy, onClick = { operationError = false; editing = record; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
+                                TextButton(enabled = !busy, onClick = { deleting = record; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }
                             }
                         }
                     }
                 }
-                if (operationError) Text("No pudimos eliminar el registro. Inténtalo de nuevo.", color = MaterialTheme.colorScheme.error)
+                if (operationError) Text(ui.s(Res.string.we_couldn_t_delete_the_record_try_again), color = MaterialTheme.colorScheme.error)
             }
         }
     }
     deleting?.let { record ->
         AlertDialog(
             onDismissRequest = { if (!busy) { deleting = null; onNavigationLockChange(false) } },
-            title = { Text("¿Eliminar registro?") },
-            text = { Text("Se eliminará este registro de este dispositivo.") },
+            title = { Text(ui.s(Res.string.delete_record)) },
+            text = { Text(ui.s(Res.string.this_record_will_be_deleted_from_this_device)) },
             confirmButton = { TextButton(enabled = !busy, onClick = {
                 busy = true
                 scope.launch {
@@ -108,8 +111,8 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
                         if (result.isSuccess) reload() else operationError = true
                     } finally { busy = false; onNavigationLockChange(false) }
                 }
-            }) { Text("Eliminar") } },
-            dismissButton = { TextButton(enabled = !busy, onClick = { deleting = null; onNavigationLockChange(false) }) { Text("Cancelar") } },
+            }) { Text(ui.s(Res.string.delete)) } },
+            dismissButton = { TextButton(enabled = !busy, onClick = { deleting = null; onNavigationLockChange(false) }) { Text(ui.s(Res.string.cancel)) } },
         )
     }
 }
@@ -118,26 +121,28 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
 
 @Composable
 private fun LatestVitalSummaries(records: List<VitalRecord>) {
+    val ui = LocalUiCopy.current
     val weight = latestVitalRecord(records, VitalType.WEIGHT)
     val pressure = latestVitalRecord(records, VitalType.BLOOD_PRESSURE)
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Último peso", style = MaterialTheme.typography.titleMedium)
-            Text(weight?.let(::vitalRecordValue) ?: "Sin registros", style = MaterialTheme.typography.headlineSmall)
-            weight?.let { Text(dateLabel(it.date), style = MaterialTheme.typography.labelMedium) }
+            Text(ui.s(Res.string.latest_weight), style = MaterialTheme.typography.titleMedium)
+            Text(weight?.let { vitalRecordValue(it, ui) } ?: ui.s(Res.string.no_records), style = MaterialTheme.typography.headlineSmall)
+            weight?.let { Text(dateLabel(ui, it.date), style = MaterialTheme.typography.labelMedium) }
         }
     }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Presión arterial", style = MaterialTheme.typography.titleMedium)
-            Text(pressure?.let(::vitalRecordValue) ?: "Sin registros", style = MaterialTheme.typography.headlineSmall)
-            pressure?.let { Text(dateLabel(it.date), style = MaterialTheme.typography.labelMedium) }
+            Text(ui.s(Res.string.blood_pressure), style = MaterialTheme.typography.titleMedium)
+            Text(pressure?.let { vitalRecordValue(it, ui) } ?: ui.s(Res.string.no_records), style = MaterialTheme.typography.headlineSmall)
+            pressure?.let { Text(dateLabel(ui, it.date), style = MaterialTheme.typography.labelMedium) }
         }
     }
 }
 
 @Composable
 private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (VitalRecord) -> Unit) {
+    val ui = LocalUiCopy.current
     var date by retain(initial) { mutableStateOf(initial.date) }
     var type by retain(initial) { mutableStateOf(initial.type) }
     var value by retain(initial) { mutableStateOf(initial.value?.let(::formatVitalNumber).orEmpty()) }
@@ -147,43 +152,43 @@ private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Bool
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var typeMenu by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        EditorialHeader(if (initial.id.isEmpty()) "Nuevo registro de salud" else "Editar registro de salud")
-        DateField("Fecha", date, enabled = !busy) { date = it }
-        Text("Tipo de registro", style = MaterialTheme.typography.labelLarge)
+    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_health_record) else ui.s(Res.string.edit_health_record))
+        DateField(ui.s(Res.string.date), date, enabled = !busy) { date = it }
+        Text(ui.s(Res.string.record_type), style = MaterialTheme.typography.labelLarge)
         Box {
-            OutlinedButton(enabled = !busy, onClick = { typeMenu = true }, modifier = Modifier.fillMaxWidth()) { Text(type.label()) }
+            OutlinedButton(enabled = !busy, onClick = { typeMenu = true }, modifier = Modifier.fillMaxWidth()) { Text(type.label(ui)) }
             DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
                 VitalType.entries.forEach { option ->
-                    DropdownMenuItem(text = { Text(option.label()) }, onClick = { type = option; invalid = false; typeMenu = false })
+                    DropdownMenuItem(text = { Text(option.label(ui)) }, onClick = { type = option; invalid = false; typeMenu = false })
                 }
             }
         }
         if (type == VitalType.CUSTOM) {
-            OutlinedTextField(label, { label = it }, label = { Text("Nombre de la medida") }, singleLine = true, enabled = !busy, isError = label.length > 512 || (invalid && label.isBlank()), supportingText = { Text("${label.length}/512") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(label, { label = it }, label = { Text(ui.s(Res.string.measurement_name)) }, singleLine = true, enabled = !busy, isError = label.length > 512 || (invalid && label.isBlank()), supportingText = { Text("${label.length}/512") }, modifier = Modifier.fillMaxWidth())
         }
         if (type.isNumeric) {
             val parsed = parseVitalNumber(value)
-            OutlinedTextField(value, { value = it }, label = { Text(if (type == VitalType.BLOOD_PRESSURE) "Sistólica (mmHg)" else "Valor") }, singleLine = true, enabled = !busy,
+            OutlinedTextField(value, { value = it }, label = { Text(if (type == VitalType.BLOOD_PRESSURE) ui.s(Res.string.systolic_mmhg) else ui.s(Res.string.value)) }, singleLine = true, enabled = !busy,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
-                isError = invalid && (parsed == null || parsed !in 0.0..400.0), supportingText = { Text("Número entre 0 y 400. Puedes usar punto o coma decimal.") }, modifier = Modifier.fillMaxWidth())
+                isError = invalid && (parsed == null || parsed !in 0.0..400.0), supportingText = { Text(ui.s(Res.string.number_between_0_and_400_you_can_use)) }, modifier = Modifier.fillMaxWidth())
             if (type == VitalType.BLOOD_PRESSURE) {
                 val parsed2 = parseVitalNumber(value2)
-                OutlinedTextField(value2, { value2 = it }, label = { Text("Diastólica (mmHg)") }, singleLine = true, enabled = !busy,
+                OutlinedTextField(value2, { value2 = it }, label = { Text(ui.s(Res.string.diastolic_mmhg)) }, singleLine = true, enabled = !busy,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
-                    isError = invalid && (parsed2 == null || parsed2 !in 20.0..200.0), supportingText = { Text("Número entre 20 y 200.") }, modifier = Modifier.fillMaxWidth())
+                    isError = invalid && (parsed2 == null || parsed2 !in 20.0..200.0), supportingText = { Text(ui.s(Res.string.number_between_20_and_200)) }, modifier = Modifier.fillMaxWidth())
             }
         } else {
-            OutlinedTextField(text, { text = it }, label = { Text("Descripción") }, enabled = !busy, isError = text.length > 4096 || (invalid && text.isBlank()), supportingText = { Text("${text.length}/4096") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(text, { text = it }, label = { Text(ui.s(Res.string.description)) }, enabled = !busy, isError = text.length > 4096 || (invalid && text.isBlank()), supportingText = { Text("${text.length}/4096") }, modifier = Modifier.fillMaxWidth())
         }
-        OutlinedTextField(notes, { notes = it }, label = { Text("Notas (opcional)") }, enabled = !busy, isError = notes.length > 4096, supportingText = { Text("${notes.length}/4096") }, modifier = Modifier.fillMaxWidth())
-        if (invalid) Text("Revisa la fecha y los campos requeridos. Respeta los límites indicados.", color = MaterialTheme.colorScheme.error)
-        if (saveError) Text("No pudimos guardar el registro. Tus cambios siguen en el formulario.", color = MaterialTheme.colorScheme.error)
+        OutlinedTextField(notes, { notes = it }, label = { Text(ui.s(Res.string.notes_optional)) }, enabled = !busy, isError = notes.length > 4096, supportingText = { Text("${notes.length}/4096") }, modifier = Modifier.fillMaxWidth())
+        if (invalid) Text(ui.s(Res.string.check_the_date_and_required_fields_respect_the), color = MaterialTheme.colorScheme.error)
+        if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_record_your_changes), color = MaterialTheme.colorScheme.error)
         Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val record = vitalRecordForSave(initial, date, type, value, value2, label, text, notes)
             invalid = record == null
             if (record != null) onSave(record)
-        }) { Text(if (busy) "Guardando…" else "Guardar registro") }
-        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text("Cancelar") }
+        }) { Text(if (busy) ui.s(Res.string.saving) else ui.s(Res.string.save_record)) }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text(ui.s(Res.string.cancel)) }
     }
 }

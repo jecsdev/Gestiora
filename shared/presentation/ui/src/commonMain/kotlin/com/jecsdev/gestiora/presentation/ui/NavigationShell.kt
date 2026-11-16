@@ -1,5 +1,8 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+import org.jetbrains.compose.resources.StringResource
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +25,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.retain.retain
+import androidx.compose.runtime.key
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,8 +46,8 @@ import com.jecsdev.gestiora.presentation.viewmodels.MedicalConditionViewModel
 import com.jecsdev.gestiora.presentation.viewmodels.PrenatalNoteViewModel
 import org.koin.compose.koinInject
 
-internal enum class AppDestination(val label: String) {
-    Home("Inicio"), Calendar("Calendario"), Records("Registros"), Baby("Mi bebé"), Profile("Perfil")
+internal enum class AppDestination(val label: StringResource) {
+    Home(Res.string.home), Calendar(Res.string.calendar), Records(Res.string.records), Baby(Res.string.my_baby), Profile(Res.string.profile)
 }
 
 @Composable
@@ -55,6 +59,7 @@ internal fun NavigationShell(
     onEdit: () -> Unit,
     preferences: @Composable () -> Unit,
 ) {
+    val ui = LocalUiCopy.current
     var navigationLocked by retain { mutableStateOf(false) }
     var calendarDate by retain { mutableStateOf<String?>(null) }
     var notesStatus by retain { mutableStateOf<NoteTaskStatus?>(null) }
@@ -71,7 +76,7 @@ internal fun NavigationShell(
                             enabled = !navigationLocked,
                             onClick = { calendarDate = null; notesStatus = null; openConditions = false; onDestinationChange(item) },
                             icon = { DestinationIcon(item) },
-                            label = { Text(item.label) },
+                            label = { Text(ui.s(item.label)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.primary,
                                 selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -86,29 +91,31 @@ internal fun NavigationShell(
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
-            when (destination) {
-                AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onProfile = { onDestinationChange(AppDestination.Profile) }, onBaby = { onDestinationChange(AppDestination.Baby) }, followUpContent = {
-                    PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
-                        openConditions = false
-                        notesStatus = NoteTaskStatus.PENDING
-                        onDestinationChange(AppDestination.Records)
+        key(destination) {
+            Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).screenEntrance(12.dp)) {
+                when (destination) {
+                    AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onProfile = { onDestinationChange(AppDestination.Profile) }, onBaby = { onDestinationChange(AppDestination.Baby) }, followUpContent = {
+                        PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
+                            openConditions = false
+                            notesStatus = NoteTaskStatus.PENDING
+                            onDestinationChange(AppDestination.Records)
+                        }
+                        MedicalFollowUpSection(koinInject<MedicalConditionViewModel>()) {
+                            notesStatus = null
+                            openConditions = true
+                            onDestinationChange(AppDestination.Records)
+                        }
+                    }) { date ->
+                        calendarDate = date
+                        onDestinationChange(AppDestination.Calendar)
                     }
-                    MedicalFollowUpSection(koinInject<MedicalConditionViewModel>()) {
-                        notesStatus = null
-                        openConditions = true
-                        onDestinationChange(AppDestination.Records)
-                    }
-                }) { date ->
-                    calendarDate = date
-                    onDestinationChange(AppDestination.Calendar)
+                    AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
+                    AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
+                    AppDestination.Baby -> BabyScreen(profile, viewModel)
+                    AppDestination.Profile -> ProfileScreen(profile, onEdit, preferences)
                 }
-                AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
-                AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
-                AppDestination.Baby -> BabyScreen(profile, viewModel)
-                AppDestination.Profile -> ProfileScreen(profile, onEdit, preferences)
             }
-        }
+    }
     }
 }
 
@@ -125,36 +132,37 @@ private fun UnavailableScreen(title: String, message: String) {
 
 @Composable
 private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit, preferences: @Composable () -> Unit) {
+    val ui = LocalUiCopy.current
     Column(
         Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        EditorialHeader("Mi perfil", eyebrow = "TU ESPACIO PERSONAL")
-        EditorialSection("Sobre ti y tu bebé") {
+        EditorialHeader(ui.s(Res.string.my_profile), eyebrow = ui.s(Res.string.your_personal_space))
+        EditorialSection(ui.s(Res.string.about_you_and_your_baby)) {
             EditorialRecordCard {
-                ProfileLine("Tu nombre", profile.motherName ?: "No indicado")
-                ProfileLine("Apodo del bebé", profile.babyName ?: "No indicado")
-                ProfileLine("País", profile.country)
-                ProfileLine("Idioma", profile.language)
+                ProfileLine(ui.s(Res.string.your_name), profile.motherName ?: ui.s(Res.string.not_provided))
+                ProfileLine(ui.s(Res.string.baby_s_nickname), profile.babyName ?: ui.s(Res.string.not_provided))
+                ProfileLine(ui.s(Res.string.country), countryLabel(profile.country, ui))
+                ProfileLine(ui.s(Res.string.language), languageLabel(profile.language, ui))
             }
         }
-        EditorialSection("Fechas del embarazo") {
+        EditorialSection(ui.s(Res.string.pregnancy_dates)) {
             EditorialRecordCard {
                 val method = when (profile.dating.method) {
-                    DatingMethod.FUM -> "Última menstruación"
-                    DatingMethod.ULTRASOUND -> "Ecografía"
-                    DatingMethod.MEDICAL -> "Ajuste médico"
+                    DatingMethod.FUM -> ui.s(Res.string.last_menstrual_period)
+                    DatingMethod.ULTRASOUND -> ui.s(Res.string.ultrasound)
+                    DatingMethod.MEDICAL -> ui.s(Res.string.medical_adjustment)
                 }
-                ProfileLine("Método de cálculo", method)
-                profile.dating.lmp?.let { ProfileLine("Última menstruación", dateLabel(it)) }
-                profile.dating.dueDate?.let { ProfileLine("Fecha probable de parto", dateLabel(it)) }
-                profile.dating.referenceDate?.let { ProfileLine("Fecha de referencia", dateLabel(it)) }
+                ProfileLine(ui.s(Res.string.dating_method), method)
+                profile.dating.lmp?.let { ProfileLine(ui.s(Res.string.last_menstrual_period), dateLabel(ui, it)) }
+                profile.dating.dueDate?.let { ProfileLine(ui.s(Res.string.estimated_due_date), dateLabel(ui, it)) }
+                profile.dating.referenceDate?.let { ProfileLine(ui.s(Res.string.reference_date), dateLabel(ui, it)) }
                 profile.dating.referenceWeeks?.let { weeks ->
-                    ProfileLine("Edad en la referencia", "$weeks semanas y ${profile.dating.referenceDays ?: 0} días")
+                    ProfileLine(ui.s(Res.string.age_at_reference_date), ui.s(Res.string.weeks_and_days, weeks, profile.dating.referenceDays ?: 0))
                 }
             }
         }
-        Button(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text("Editar mi perfil y fechas") }
+        Button(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text(ui.s(Res.string.edit_my_profile_and_dates)) }
         preferences()
     }
 }

@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +16,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNavigationLockChange: (Boolean) -> Unit) {
+    val ui = LocalUiCopy.current
     val scope = retainedOperationScope()
     var conditions by retain { mutableStateOf<List<MedicalCondition>?>(null) }
     var loadError by retain { mutableStateOf(false) }
@@ -38,10 +41,10 @@ internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNav
     }
     if (discard) AlertDialog(
         onDismissRequest = { discard = false },
-        title = { Text("¿Descartar cambios?") },
-        text = { Text("Los cambios que no hayas guardado se perderán.") },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text("Descartar") } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text("Seguir editando") } },
+        title = { Text(ui.s(Res.string.discard_changes)) },
+        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
+        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
+        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     if (editing != null) {
         MedicalConditionForm(editing!!, busy, operationError, onCancel = { discard = true }) { condition ->
@@ -60,48 +63,48 @@ internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNav
         return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        EditorialHeader("Condiciones y riesgos", "Solo condiciones y riesgos indicados por un profesional de salud. Gestiora no identifica ni diagnostica riesgos.", compact = true)
+        EditorialHeader(ui.s(Res.string.conditions_and_risks), ui.s(Res.string.only_conditions_and_risks_identified_by_a_health), compact = true)
         when {
             loadError -> {
-                Text("No pudimos leer tus condiciones. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
+                Text(ui.s(Res.string.we_couldn_t_read_your_conditions_your_data), color = MaterialTheme.colorScheme.error)
                 OutlinedButton(enabled = !busy, onClick = {
                     busy = true
                     onNavigationLockChange(true)
                     scope.launch { try { reload() } finally { busy = false; onNavigationLockChange(false) } }
-                }) { Text("Reintentar") }
+                }) { Text(ui.s(Res.string.retry)) }
             }
             conditions == null -> CircularProgressIndicator()
             else -> {
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = MedicalCondition("", "", todayIsoDate(), ""); onNavigationLockChange(true) }) { Text("Nueva condición") }
-                if (conditions!!.isEmpty()) Text("Aún no tienes condiciones registradas.")
+                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = MedicalCondition("", "", todayIsoDate(), ""); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_condition)) }
+                if (conditions!!.isEmpty()) Text(ui.s(Res.string.you_haven_t_recorded_any_conditions_yet))
                 conditions!!.forEach { condition ->
                     EditorialRecordCard {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            EditorialStatus(condition.status.label())
+                            EditorialStatus(condition.status.label(ui))
                             Text(condition.name, style = MaterialTheme.typography.titleMedium)
                             Text(condition.professional)
-                            Text(dateLabel(condition.date), style = MaterialTheme.typography.labelMedium)
-                            condition.instructions?.let { MedicalConditionDetail("Indicaciones médicas", it) }
-                            condition.treatment?.let { MedicalConditionDetail("Tratamiento prescrito", it) }
-                            condition.monitoring?.let { MedicalConditionDetail("Requisitos de control", it) }
-                            condition.followUp?.let { MedicalConditionDetail("Seguimiento", dateLabel(it)) }
-                            condition.notes?.let { MedicalConditionDetail("Notas históricas", it) }
+                            Text(dateLabel(ui, condition.date), style = MaterialTheme.typography.labelMedium)
+                            condition.instructions?.let { MedicalConditionDetail(ui.s(Res.string.medical_instructions), it) }
+                            condition.treatment?.let { MedicalConditionDetail(ui.s(Res.string.prescribed_treatment), it) }
+                            condition.monitoring?.let { MedicalConditionDetail(ui.s(Res.string.monitoring_requirements), it) }
+                            condition.followUp?.let { MedicalConditionDetail(ui.s(Res.string.follow_up), dateLabel(ui, it)) }
+                            condition.notes?.let { MedicalConditionDetail(ui.s(Res.string.historical_notes), it) }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(enabled = !busy, onClick = { operationError = false; editing = condition; onNavigationLockChange(true) }) { Text("Editar") }
-                                TextButton(enabled = !busy, onClick = { deleting = condition; onNavigationLockChange(true) }) { Text("Eliminar") }
+                                TextButton(enabled = !busy, onClick = { operationError = false; editing = condition; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
+                                TextButton(enabled = !busy, onClick = { deleting = condition; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }
                             }
                         }
                     }
                 }
-                if (operationError) Text("No pudimos eliminar la condición. Inténtalo de nuevo.", color = MaterialTheme.colorScheme.error)
+                if (operationError) Text(ui.s(Res.string.we_couldn_t_delete_the_condition_try_again), color = MaterialTheme.colorScheme.error)
             }
         }
     }
     deleting?.let { condition ->
         AlertDialog(
             onDismissRequest = { if (!busy) { deleting = null; onNavigationLockChange(false) } },
-            title = { Text("¿Eliminar condición?") },
-            text = { Text("Se eliminará esta condición de este dispositivo.") },
+            title = { Text(ui.s(Res.string.delete_condition)) },
+            text = { Text(ui.s(Res.string.this_condition_will_be_deleted_from_this_device)) },
             confirmButton = { TextButton(enabled = !busy, onClick = {
                 busy = true
                 scope.launch {
@@ -112,8 +115,8 @@ internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNav
                         if (result.isSuccess) reload() else operationError = true
                     } finally { busy = false; onNavigationLockChange(false) }
                 }
-            }) { Text("Eliminar") } },
-            dismissButton = { TextButton(enabled = !busy, onClick = { deleting = null; onNavigationLockChange(false) }) { Text("Cancelar") } },
+            }) { Text(ui.s(Res.string.delete)) } },
+            dismissButton = { TextButton(enabled = !busy, onClick = { deleting = null; onNavigationLockChange(false) }) { Text(ui.s(Res.string.cancel)) } },
         )
     }
 }
@@ -128,6 +131,7 @@ private fun MedicalConditionDetail(label: String, value: String) {
 
 @Composable
 private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (MedicalCondition) -> Unit) {
+    val ui = LocalUiCopy.current
     var name by retain(initial) { mutableStateOf(initial.name) }
     var date by retain(initial) { mutableStateOf(initial.date) }
     var professional by retain(initial) { mutableStateOf(initial.professional) }
@@ -138,32 +142,32 @@ private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveE
     var status by retain(initial) { mutableStateOf(initial.status) }
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        EditorialHeader(if (initial.id.isEmpty()) "Nueva condición" else "Editar condición")
-        Text("Solo condiciones y riesgos indicados por un profesional de salud. Gestiora no identifica ni diagnostica riesgos.", style = MaterialTheme.typography.bodySmall)
-        MedicalConditionTextField("Condición (indicada por un profesional)", name, 512, busy, invalid && name.isBlank()) { name = it }
-        DateField("Fecha identificada", date, enabled = !busy) { date = it }
-        MedicalConditionTextField("Profesional de salud", professional, 512, busy, invalid && professional.isBlank()) { professional = it }
-        MedicalConditionTextField("Indicaciones médicas (opcional)", instructions, 4096, busy) { instructions = it }
-        MedicalConditionTextField("Tratamiento prescrito (opcional)", treatment, 4096, busy) { treatment = it }
-        MedicalConditionTextField("Requisitos de control (opcional)", monitoring, 4096, busy) { monitoring = it }
-        DateField("Fecha de seguimiento (opcional)", followUp, clearable = true, enabled = !busy) { followUp = it }
-        Text("Esta fecha no crea una cita ni una notificación.", style = MaterialTheme.typography.bodySmall)
-        Text("Estado", style = MaterialTheme.typography.labelLarge)
+    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_condition) else ui.s(Res.string.edit_condition))
+        Text(ui.s(Res.string.only_conditions_and_risks_identified_by_a_health), style = MaterialTheme.typography.bodySmall)
+        MedicalConditionTextField(ui.s(Res.string.condition_identified_by_a_professional), name, 512, busy, invalid && name.isBlank()) { name = it }
+        DateField(ui.s(Res.string.date_identified), date, enabled = !busy) { date = it }
+        MedicalConditionTextField(ui.s(Res.string.health_professional), professional, 512, busy, invalid && professional.isBlank()) { professional = it }
+        MedicalConditionTextField(ui.s(Res.string.medical_instructions_optional), instructions, 4096, busy) { instructions = it }
+        MedicalConditionTextField(ui.s(Res.string.prescribed_treatment_optional), treatment, 4096, busy) { treatment = it }
+        MedicalConditionTextField(ui.s(Res.string.monitoring_requirements_optional), monitoring, 4096, busy) { monitoring = it }
+        DateField(ui.s(Res.string.follow_up_date_optional), followUp, clearable = true, enabled = !busy) { followUp = it }
+        Text(ui.s(Res.string.this_date_does_not_create_an_appointment_or), style = MaterialTheme.typography.bodySmall)
+        Text(ui.s(Res.string.status), style = MaterialTheme.typography.labelLarge)
         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ConditionStatus.entries.forEach { option ->
-                FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label()) })
+                FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label(ui)) })
             }
         }
-        MedicalConditionTextField("Notas históricas (opcional)", notes, 4096, busy) { notes = it }
-        if (invalid) Text("Indica la condición, el profesional y una fecha válida. Respeta los límites de los campos.", color = MaterialTheme.colorScheme.error)
-        if (saveError) Text("No pudimos guardar la condición. Tus cambios siguen en el formulario.", color = MaterialTheme.colorScheme.error)
+        MedicalConditionTextField(ui.s(Res.string.historical_notes_optional), notes, 4096, busy) { notes = it }
+        if (invalid) Text(ui.s(Res.string.enter_the_condition_professional_and_a_valid_date), color = MaterialTheme.colorScheme.error)
+        if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_condition_your_changes), color = MaterialTheme.colorScheme.error)
         Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val condition = medicalConditionForSave(initial, name, date, professional, instructions, treatment, monitoring, followUp, status, notes)
             invalid = condition == null
             if (condition != null) onSave(condition)
-        }) { Text(if (busy) "Guardando…" else "Guardar condición") }
-        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text("Cancelar") }
+        }) { Text(if (busy) ui.s(Res.string.saving) else ui.s(Res.string.save_condition)) }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text(ui.s(Res.string.cancel)) }
     }
 }
 

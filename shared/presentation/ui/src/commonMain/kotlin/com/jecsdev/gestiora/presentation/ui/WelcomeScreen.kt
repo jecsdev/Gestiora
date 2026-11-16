@@ -1,5 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
+import gestiora.shared.presentation.ui.generated.resources.*
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +36,7 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun WelcomeScreen(onStart: () -> Unit) {
+    val ui = LocalUiCopy.current
     BoxWithConstraints(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding(),
     ) {
@@ -45,7 +48,7 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                "GESTIORA",
+                ui.s(Res.string.brand),
                 modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 12.dp),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
@@ -57,7 +60,7 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
             ) {
                 Image(
                     painterResource(Res.drawable.fetus_week_36),
-                    contentDescription = "Ilustración fetal de referencia",
+                    contentDescription = ui.s(Res.string.reference_fetal_illustration),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
                 )
@@ -67,27 +70,27 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
                     .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
                     .padding(horizontal = 24.dp, vertical = 28.dp),
             ) {
-                Text("TU ESPACIO PRENATAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text(ui.s(Res.string.your_prenatal_space), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 Text(
                     buildAnnotatedString {
-                        append("Tu embarazo,\n")
-                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("en calma.") }
+                        append(ui.s(Res.string.your_pregnancy_n))
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(ui.s(Res.string.at_ease)) }
                     },
                     modifier = Modifier.padding(top = 8.dp),
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.displaySmall.copy(fontSize = 44.sp, lineHeight = 44.sp, fontWeight = FontWeight.Medium),
                 )
                 Text(
-                    "Citas, registros y cada pequeño avance, reunidos en un lugar íntimo y sencillo.",
+                    ui.s(Res.string.appointments_records_and_every_little_milestone_together_in),
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Button(onClick = onStart, modifier = Modifier.padding(top = 24.dp).fillMaxWidth().heightIn(min = 52.dp)) {
-                    Text("Comenzar")
+                    Text(ui.s(Res.string.get_started))
                 }
                 Text(
-                    "Puedes comenzar sin crear una cuenta.",
+                    ui.s(Res.string.you_can_start_without_creating_an_account),
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
