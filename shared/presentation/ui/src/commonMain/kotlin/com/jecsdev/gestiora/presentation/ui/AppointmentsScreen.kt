@@ -143,7 +143,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
                     onDateSelect = { selectedDate = it; displayedMonth = it.take(7) },
                 )
                 if (selectedDate.isNotEmpty()) {
-                    Text("Citas del $selectedDate", style = MaterialTheme.typography.titleMedium)
+                    Text("Citas del ${dateLabel(selectedDate)}", style = MaterialTheme.typography.titleMedium)
                     TextButton(onClick = { selectedDate = "" }, enabled = !busy) { Text("Ver todas las citas") }
                 } else {
                     Text("Todas las citas", style = MaterialTheme.typography.titleMedium)
@@ -160,7 +160,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
                 visibleAppointments.forEach { appointment ->
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("${appointment.date} · ${appointment.time}", style = MaterialTheme.typography.titleMedium)
+                            Text("${dateLabel(appointment.date)} · ${appointment.time}", style = MaterialTheme.typography.titleMedium)
                             Text("${appointment.doctor} · ${appointment.specialty}")
                             Text(appointment.clinic)
                             Text(appointment.reason)
@@ -185,7 +185,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
         AlertDialog(
             onDismissRequest = { if (!busy) { deleting = null; onNavigationLockChange(false) } },
             title = { Text("¿Eliminar cita?") },
-            text = { Text("Se eliminará la cita del ${appointment.date} a las ${appointment.time} de este dispositivo.") },
+            text = { Text("Se eliminará la cita del ${dateLabel(appointment.date)} a las ${appointment.time} de este dispositivo.") },
             confirmButton = {
                 TextButton(enabled = !busy, onClick = {
                     busy = true

@@ -4,7 +4,7 @@ import com.jecsdev.gestiora.core.common.di.KoinModuleLoader
 import org.koin.core.module.Module
 
 object DataSourceCoreDependencyInjector : KoinModuleLoader {
-    override val modules: List<Module> = listOf(secureProfileStoreModule(), secureAppointmentsStoreModule(), securePrenatalNotesStoreModule(), secureConsultationsStoreModule(), secureVitalRecordsStoreModule(), secureMedicalConditionsStoreModule(), secureVaccineRecordsStoreModule(), secureExamRecordsStoreModule())
+    override val modules: List<Module> = listOf(secureProfileStoreModule(), secureAppointmentsStoreModule(), securePrenatalNotesStoreModule(), secureConsultationsStoreModule(), secureVitalRecordsStoreModule(), secureMedicalConditionsStoreModule(), secureVaccineRecordsStoreModule(), secureExamRecordsStoreModule(), themePreferenceModule())
 }
 
 internal expect fun secureProfileStoreModule(): Module
@@ -20,3 +20,5 @@ internal expect fun secureMedicalConditionsStoreModule(): Module
 internal expect fun secureVaccineRecordsStoreModule(): Module
 
 internal expect fun secureExamRecordsStoreModule(): Module
+
+internal expect fun themePreferenceModule(): Module

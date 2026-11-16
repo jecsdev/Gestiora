@@ -17,6 +17,7 @@ import com.jecsdev.gestiora.presentation.viewmodels.MedicalConditionViewModel
 import com.jecsdev.gestiora.presentation.viewmodels.VaccineRecordViewModel
 
 import com.jecsdev.gestiora.presentation.viewmodels.ExamRecordViewModel
+import com.jecsdev.gestiora.presentation.viewmodels.ThemePreferenceViewModel
 
 object PresentationViewModelsDependencyInjector : KoinModuleLoader {
     override val modules: List<Module> = listOf(module {
@@ -29,5 +30,6 @@ object PresentationViewModelsDependencyInjector : KoinModuleLoader {
         single { MedicalConditionViewModel(get()) }
         single { VaccineRecordViewModel(get()) }
         single { ExamRecordViewModel(get()) }
+        single { ThemePreferenceViewModel(get()) }
     })
 }

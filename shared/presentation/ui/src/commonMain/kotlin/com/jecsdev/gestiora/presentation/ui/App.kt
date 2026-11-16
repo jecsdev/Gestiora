@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.core.di.CoreDependencyInjection
-import com.jecsdev.gestiora.core.ui.AppTheme
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileLoad
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
@@ -39,13 +38,13 @@ fun App(platformModules: List<Module> = emptyList()) {
     KoinIsolatedContext(context = graph.application) {
         // Material controls also use rememberSaveable internally. Medical drafts stay in RAM.
         CompositionLocalProvider(LocalSaveableStateRegistry provides null) {
-            AppTheme { ProfileRoot(koinInject()) }
+            ThemeRoot(koinInject()) { preferences -> ProfileRoot(koinInject(), preferences) }
         }
     }
 }
 
 @Composable
-private fun ProfileRoot(viewModel: ProfileViewModel) {
+private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable () -> Unit) {
     var loadAttempt by retain { mutableIntStateOf(0) }
     var state by retain { mutableStateOf<ProfileLoad>(ProfileLoad.Loading) }
     var editing by retain { mutableStateOf(false) }
@@ -95,7 +94,7 @@ private fun ProfileRoot(viewModel: ProfileViewModel) {
                 onCancel = { editing = false; saveFailed = false },
             )
         } else {
-            NavigationShell(current.profile, viewModel, destination, onDestinationChange = { destination = it }, onEdit = { editing = true })
+            NavigationShell(current.profile, viewModel, destination, onDestinationChange = { destination = it }, onEdit = { editing = true }, preferences = preferences)
         }
     }
 }

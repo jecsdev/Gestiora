@@ -176,7 +176,7 @@ fun OnboardingScreen(
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), shape = RoundedCornerShape(20.dp)) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 Text("Hoy: ${age.weeks} sem ${age.days} d", fontWeight = FontWeight.Bold)
-                                Text("Fecha probable de parto: ${age.dueDate}")
+                                Text("Fecha probable de parto: ${dateLabel(age.dueDate)}")
                             }
                         }
                     }

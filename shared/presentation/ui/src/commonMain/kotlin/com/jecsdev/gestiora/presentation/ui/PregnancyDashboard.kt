@@ -108,7 +108,7 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
                 Card(onClick = { onCalendar(appointment.date) }, modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(appointment.reason, style = MaterialTheme.typography.titleMedium)
-                        Text("${appointment.date} · ${appointment.time} · ${appointment.doctor}", style = MaterialTheme.typography.bodyMedium)
+                        Text("${dateLabel(appointment.date)} · ${appointment.time} · ${appointment.doctor}", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -153,7 +153,7 @@ private fun PregnancyDateSummary(age: PregnancyAge) {
         val due: @Composable () -> Unit = {
             Column {
                 Text("FECHA PROBABLE", style = MaterialTheme.typography.labelSmall)
-                Text(age.dueDate, fontWeight = FontWeight.Bold)
+                Text(dateLabel(age.dueDate), fontWeight = FontWeight.Bold)
             }
         }
         val remaining: @Composable () -> Unit = {

@@ -12,6 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
@@ -62,31 +65,37 @@ internal fun AppointmentCalendar(
                 TextButton(onClick = { next?.let(onMonthChange) }, enabled = enabled && next != null, modifier = Modifier.semantics { contentDescription = "Mes siguiente" }) { Text("›") }
             }
             Row(Modifier.fillMaxWidth()) {
-                listOf("L", "M", "X", "J", "V", "S", "D").forEach { day ->
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { Text(day, style = MaterialTheme.typography.labelSmall) }
+                listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo").forEachIndexed { index, day ->
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Text(listOf("L", "M", "X", "J", "V", "S", "D")[index], style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.clearAndSetSemantics { contentDescription = day })
+                    }
                 }
             }
             days.chunked(7).forEach { week ->
                 Row(Modifier.fillMaxWidth()) {
                     week.forEach { date ->
-                        val selected = date != null && date == selectedDate
+                        val isSelected = date != null && date == selectedDate
                         val marked = date != null && date in markedDates
                         val background = when {
-                            selected -> MaterialTheme.colorScheme.primary
+                            isSelected -> MaterialTheme.colorScheme.primary
                             date != null && date == today -> MaterialTheme.colorScheme.secondaryContainer
                             else -> MaterialTheme.colorScheme.surfaceVariant
                         }
                         val foreground = when {
-                            selected -> MaterialTheme.colorScheme.onPrimary
+                            isSelected -> MaterialTheme.colorScheme.onPrimary
                             date != null && !date.startsWith(month) -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
                         Box(Modifier.weight(1f).aspectRatio(1f).padding(2.dp).background(background, CircleShape)
-                            .then(if (date == null) Modifier else Modifier.semantics { contentDescription = "$date${if (marked) ", tiene citas" else ""}${if (selected) ", seleccionada" else ""}" }.clickable(enabled = enabled) { onDateSelect(date) }),
+                            .then(if (date == null) Modifier else Modifier.semantics {
+                                contentDescription = "${dateLabel(date, expanded = true)}${if (date == today) ", hoy" else ""}${if (marked) ", tiene citas" else ""}"
+                                selected = isSelected
+                            }.clickable(enabled = enabled, role = Role.Button) { onDateSelect(date) }),
                             contentAlignment = Alignment.Center) {
                             if (date != null) {
-                                Text(date.substring(8).toInt().toString(), color = foreground, style = MaterialTheme.typography.bodySmall)
-                                if (marked) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).size(4.dp).background(if (selected) foreground else MaterialTheme.colorScheme.primary, CircleShape))
+                                Text(date.substring(8).toInt().toString(), color = foreground, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clearAndSetSemantics { })
+                                if (marked) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).size(4.dp).background(if (isSelected) foreground else MaterialTheme.colorScheme.primary, CircleShape))
                             }
                         }
                     }

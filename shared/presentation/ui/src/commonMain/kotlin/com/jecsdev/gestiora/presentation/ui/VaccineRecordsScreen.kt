@@ -82,9 +82,9 @@ internal fun VaccineRecordsScreen(viewModel: VaccineRecordViewModel, onNavigatio
                             Text(vaccine.name, style = MaterialTheme.typography.titleMedium)
                             vaccine.dose?.let { VaccineRecordDetail("Dosis", it) }
                             val summaryDate = if (vaccine.status == VaccineStatus.ADMINISTERED) vaccine.administered else vaccine.scheduled
-                            VaccineRecordDetail(if (vaccine.status == VaccineStatus.ADMINISTERED) "Aplicada" else "Programada", summaryDate ?: "Sin fecha registrada")
-                            if (vaccine.status != VaccineStatus.ADMINISTERED) vaccine.administered?.let { VaccineRecordDetail("Fecha de aplicación registrada", it) }
-                            if (vaccine.status == VaccineStatus.ADMINISTERED) vaccine.scheduled?.let { VaccineRecordDetail("Fecha programada", it) }
+                            VaccineRecordDetail(if (vaccine.status == VaccineStatus.ADMINISTERED) "Aplicada" else "Programada", summaryDate?.let { dateLabel(it) } ?: "Sin fecha registrada")
+                            if (vaccine.status != VaccineStatus.ADMINISTERED) vaccine.administered?.let { VaccineRecordDetail("Fecha de aplicación registrada", dateLabel(it)) }
+                            if (vaccine.status == VaccineStatus.ADMINISTERED) vaccine.scheduled?.let { VaccineRecordDetail("Fecha programada", dateLabel(it)) }
                             vaccine.provider?.let { VaccineRecordDetail("Profesional / proveedor", it) }
                             vaccine.location?.let { VaccineRecordDetail("Lugar", it) }
                             vaccine.proof?.let { VaccineRecordDetail("Comprobante (referencia)", it) }

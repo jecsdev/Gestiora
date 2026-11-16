@@ -50,6 +50,7 @@ internal fun NavigationShell(
     destination: AppDestination,
     onDestinationChange: (AppDestination) -> Unit,
     onEdit: () -> Unit,
+    preferences: @Composable () -> Unit,
 ) {
     var navigationLocked by retain { mutableStateOf(false) }
     var calendarDate by retain { mutableStateOf<String?>(null) }
@@ -92,7 +93,7 @@ internal fun NavigationShell(
                 AppDestination.Calendar -> AppointmentsScreen(koinInject<AppointmentViewModel>(), calendarDate) { navigationLocked = it }
                 AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
                 AppDestination.Baby -> BabyScreen(profile, viewModel)
-                AppDestination.Profile -> ProfileScreen(profile, onEdit)
+                AppDestination.Profile -> ProfileScreen(profile, onEdit, preferences)
             }
         }
     }
@@ -110,7 +111,7 @@ private fun UnavailableScreen(title: String, message: String) {
 }
 
 @Composable
-private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit) {
+private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit, preferences: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxSize().safeContentPadding().verticalScroll(rememberScrollState()).padding(22.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -128,15 +129,16 @@ private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit) {
                     DatingMethod.MEDICAL -> "Ajuste médico"
                 }
                 ProfileLine("Método de cálculo", method)
-                profile.dating.lmp?.let { ProfileLine("Última menstruación", it) }
-                profile.dating.dueDate?.let { ProfileLine("Fecha probable de parto", it) }
-                profile.dating.referenceDate?.let { ProfileLine("Fecha de referencia", it) }
+                profile.dating.lmp?.let { ProfileLine("Última menstruación", dateLabel(it)) }
+                profile.dating.dueDate?.let { ProfileLine("Fecha probable de parto", dateLabel(it)) }
+                profile.dating.referenceDate?.let { ProfileLine("Fecha de referencia", dateLabel(it)) }
                 profile.dating.referenceWeeks?.let { weeks ->
                     ProfileLine("Edad en la referencia", "$weeks semanas y ${profile.dating.referenceDays ?: 0} días")
                 }
             }
         }
         Button(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text("Editar mi perfil y fechas") }
+        preferences()
     }
 }
 

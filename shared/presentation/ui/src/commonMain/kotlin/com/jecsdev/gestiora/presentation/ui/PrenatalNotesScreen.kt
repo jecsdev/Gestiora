@@ -111,7 +111,7 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
                             Text(note.category.label(), style = MaterialTheme.typography.labelMedium)
                             note.body?.let { Text(it) }
                             Text(note.status.label())
-                            note.followUp?.let { Text("Seguimiento: $it") }
+                            note.followUp?.let { Text("Seguimiento: ${dateLabel(it)}") }
                             Row {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = note; onNavigationLockChange(true) }) { Text("Editar") }
                                 TextButton(enabled = !busy, onClick = { deleting = note; onNavigationLockChange(true) }) { Text("Eliminar") }

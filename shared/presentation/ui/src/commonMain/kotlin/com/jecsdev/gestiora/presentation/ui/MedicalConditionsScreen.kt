@@ -81,11 +81,11 @@ internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNav
                             Text(condition.status.label(), style = MaterialTheme.typography.labelLarge)
                             Text(condition.name, style = MaterialTheme.typography.titleMedium)
                             Text(condition.professional)
-                            Text(condition.date, style = MaterialTheme.typography.labelMedium)
+                            Text(dateLabel(condition.date), style = MaterialTheme.typography.labelMedium)
                             condition.instructions?.let { MedicalConditionDetail("Indicaciones médicas", it) }
                             condition.treatment?.let { MedicalConditionDetail("Tratamiento prescrito", it) }
                             condition.monitoring?.let { MedicalConditionDetail("Requisitos de control", it) }
-                            condition.followUp?.let { MedicalConditionDetail("Seguimiento", it) }
+                            condition.followUp?.let { MedicalConditionDetail("Seguimiento", dateLabel(it)) }
                             condition.notes?.let { MedicalConditionDetail("Notas históricas", it) }
                             Row {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = condition; onNavigationLockChange(true) }) { Text("Editar") }

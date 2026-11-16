@@ -43,7 +43,7 @@ private val darkColors = darkColorScheme(
 )
 
 @Composable
-fun AppTheme(content: @Composable () -> Unit) {
+fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     val display = FontFamily(
         Font(Res.font.plus_jakarta_sans_400, FontWeight.Normal),
         Font(Res.font.plus_jakarta_sans_500, FontWeight.Medium),
@@ -75,5 +75,5 @@ fun AppTheme(content: @Composable () -> Unit) {
         labelMedium = defaults.labelMedium.copy(fontFamily = body),
         labelSmall = defaults.labelSmall.copy(fontFamily = body),
     )
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColors else lightColors, typography = typography, content = content)
+    MaterialTheme(colorScheme = if (darkTheme) darkColors else lightColors, typography = typography, content = content)
 }

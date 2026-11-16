@@ -79,14 +79,14 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(consultation.doctor ?: "Consulta prenatal", style = MaterialTheme.typography.titleMedium)
-                            Text(consultation.date, style = MaterialTheme.typography.labelLarge)
+                            Text(dateLabel(consultation.date), style = MaterialTheme.typography.labelLarge)
                             consultation.gestationalAge?.let { ConsultationDetail("Edad gestacional registrada", it) }
                             consultation.observations?.let { ConsultationDetail("Observaciones", it) }
                             consultation.instructions?.let { ConsultationDetail("Indicaciones", it) }
                             consultation.medications?.let { ConsultationDetail("Medicamentos", it) }
                             consultation.exams?.let { ConsultationDetail("Estudios", it) }
                             consultation.followUp?.let { ConsultationDetail("Seguimiento", it) }
-                            consultation.nextDate?.let { ConsultationDetail("Próxima cita", it) }
+                            consultation.nextDate?.let { ConsultationDetail("Próxima cita", dateLabel(it)) }
                             Row {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = consultation; onNavigationLockChange(true) }) { Text("Editar") }
                                 TextButton(enabled = !busy, onClick = { deleting = consultation; onNavigationLockChange(true) }) { Text("Eliminar") }

@@ -81,10 +81,10 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
                             Text(exam.status.label(), style = MaterialTheme.typography.labelLarge)
                             Text(exam.name, style = MaterialTheme.typography.titleMedium)
                             Text(exam.kind.label(), style = MaterialTheme.typography.labelMedium)
-                            ExamRecordDetail("Fecha de referencia", exam.completed ?: exam.scheduled ?: exam.requested ?: "Sin fecha registrada")
-                            exam.requested?.let { ExamRecordDetail("Fecha de solicitud", it) }
-                            exam.scheduled?.let { ExamRecordDetail("Fecha programada", it) }
-                            exam.completed?.let { ExamRecordDetail("Fecha de realización registrada", it) }
+                            ExamRecordDetail("Fecha de referencia", (exam.completed ?: exam.scheduled ?: exam.requested)?.let { dateLabel(it) } ?: "Sin fecha registrada")
+                            exam.requested?.let { ExamRecordDetail("Fecha de solicitud", dateLabel(it)) }
+                            exam.scheduled?.let { ExamRecordDetail("Fecha programada", dateLabel(it)) }
+                            exam.completed?.let { ExamRecordDetail("Fecha de realización registrada", dateLabel(it)) }
                             exam.physician?.let { ExamRecordDetail("Médico que lo solicitó", it) }
                             exam.results?.let { ExamRecordDetail("Resumen de resultados", it) }
                             exam.notes?.let { ExamRecordDetail("Observaciones médicas", it) }

@@ -23,6 +23,8 @@ import com.jecsdev.gestiora.data.repository.SecureVaccineRecordRepository
 import com.jecsdev.gestiora.domain.repository.VaccineRecordRepository
 
 import com.jecsdev.gestiora.data.repository.SecureExamRecordRepository
+import com.jecsdev.gestiora.data.repository.LocalThemePreferenceRepository
+import com.jecsdev.gestiora.domain.repository.ThemePreferenceRepository
 import com.jecsdev.gestiora.domain.repository.ExamRecordRepository
 
 object DataRepositoryDependencyInjector : KoinModuleLoader {
@@ -35,5 +37,6 @@ object DataRepositoryDependencyInjector : KoinModuleLoader {
         single<MedicalConditionRepository> { SecureMedicalConditionRepository(get()) }
         single<VaccineRecordRepository> { SecureVaccineRecordRepository(get()) }
         single<ExamRecordRepository> { SecureExamRecordRepository(get()) }
+        single<ThemePreferenceRepository> { LocalThemePreferenceRepository(get()) }
     })
 }

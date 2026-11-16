@@ -36,9 +36,9 @@ internal fun DateField(
     Column {
         Text(label, style = MaterialTheme.typography.labelLarge)
         OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().semantics {
-            contentDescription = "$label: ${value.ifEmpty { "Seleccionar fecha" }}"
+            contentDescription = "$label: ${if (value.isEmpty()) "Seleccionar fecha" else dateLabel(value, expanded = true)}"
         }) {
-            Text(value.ifEmpty { "Seleccionar fecha" }, modifier = Modifier.clearAndSetSemantics { })
+            Text(if (value.isEmpty()) "Seleccionar fecha" else dateLabel(value), modifier = Modifier.clearAndSetSemantics { })
         }
         if (clearable && value.isNotEmpty()) {
             TextButton(onClick = { onValueChange("") }, enabled = enabled) { Text("Borrar fecha: $label") }

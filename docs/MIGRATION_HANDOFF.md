@@ -6,6 +6,10 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 ## Completed features
 
+- Spanish civil-date presentation (2026-11-14 local): compact dates match the prototype's `d MMM yyyy` convention across onboarding preview, profile, dashboard, appointments, all six Records sections and date fields. Picker/calendar accessibility labels use full Spanish month names. Calendar day semantics expose today, appointment markers and selection without also reading the child day number; weekday headings have full names. ISO model values, date ordering/filtering, picker callbacks and storage are unchanged.
+
+- Appearance preference (2026-11-13 local): Profile offers Seguir el sistema/Claro/Oscuro, applied at the app root without recreating the navigation/forms. The choice is stored separately from medical records and defaults to System only when absent. Read failures temporarily use System and expose retry in Profile; writes update the visible selection only after success. Retained state/operation scope prevents replaying a theme write on configuration recreation. Native system appearance is updated too; iOS clears its controller override when returning to System.
+
 - Home/Baby parity: shared BabyIllustration uses the existing seven bundled assets and reference-week mapping. Home hero shows actual gestational week next to the labeled reference illustration; weekly stage card and Ver bebé both open Mi bebé. Invalid/unknown pregnancy age hides the illustration/stage card; out-of-explorer-range weeks remain explicit rather than silently replaced. Hero and due-date summaries stack below320dp content width or fontScale>1.2. Baby explorer keeps its chosen week in RAM across configuration recreation and places its title above the two navigation buttons.
 
 - MVP flow hardening: onboarding/profile System Back shares the visible Back policy, moves through steps, consumes Back during save and confirms discard when leaving profile editing. Personal-detail changes can preserve existing historical pregnancy dates outside the ongoing window, matching the React profile flow; new/changed dates still validate against the current day when submitted. Date/time button accessibility labels now identify their field and selected value, retaining native button semantics without duplicate child text.
@@ -43,6 +47,10 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Appointment codec v2 reads legacy v1 records with reminder NONE; reading does not rewrite storage. A successful mutation writes v2 while preserving existing records.
 
 ## Files and modules modified
+
+- DateLabels.kt and DateLabelsTest.kt; DateField, AppointmentCalendar, AppointmentsScreen, ConsultationsScreen, ExamRecordsScreen, MedicalConditionsScreen, NavigationShell, OnboardingScreen, PendingNotesSection, PregnancyDashboard, PrenatalNotesScreen, VaccineRecordsScreen and VitalRecordsScreen. Presentation-only slice; no dependencies or persistence migrations.
+
+- ThemeMode, ThemePreferenceRepository/Store, LocalThemePreferenceRepository, ManageThemePreference, ThemePreferenceViewModel and their DI bindings; Android/iOS ThemePreferenceModule. AppTheme accepts the resolved dark flag; ThemePreferences/ThemeRoot, App and NavigationShell integrate Profile controls. SystemAppearance Android/iOS adapters keep native appearance aligned. Repository and ViewModel host tests added. No dependency changes.
 
 - BabyIllustration.kt, PregnancyDashboard.kt, BabyScreen.kt and NavigationShell.kt for shared artwork, weekly card/navigation, adaptive layout and selected-week retention.
 
@@ -111,9 +119,13 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 ## Pending tasks
 
 - Physical-device roundtrip and tamper tests for Android encrypted profile and appointments; iOS compile and Keychain tests on macOS.
-- Prenatal records, auth/sync, remaining navigation destinations and design polish.
+- Physical-device validation of all six implemented Records sections, navigation/forms, appearance and design parity. Actual attachments, appointment links and standalone reminders remain deferred. Auth/sync and advertisements follow the user's later phase.
 
 ## Known bugs and limitations
+
+- Date labels deliberately use Spanish, matching the current UI and React `es` formatter; a stored profile language is not an app-language selector. Calendar/picker TalkBack reading and layout with large fonts still require physical-device verification. Missing dates remain explicit; malformed nonempty dates display `Fecha no válida` instead of being normalized into another civil day.
+
+- Appearance: native preference adapters and system-bar appearance are not device-tested; iOS NSUserDefaults/controller integration is uncompiled on Windows. Until the initial asynchronous read completes, the app uses System; a brief appearance change at startup is possible. Android writes use checked synchronous SharedPreferences commit off the UI thread; iOS uses normal NSUserDefaults write semantics, without claiming synchronous disk durability. Only a non-medical display setting goes into these stores. Device/system theme switching and return from forced appearance need runtime verification.
 
 - Examinations storage: Android pregnancy_exams.gpr / com.jecsdev.gestiora.examRecords.v1 / GEX01; provisional iOS examRecords service / pregnancy-exams-v1 account. Codec v1: 1,000 records/1,000,000 payload chars, ID128, name/physician/attachment512, results/notes4096; strict enums/dates. No actual document attachment storage.
 
@@ -138,6 +150,10 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Prototype localStorage is unencrypted and its cloud sync is last-write-wins; do not port either behavior blindly for medical data.
 
 ## Tests and build
+
+- 2026-11-14 Spanish dates: `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed; 28 UI host tests, zero failures, including three date-label tests. `git diff --check` passed. ADB devices and mDNS discovery were empty; no physical-device or TalkBack test was possible, and no emulator was used. iOS remains uncompiled on Windows.
+
+- Appearance preference (2026-11-13 local): Android debug build and `:shared:data:repository:testAndroidHostTest :shared:presentation:viewmodels:testAndroidHostTest :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed: 34 repository + 12 ViewModel + 25 UI tests = 71, zero failures. Two new repository tests cover absent preference without writing, all modes across new repository instances, unsupported values/read failures without rewriting, explicit write failure and recovery. One ViewModel test covers success, failure propagation and cooperative cancellation. Final Android/UI build rerun after system-appearance integration. No phone was connected and mDNS returned no services; physical appearance/persistence, OS theme updates, accessibility and rotation remain untested. iOS not compiled.
 
 - Home/Baby parity (2026-11-12 local): `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache` passed, 25 UI host tests/0 failures. Existing baby-stage/reference boundary and upcoming-appointment tests remain passing. No extra tests were added to mirror reversible visual changes. Read-only review confirmed asset mapping, null/out-of-range handling and Baby callback wiring. Layout thresholds are implementation choices, not visually verified measurements. ADB devices and mDNS reported no available phone/service; no screenshot, TalkBack or click/rotation interaction test performed. iOS remains uncompiled.
 
@@ -186,6 +202,6 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 2. On macOS, compile iOS framework and test all eight Keychain items and their save/reload/delete behavior; correct any Kotlin/Native interop issues.
 3. Resolve recovery/export and uninstall/account-deletion policy before making portability promises.
 4. Verify navigation, baby explorer, date picker and typography on the physical device, including accessibility and localization. Obtain clinical copy review and confirm illustration distribution rights.
-5. After validating the appointments slice, plan reminders and the next prenatal records slice with an appropriate protected storage design.
+5. Validate Profile appearance selection across restart, rotation, system dark-mode changes and return to System, including native bars and failed writes. Then choose the next remaining local parity slice from the reference; all six prenatal Records sections already have CRUD.
 
 Next notes checks: physical-device CRUD, discard/delete confirmations, follow-up dates, restart persistence and tamper/error behavior. Compile/test notes Keychain on macOS. Next MVP-local work: validate the implemented draft retention with real Activity recreation (including in-flight save/delete, Ready/Empty root, section routing and explicit discard), then physical-device UI/persistence/navigation/accessibility checks against the prototype. Actual document attachments, appointment links and standalone reminders remain deferred; auth/sync is a later slice.

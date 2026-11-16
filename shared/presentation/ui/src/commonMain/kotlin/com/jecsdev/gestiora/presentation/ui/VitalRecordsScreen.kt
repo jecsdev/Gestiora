@@ -80,7 +80,7 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(if (record.type == VitalType.CUSTOM) record.label.orEmpty() else record.type.label(), style = MaterialTheme.typography.titleMedium)
-                            Text(record.date, style = MaterialTheme.typography.labelLarge)
+                            Text(dateLabel(record.date), style = MaterialTheme.typography.labelLarge)
                             Text(vitalRecordValue(record), style = MaterialTheme.typography.titleLarge)
                             record.notes?.let { Text(it) }
                             Row {
@@ -125,14 +125,14 @@ private fun LatestVitalSummaries(records: List<VitalRecord>) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Último peso", style = MaterialTheme.typography.titleMedium)
             Text(weight?.let(::vitalRecordValue) ?: "Sin registros", style = MaterialTheme.typography.headlineSmall)
-            weight?.let { Text(it.date, style = MaterialTheme.typography.labelMedium) }
+            weight?.let { Text(dateLabel(it.date), style = MaterialTheme.typography.labelMedium) }
         }
     }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Presión arterial", style = MaterialTheme.typography.titleMedium)
             Text(pressure?.let(::vitalRecordValue) ?: "Sin registros", style = MaterialTheme.typography.headlineSmall)
-            pressure?.let { Text(it.date, style = MaterialTheme.typography.labelMedium) }
+            pressure?.let { Text(dateLabel(it.date), style = MaterialTheme.typography.labelMedium) }
         }
     }
 }

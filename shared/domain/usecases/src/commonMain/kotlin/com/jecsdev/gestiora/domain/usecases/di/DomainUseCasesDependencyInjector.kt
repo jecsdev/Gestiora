@@ -16,6 +16,7 @@ import com.jecsdev.gestiora.domain.usecases.ManageMedicalConditions
 import com.jecsdev.gestiora.domain.usecases.ManageVaccineRecords
 
 import com.jecsdev.gestiora.domain.usecases.ManageExamRecords
+import com.jecsdev.gestiora.domain.usecases.ManageThemePreference
 
 object DomainUseCasesDependencyInjector : KoinModuleLoader {
     override val modules: List<Module> = listOf(module {
@@ -27,5 +28,6 @@ object DomainUseCasesDependencyInjector : KoinModuleLoader {
         single { ManageMedicalConditions(get()) }
         single { ManageVaccineRecords(get()) }
         single { ManageExamRecords(get()) }
+        single { ManageThemePreference(get()) }
     })
 }

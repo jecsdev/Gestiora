@@ -34,9 +34,9 @@ internal fun PendingNotesSection(viewModel: PrenatalNoteViewModel, today: String
                     Text(note.title, style = MaterialTheme.typography.titleMedium)
                     val date = requireNotNull(note.followUp)
                     Text(when {
-                        date < today -> "Fecha pasada: $date · sigue pendiente"
+                        date < today -> "Fecha pasada: ${dateLabel(date)} · sigue pendiente"
                         date == today -> "Seguimiento hoy"
-                        else -> "Seguimiento: $date"
+                        else -> "Seguimiento: ${dateLabel(date)}"
                     }, style = MaterialTheme.typography.bodyMedium)
                 }
             }
