@@ -119,8 +119,8 @@ fun OnboardingScreen(
 
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
-            .verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text("GESTIORA", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
 
@@ -133,8 +133,7 @@ fun OnboardingScreen(
         }
         when (step) {
             1 -> {
-                Text("Cuéntanos un poco de ti", style = MaterialTheme.typography.headlineLarge)
-                Text("Los nombres son opcionales; puedes omitirlos.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                EditorialHeader("Cuéntanos un poco de ti", "Los nombres son opcionales; puedes omitirlos.")
                 OutlinedTextField(motherName, { motherName = it }, label = { Text("Tu nombre (opcional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(babyName, { babyName = it }, label = { Text("Apodo del bebé (opcional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 CountryField(country) { country = it }
@@ -142,7 +141,7 @@ fun OnboardingScreen(
                 Text("Más idiomas llegarán en próximas versiones.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             2 -> {
-                Text("Fechas del embarazo", style = MaterialTheme.typography.headlineLarge)
+                EditorialHeader("Fechas del embarazo")
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf(
                         DatingMethod.FUM to "Última menstruación",
@@ -174,13 +173,11 @@ fun OnboardingScreen(
                 Text("Los cálculos son estimaciones. La fecha de ecografía o ajuste médico tiene prioridad.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             3 -> {
-                Text("Tu información es tuya", style = MaterialTheme.typography.headlineLarge)
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(20.dp)) {
-                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                EditorialHeader("Tu información es tuya")
+                EditorialRecordCard {
                         Text("Este perfil se guardará protegido en el dispositivo. Aún no hay cuenta ni sincronización Cloud.")
                         Text("Gestiora no diagnostica ni reemplaza a tu equipo de salud.")
                         Text("La recuperación de datos en otro dispositivo todavía no está disponible.")
-                    }
                 }
             }
         }

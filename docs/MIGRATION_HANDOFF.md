@@ -2,9 +2,13 @@
 
 ## Current status
 
-Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-design-match` (read-only reference). Pregnancy dating, persisted onboarding, local appointments, notes/follow-up tasks, consultation history, health records and professional-recorded conditions, vaccinations and examinations/results are implemented. Android debug builds and host tests pass; physical-device and iOS validation remain.
+Migration in progress; full parity is not declared complete. See `docs/MIGRATION_CLOSURE.md` for the current reference audit, executed phone checks and database entry criteria. The React prototype is at `C:\Users\john0\screen-capture-design-match` (read-only reference). Pregnancy dating, persisted onboarding, local appointments, notes/follow-up tasks, consultation history, health records and professional-recorded conditions, vaccinations and examinations/results and independent personal reminders are implemented. Android debug builds and host tests pass; physical-device and iOS validation remain.
 
 ## Completed features
+
+- Closure slice (2026-11-16): Calma editorial now extends to Calendar, all six Records lists/forms, Baby, Profile/preferences and onboarding. Shared editorial headers/record surfaces/status chips and rounded Material shapes unify spacing/contrast; action/chip rows wrap and calendar rows have a 48dp minimum height. Fields, errors, draft retention and navigation locks remain.
+- Independent personal reminders: five types, optional 24-hour time/all-day, completion, date filtering/marked calendar and protected local CRUD. Citas/Recordatorios tabs have independent calendars and are disabled during edit/delete/write. Android AES-GCM/AtomicFile and provisional iOS Keychain adapters follow existing boundaries. No system notifications.
+- Consultations now include the prototype attachment text reference. Codec v2 reads legacy v1 without a rewrite on load and upgrades on mutation while preserving historical content.
 
 - Dark-theme text correction (2026-11-16): AppTheme now supplies a root Material Surface with background/onBackground so uncolored text inherits the active palette. Welcome title explicitly uses onSurface while its accented span keeps primary. Android assembleDebug passed with offline/no-configuration-cache/no-watch-fs; visual confirmation on device remains pending.
 
@@ -53,6 +57,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Appointment codec v2 reads legacy v1 records with reminder NONE; reading does not rewrite storage. A successful mutation writes v2 while preserving existing records.
 
 ## Files and modules modified
+
+- Closure slice: AppTheme shapes; EditorialComponents, CalendarScreen, PersonalRemindersScreen, AppointmentCalendar, TimeField, all Records screens, RecordsScreen, BabyScreen, NavigationShell, ThemePreferences and OnboardingScreen. PersonalReminder/ReminderKind, domain repository/use case, secure datasource and Android/iOS adapters, bounded codec/serialized repository, ViewModel and DI. Consultation model/codec/form and backward-compatibility tests. New reminder repository/ViewModel host tests.
 
 - EditorialComponents.kt provides small shared Home section/card/follow-up row composables. PregnancyDashboard.kt, PendingNotesSection.kt, MedicalFollowUpSection.kt and NavigationShell.kt implement the approved Home/navigation slice. No new dependency, domain, data or persistence changes.
 
@@ -110,12 +116,12 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 - Health-record input follows the eight prototype types: maternal weight (kg), blood pressure (mmHg), maternal/fetal heart rate (lpm), fundal height (cm), ultrasound findings, symptoms and custom numeric measures. The prototype bounds (numeric 0–400 and diastolic 20–200) are entry constraints, not clinical reference ranges or an assessment. Type-inapplicable fields must be absent to avoid stale data overriding the selected measurement. Decimal dot/comma input is supported without thousands separators; nonfinite values are rejected. No clinical advice, automatic interpretation or chart is added.
 
-- Consultation gestational age is manually recorded historical text, independent of the current pregnancy dating. Follow-up is narrative text; next-visit date does not create an appointment or notification. Attachment references and appointment linking are deferred. Storage is isolated (Android pregnancy_consultations.gpr, Keystore consultations.v1; iOS consultations service/account). Codec v1 limits: 1,000 records, 1,000,000 payload characters, ID128, gestational age/doctor512, each narrative4096; strict civil dates. Corruption/unknown versions and I/O failures remain explicit and prevent overwrite.
+- Consultation gestational age is manually recorded historical text, independent of the current pregnancy dating. Follow-up is narrative text; next-visit date does not create an appointment or notification. Attachment text references are implemented; appointment linking is still pending. Storage is isolated (Android pregnancy_consultations.gpr, Keystore consultations.v1; iOS consultations service/account). Codec v2 (reads v1) limits: 1,000 records, 1,000,000 payload characters, ID128, gestational age/doctor/attachment512, each narrative4096; strict civil dates. Corruption/unknown versions and I/O failures remain explicit and prevent overwrite.
 
 - Notes use a separate serialized repository and bounded versioned codec, with an isolated Android AES-GCM/Keystore file/key in noBackupFilesDir and provisional iOS Keychain item. Limits: 1,000 notes, 1,000,000 payload characters, 512 title characters and 4,096 body characters. Notes are independent of pregnancy dating. Follow-up dates do not schedule notifications. Prototype appointment-to-note links are not exposed in this slice.
 
 - Implement dating calculation first because it is a pure, independently testable rule used by onboarding, profile, and dashboard.
-- The first slice kept dating ephemeral. The profile and appointments now have separate persistence; other records and sync remain unimplemented.
+- The first slice kept dating ephemeral. Subsequent slices added separate protected stores for all six Records sections and personal reminders; sync remains unimplemented.
 - Preserve the React priority of medical/ultrasound reference over FUM and its 280-day due-date rule.
 - Date arithmetic uses ISO civil calendar days in common Kotlin; the host supplies today's local date, avoiding timezone shifts in gestational age.
 - Date picker values convert between ISO civil dates and UTC midnight, as required by Material's picker; domain validation remains the final check.
@@ -129,11 +135,13 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 ## Pending tasks
 
 - Physical-device roundtrip and tamper tests for Android encrypted profile and appointments; iOS compile and Keychain tests on macOS.
-- Physical-device validation of all six implemented Records sections, navigation/forms, appearance and design parity. Actual attachments, appointment links and standalone reminders remain deferred. Auth/sync and advertisements follow the user's later phase.
+- Physical-device validation of all six implemented Records sections, navigation/forms, appearance and design parity. Standalone personal reminders and consultation text references are implemented. Appointment associations, export/reset, demo and AI remain open migration items; native file attachments/notification delivery are additional features. Auth/sync and advertisements follow the user's later phase.
 
 ## Known bugs and limitations
 
-- Calma editorial is applied to Home and navigation; Calendar, Records lists/forms, Baby, Profile and onboarding still need subsequent design slices for visual consistency. Physical-device visual/TalkBack checks, long names/narratives, large fonts, landscape and iOS remain pending. The proposal's example data was not introduced into the app. Only an existing emulator was detected and was not used for testing.
+- Personal reminders: Android pregnancy_reminders.gpr / com.jecsdev.gestiora.personalReminders.v1 / GRM01; iOS personalReminders service / pregnancy-reminders-v1 account. Codec v1 accepts up to 1,000 entries/1,000,000 payload characters, ID128/title512, strict dates/optional HH:mm/kind/boolean. Native iOS remains uncompiled. Reminder marks belong to the Recordatorios calendar, not the Citas calendar.
+
+- Calma editorial components are implemented across the app; rendered visual/accessibility validation is still incomplete. Home and Calendar were inspected on the physical Samsung in dark mode, and reminder CRUD/restart was exercised. Physical-device visual/TalkBack checks, long names/narratives, large fonts, landscape and iOS remain pending. The proposal's example data was not introduced into the app. An earlier slice detected only an emulator; the 2026-11-16 closure slice used the physical Samsung without using the emulator.
 
 - Welcome/inset correction: Android visual confirmation at normal/large font sizes, landscape, gesture/three-button navigation and iOS safe areas remains pending. ADB listed only an existing emulator during this slice; it was not used for tests under the user's physical-device-only preference. Do not claim pixel parity with React: gradient/decorative icons and deferred demo/account actions are not part of this spacing fix.
 
@@ -150,10 +158,10 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Health records have calendar dates without a time. Same-day summary ties use a deterministic ID order and cannot establish the actual most recent measurement time. Prototype numeric input bounds are retained; clinical review and physical-device validation remain pending. Vitals storage is isolated: Android pregnancy_vitals.gpr / com.jecsdev.gestiora.vitalRecords.v1 (GVT01 authenticated envelope), iOS service com.jecsdev.gestiora.vitalRecords / pregnancy-vitals-v1. Codec v1 limits 1,000 records, 1,000,000 payload characters, ID128, label512, text/notes4096.
 
 - Draft/navigation retention across configuration recreation is implemented but not verified on a real Activity/device. Host tests cover the actual retention store and resource callbacks, not the Android owner or rendered forms. Process-death recovery of unsaved drafts is unsupported by design. Unconfirmed date/time dialogs and scroll positions may reset after recreation.
-- Consultations: attachment references and appointment linking are not implemented. Android protected-store and Compose interaction need physical-device validation; iOS Keychain adapter remains uncompiled on Windows.
+- Consultations: attachment text references are implemented; appointment linking is not implemented. Android protected-store and Compose interaction need physical-device validation; iOS Keychain adapter remains uncompiled on Windows.
 
 - Profile, appointments, notes, consultations, health records, conditions, vaccinations and examinations are persisted locally. Sync, export/recovery, demo/account branches and account deletion are not implemented; no backup or device transfer is available.
-- Appointment list/create/edit/delete, date filtering, inline month grid and reminder preferences are implemented. System notifications and standalone reminders are not implemented. Host tests use a fake store; Android Keystore, persistence and UI interactions have not been tested on a device, and the iOS adapter has not been compiled or tested.
+- Appointment list/create/edit/delete, date filtering, inline month grid and reminder preferences are implemented. Independent personal reminders are implemented; system notifications are not implemented. Host tests use a fake store; Android Keystore, persistence and UI interactions have not been tested on a device, and the iOS adapter has not been compiled or tested.
 - The shared Material date picker, including accessibility and localization, still needs physical-device visual and interaction validation.
 - A physical Samsung phone was previously detected over Wi-Fi; ADB listed no connected devices on 2026-11-12. No profile or UI/storage test was performed.
 - iOS build/run requires macOS and Xcode.
@@ -164,6 +172,8 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 - Prototype localStorage is unencrypted and its cloud sync is last-write-wins; do not port either behavior blindly for medical data.
 
 ## Tests and build
+
+- Closure slice (2026-11-16): Android assembleDebug plus domain use-case/repository/ViewModel/UI host tests passed with offline/no-configuration-cache/no-watch-fs: 5 + 38 + 13 + 28 = 84 tests, zero failures. New tests cover reminder corruption/concurrent CRUD/validation/IO, ViewModel IDs/cancellation, and consultation v1 compatibility. Samsung SM-A546E: install -r preserved visible existing data; dark Home/calendar inspection; temporary reminder create, process force-stop/reload, edit completion, delete confirmation and resulting empty state passed. Reminder encrypted envelope present and test title absent from plaintext bytes; no tamper test and no claim for every store. No emulator/iOS test. Read-only navigation smoke opened all six Records sections, Baby and Profile. Light theme survived process restart, then the app was left in Dark. Profile Back/discard returned without saving. Final compact Records headings passed Android build/UI host tests. See MIGRATION_CLOSURE.md.
 
 - Calma editorial Home/navigation slice (2026-11-16): `:androidApp:assembleDebug :shared:presentation:ui:testAndroidHostTest --offline --no-configuration-cache --no-watch-fs` passed. Existing host tests verify data-selection/policy regressions; they do not verify rendered Compose layouts or touch interactions. `git diff --check` passed. No new tests were added for cosmetic layout; physical-device and iOS checks remain pending.
 
@@ -216,12 +226,12 @@ Migration in progress. The React prototype is at `C:\Users\john0\screen-capture-
 
 ## Exact next steps
 
-- Continue the user-approved Calma editorial direction with Calendar and Records lists/forms after reviewing the Home slice on a physical phone. Reuse the existing fields, validation, navigation locks and error handling; retain the baby artwork and current fonts/palette. Do not treat the Home redesign as a complete app-wide visual refresh.
+- Read MIGRATION_CLOSURE.md first. The app-wide design implementation and local reminder/reference gaps are closed in code; full migration is still open. Review remaining parity scope with the user, then implement the database as an incremental data-layer replacement with protected, transactional/idempotent import. Export/reset should use a consistent database transaction/snapshot. Keep iOS/device/AI/demo/association gaps explicit.
 
 1. On a physical Android phone, verify onboarding and appointments save, process restart/reload, edit/delete, ciphertext tamper/error states, navigation and UI layout without overwriting existing data. No emulator requested by the user.
-2. On macOS, compile iOS framework and test all eight Keychain items and their save/reload/delete behavior; correct any Kotlin/Native interop issues.
+2. On macOS, compile iOS framework and test all nine Keychain items and their save/reload/delete behavior; correct any Kotlin/Native interop issues.
 3. Resolve recovery/export and uninstall/account-deletion policy before making portability promises.
 4. Verify navigation, baby explorer, date picker and typography on the physical device, including accessibility and localization. Obtain clinical copy review and confirm illustration distribution rights.
 5. Validate Profile appearance selection across restart, rotation, system dark-mode changes and return to System, including native bars and failed writes. Then choose the next remaining local parity slice from the reference; all six prenatal Records sections already have CRUD.
 
-Next notes checks: physical-device CRUD, discard/delete confirmations, follow-up dates, restart persistence and tamper/error behavior. Compile/test notes Keychain on macOS. Next MVP-local work: validate the implemented draft retention with real Activity recreation (including in-flight save/delete, Ready/Empty root, section routing and explicit discard), then physical-device UI/persistence/navigation/accessibility checks against the prototype. Actual document attachments, appointment links and standalone reminders remain deferred; auth/sync is a later slice.
+Next notes checks: physical-device CRUD, discard/delete confirmations, follow-up dates, restart persistence and tamper/error behavior. Compile/test notes Keychain on macOS. Next MVP-local work: validate the implemented draft retention with real Activity recreation (including in-flight save/delete, Ready/Empty root, section routing and explicit discard), then physical-device UI/persistence/navigation/accessibility checks against the prototype. Independent reminders are implemented; native document attachments and appointment links remain pending; auth/sync is a later slice.

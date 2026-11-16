@@ -80,37 +80,38 @@ private fun ThemePreferences(
     onRetry: () -> Unit,
     onSelect: (ThemeMode) -> Unit,
 ) {
-    Text("Preferencias", style = MaterialTheme.typography.titleLarge)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().padding(16.dp).selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Apariencia", style = MaterialTheme.typography.titleMedium)
-            Text("Elige cómo se muestra Gestiora.", style = MaterialTheme.typography.bodyMedium)
-            if (readFailed) {
-                Text("No pudimos leer tu preferencia. Usamos el tema del sistema por ahora.", color = MaterialTheme.colorScheme.error)
-                OutlinedButton(onClick = onRetry, enabled = !busy) { Text("Reintentar") }
-            } else {
-                ThemeMode.entries.forEach { option ->
-                    Row(
-                        Modifier.fillMaxWidth().selectable(
-                            selected = mode == option,
-                            enabled = !busy,
-                            role = Role.RadioButton,
-                            onClick = { onSelect(option) },
-                        ).padding(vertical = 4.dp).heightIn(min = 48.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        RadioButton(selected = mode == option, onClick = null, enabled = !busy)
-                        Text(when (option) {
-                            ThemeMode.SYSTEM -> "Seguir el sistema"
-                            ThemeMode.LIGHT -> "Claro"
-                            ThemeMode.DARK -> "Oscuro"
-                        })
+    EditorialSection("Preferencias") {
+        EditorialRecordCard {
+            Column(Modifier.fillMaxWidth().selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Apariencia", style = MaterialTheme.typography.titleMedium)
+                Text("Elige cómo se muestra Gestiora.", style = MaterialTheme.typography.bodyMedium)
+                if (readFailed) {
+                    Text("No pudimos leer tu preferencia. Usamos el tema del sistema por ahora.", color = MaterialTheme.colorScheme.error)
+                    OutlinedButton(onClick = onRetry, enabled = !busy) { Text("Reintentar") }
+                } else {
+                    ThemeMode.entries.forEach { option ->
+                        Row(
+                            Modifier.fillMaxWidth().selectable(
+                                selected = mode == option,
+                                enabled = !busy,
+                                role = Role.RadioButton,
+                                onClick = { onSelect(option) },
+                            ).padding(vertical = 4.dp).heightIn(min = 48.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            RadioButton(selected = mode == option, onClick = null, enabled = !busy)
+                            Text(when (option) {
+                                ThemeMode.SYSTEM -> "Seguir el sistema"
+                                ThemeMode.LIGHT -> "Claro"
+                                ThemeMode.DARK -> "Oscuro"
+                            })
+                        }
                     }
                 }
+                if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+                if (saveFailed) Text("No pudimos guardar la apariencia. Vuelve a seleccionarla para reintentar.", color = MaterialTheme.colorScheme.error)
             }
-            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            if (saveFailed) Text("No pudimos guardar la apariencia. Vuelve a seleccionarla para reintentar.", color = MaterialTheme.colorScheme.error)
         }
     }
 }

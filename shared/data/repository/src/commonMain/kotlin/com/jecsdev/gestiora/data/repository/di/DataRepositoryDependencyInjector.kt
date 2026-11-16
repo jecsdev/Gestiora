@@ -8,7 +8,9 @@ import com.jecsdev.gestiora.domain.repository.PregnancyProfileRepository
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import com.jecsdev.gestiora.data.repository.SecurePrenatalNoteRepository
+import com.jecsdev.gestiora.data.repository.SecurePersonalReminderRepository
 import com.jecsdev.gestiora.domain.repository.PrenatalNoteRepository
+import com.jecsdev.gestiora.domain.repository.PersonalReminderRepository
 
 import com.jecsdev.gestiora.data.repository.SecureConsultationRepository
 import com.jecsdev.gestiora.domain.repository.ConsultationRepository
@@ -32,6 +34,7 @@ object DataRepositoryDependencyInjector : KoinModuleLoader {
         single<PregnancyProfileRepository> { SecurePregnancyProfileRepository(get()) }
         single<AppointmentRepository> { SecureAppointmentRepository(get()) }
         single<PrenatalNoteRepository> { SecurePrenatalNoteRepository(get()) }
+        single<PersonalReminderRepository> { SecurePersonalReminderRepository(get()) }
         single<ConsultationRepository> { SecureConsultationRepository(get()) }
         single<VitalRecordRepository> { SecureVitalRecordRepository(get()) }
         single<MedicalConditionRepository> { SecureMedicalConditionRepository(get()) }

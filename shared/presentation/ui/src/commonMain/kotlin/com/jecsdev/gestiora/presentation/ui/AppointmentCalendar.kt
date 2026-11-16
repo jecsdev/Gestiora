@@ -53,15 +53,18 @@ internal fun AppointmentCalendar(
     enabled: Boolean,
     onMonthChange: (String) -> Unit,
     onDateSelect: (String) -> Unit,
+    markedDescription: String = "tiene citas",
 ) {
     val previous = shiftCalendarMonth(month, -1)
     val next = shiftCalendarMonth(month, 1)
     val days = calendarMonthDays(month)
-    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceVariant) {
+    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))) {
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = { previous?.let(onMonthChange) }, enabled = enabled && previous != null, modifier = Modifier.semantics { contentDescription = "Mes anterior" }) { Text("‹") }
-                Text("${months[month.substring(5, 7).toInt() - 1]} ${month.substring(0, 4)}", style = MaterialTheme.typography.titleMedium)
+                Text("${months[month.substring(5, 7).toInt() - 1]} ${month.substring(0, 4)}", style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 TextButton(onClick = { next?.let(onMonthChange) }, enabled = enabled && next != null, modifier = Modifier.semantics { contentDescription = "Mes siguiente" }) { Text("›") }
             }
             Row(Modifier.fillMaxWidth()) {
@@ -80,16 +83,16 @@ internal fun AppointmentCalendar(
                         val background = when {
                             isSelected -> MaterialTheme.colorScheme.primary
                             date != null && date == today -> MaterialTheme.colorScheme.secondaryContainer
-                            else -> MaterialTheme.colorScheme.surfaceVariant
+                            else -> MaterialTheme.colorScheme.surface
                         }
                         val foreground = when {
                             isSelected -> MaterialTheme.colorScheme.onPrimary
                             date != null && !date.startsWith(month) -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
-                        Box(Modifier.weight(1f).aspectRatio(1f).padding(2.dp).background(background, CircleShape)
+                        Box(Modifier.weight(1f).heightIn(min = 48.dp).padding(2.dp).background(background, CircleShape)
                             .then(if (date == null) Modifier else Modifier.semantics {
-                                contentDescription = "${dateLabel(date, expanded = true)}${if (date == today) ", hoy" else ""}${if (marked) ", tiene citas" else ""}"
+                                contentDescription = "${dateLabel(date, expanded = true)}${if (date == today) ", hoy" else ""}${if (marked) ", $markedDescription" else ""}"
                                 selected = isSelected
                             }.clickable(enabled = enabled, role = Role.Button) { onDateSelect(date) }),
                             contentAlignment = Alignment.Center) {

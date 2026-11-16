@@ -55,7 +55,7 @@ class SecureConsultationRepositoryTest {
 
     @Test fun corruptUnsupportedAndDuplicatePayloadsAreNotOverwritten() = runBlocking<Unit> {
         val encoded = ConsultationCodec.encode(listOf(record("one")))
-        val payloads = listOf("broken", "GESTIORA_CONSULTATIONS:2\n0\n", encoded.dropLast(1), encoded + "extra",
+        val payloads = listOf("broken", "GESTIORA_CONSULTATIONS:3\n0\n", encoded.dropLast(1), encoded + "extra",
             encoded.replace("2028-02-29", "2027-02-29"), encoded.replace("\n1\n", "\n2\n") + encoded.substringAfter("\n1\n"),
             "GESTIORA_CONSULTATIONS:1\n1001\n", "GESTIORA_CONSULTATIONS:1\n1\n99999:x")
         for (payload in payloads) {
@@ -70,5 +70,22 @@ class SecureConsultationRepositoryTest {
         val minimal = Consultation("minimal", "0001-01-01")
         assertEquals(listOf(minimal, record("full")), ConsultationCodec.decode(ConsultationCodec.encode(listOf(minimal, record("full")))))
         assertFailsWith<IllegalArgumentException> { ConsultationCodec.encode(List(1001) { Consultation(it.toString(), "2028-02-29") }) }
+    }
+
+    @Test fun legacyConsultationsAreReadWithoutRewritingAndUpgradePreservesHistory() = runBlocking {
+        val historical = record("legacy")
+        val current = ConsultationCodec.encode(listOf(historical))
+        // Version 1 has the same ten fields, without the trailing optional attachment.
+        val legacy = current.replace("GESTIORA_CONSULTATIONS:2\n", "GESTIORA_CONSULTATIONS:1\n").removeSuffix("-1:")
+        val store = Store(legacy)
+        val repo = SecureConsultationRepository(store)
+        assertEquals(listOf(historical), repo.list())
+        assertEquals(legacy, store.payload)
+        val edited = historical.copy(attachments = "Carpeta física: informe 😊")
+        repo.update(edited)
+        assertTrue(store.payload!!.startsWith("GESTIORA_CONSULTATIONS:2\n"))
+        assertEquals(listOf(edited), SecureConsultationRepository(store).list())
+        assertFailsWith<IllegalArgumentException> { repo.update(edited.copy(attachments = "x".repeat(513))) }
+        assertEquals(listOf(edited), repo.list())
     }
 }

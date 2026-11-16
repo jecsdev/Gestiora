@@ -59,9 +59,8 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Consultas prenatales", style = MaterialTheme.typography.headlineSmall)
-        Text("Tu historial se guarda en este dispositivo. La edad gestacional registrada se conserva aunque cambies las fechas del embarazo.")
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        EditorialHeader("Consultas prenatales", "Tu historial se guarda en este dispositivo. La edad gestacional registrada se conserva aunque cambies las fechas del embarazo.", compact = true)
         when {
             loadError -> {
                 Text("No pudimos leer tus consultas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
@@ -73,11 +72,11 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
             }
             consultations == null -> CircularProgressIndicator()
             else -> {
-                Button(enabled = !busy, onClick = { operationError = false; editing = Consultation("", todayIsoDate()); onNavigationLockChange(true) }) { Text("Nueva consulta") }
+                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = Consultation("", todayIsoDate()); onNavigationLockChange(true) }) { Text("Nueva consulta") }
                 if (consultations!!.isEmpty()) Text("Aún no tienes consultas registradas.")
                 consultations!!.sortedWith(compareByDescending<Consultation> { it.date }.thenBy { it.id }).forEach { consultation ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    EditorialRecordCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(consultation.doctor ?: "Consulta prenatal", style = MaterialTheme.typography.titleMedium)
                             Text(dateLabel(consultation.date), style = MaterialTheme.typography.labelLarge)
                             consultation.gestationalAge?.let { ConsultationDetail("Edad gestacional registrada", it) }
@@ -87,7 +86,8 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
                             consultation.exams?.let { ConsultationDetail("Estudios", it) }
                             consultation.followUp?.let { ConsultationDetail("Seguimiento", it) }
                             consultation.nextDate?.let { ConsultationDetail("Próxima cita", dateLabel(it)) }
-                            Row {
+                            consultation.attachments?.let { ConsultationDetail("Adjuntos (referencia)", it) }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = consultation; onNavigationLockChange(true) }) { Text("Editar") }
                                 TextButton(enabled = !busy, onClick = { deleting = consultation; onNavigationLockChange(true) }) { Text("Eliminar") }
                             }
@@ -137,9 +137,10 @@ private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Bo
     var exams by retain(initial) { mutableStateOf(initial.exams.orEmpty()) }
     var followUp by retain(initial) { mutableStateOf(initial.followUp.orEmpty()) }
     var nextDate by retain(initial) { mutableStateOf(initial.nextDate.orEmpty()) }
+    var attachments by retain(initial) { mutableStateOf(initial.attachments.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (initial.id.isEmpty()) "Nueva consulta" else "Editar consulta", style = MaterialTheme.typography.headlineLarge)
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader(if (initial.id.isEmpty()) "Nueva consulta" else "Editar consulta")
         DateField("Fecha de consulta", date, enabled = !busy) { date = it }
         ConsultationTextField("Edad gestacional registrada (opcional)", ga, 512, busy) { ga = it }
         Text("Copia la edad gestacional indicada en esa consulta, por ejemplo: 24 sem 2 d. Este dato no se recalcula.", style = MaterialTheme.typography.bodySmall)
@@ -151,14 +152,16 @@ private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Bo
         ConsultationTextField("Requisitos de seguimiento (opcional)", followUp, 4096, busy) { followUp = it }
         DateField("Fecha de la próxima cita (opcional)", nextDate, clearable = true, enabled = !busy) { nextDate = it }
         Text("Esta fecha no crea una cita en el calendario ni una notificación.", style = MaterialTheme.typography.bodySmall)
+        ConsultationTextField("Adjuntos (referencia, opcional)", attachments, 512, busy) { attachments = it }
+        Text("Guarda una referencia al documento, por ejemplo, su ubicación en tu carpeta física.", style = MaterialTheme.typography.bodySmall)
         if (invalid) Text("Selecciona una fecha válida y respeta los límites de los campos.", color = MaterialTheme.colorScheme.error)
         if (saveError) Text("No pudimos guardar la consulta. Tus cambios siguen en el formulario.", color = MaterialTheme.colorScheme.error)
-        Button(enabled = !busy, onClick = {
-            invalid = isoToUtcMillis(date) == null || (nextDate.isNotEmpty() && isoToUtcMillis(nextDate) == null) || ga.length > 512 || doctor.length > 512 || listOf(observations, instructions, medications, exams, followUp).any { it.length > 4096 }
+        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+            invalid = isoToUtcMillis(date) == null || (nextDate.isNotEmpty() && isoToUtcMillis(nextDate) == null) || ga.length > 512 || doctor.length > 512 || attachments.length > 512 || listOf(observations, instructions, medications, exams, followUp).any { it.length > 4096 }
             fun optional(value: String) = value.trim().ifEmpty { null }
-            if (!invalid) onSave(initial.copy(date = date, gestationalAge = optional(ga), doctor = optional(doctor), observations = optional(observations), instructions = optional(instructions), medications = optional(medications), exams = optional(exams), followUp = optional(followUp), nextDate = nextDate.ifEmpty { null }))
+            if (!invalid) onSave(initial.copy(date = date, gestationalAge = optional(ga), doctor = optional(doctor), observations = optional(observations), instructions = optional(instructions), medications = optional(medications), exams = optional(exams), followUp = optional(followUp), nextDate = nextDate.ifEmpty { null }, attachments = optional(attachments)))
         }) { Text(if (busy) "Guardando…" else "Guardar consulta") }
-        OutlinedButton(enabled = !busy, onClick = onCancel) { Text("Cancelar") }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text("Cancelar") }
     }
 }
 

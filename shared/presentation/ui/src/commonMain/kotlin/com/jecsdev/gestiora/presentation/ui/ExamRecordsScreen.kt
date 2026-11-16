@@ -59,9 +59,8 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Estudios", style = MaterialTheme.typography.headlineSmall)
-        Text("Tus estudios y resultados se guardan en este dispositivo.")
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        EditorialHeader("Estudios", "Tus estudios y resultados se guardan en este dispositivo.", compact = true)
         when {
             loadError -> {
                 Text("No pudimos leer tus estudios. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
@@ -73,12 +72,12 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
             }
             exams == null -> CircularProgressIndicator()
             else -> {
-                Button(enabled = !busy, onClick = { operationError = false; editing = ExamRecord("", "", requested = todayIsoDate()); onNavigationLockChange(true) }) { Text("Nuevo estudio") }
+                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = ExamRecord("", "", requested = todayIsoDate()); onNavigationLockChange(true) }) { Text("Nuevo estudio") }
                 if (exams!!.isEmpty()) Text("Aún no tienes estudios registrados.")
                 exams!!.forEach { exam ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(exam.status.label(), style = MaterialTheme.typography.labelLarge)
+                    EditorialRecordCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            EditorialStatus(exam.status.label())
                             Text(exam.name, style = MaterialTheme.typography.titleMedium)
                             Text(exam.kind.label(), style = MaterialTheme.typography.labelMedium)
                             ExamRecordDetail("Fecha de referencia", (exam.completed ?: exam.scheduled ?: exam.requested)?.let { dateLabel(it) } ?: "Sin fecha registrada")
@@ -89,7 +88,7 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
                             exam.results?.let { ExamRecordDetail("Resumen de resultados", it) }
                             exam.notes?.let { ExamRecordDetail("Observaciones médicas", it) }
                             exam.attachment?.let { ExamRecordDetail("Documento o imagen (referencia)", it) }
-                            Row {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = exam; onNavigationLockChange(true) }) { Text("Editar") }
                                 TextButton(enabled = !busy, onClick = { deleting = exam; onNavigationLockChange(true) }) { Text("Eliminar") }
                             }
@@ -144,8 +143,8 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
     var attachment by retain(initial) { mutableStateOf(initial.attachment.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var kindMenu by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (initial.id.isEmpty()) "Nuevo estudio" else "Editar estudio", style = MaterialTheme.typography.headlineLarge)
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader(if (initial.id.isEmpty()) "Nuevo estudio" else "Editar estudio")
         ExamRecordTextField("Nombre del estudio", name, 512, busy, invalid && name.isBlank()) { name = it }
         Text("Tipo", style = MaterialTheme.typography.labelLarge)
         Box {
@@ -157,7 +156,9 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
         DateField("Fecha de solicitud (opcional)", requested, clearable = true, enabled = !busy) { requested = it }
         DateField("Fecha programada (opcional)", scheduled, clearable = true, enabled = !busy) { scheduled = it }
         Text("Estado", style = MaterialTheme.typography.labelLarge)
-        ExamStatus.entries.forEach { option -> FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label()) }) }
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ExamStatus.entries.forEach { option -> FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label()) }) }
+        }
         DateField(if (status == ExamStatus.COMPLETED) "Fecha de realización" else "Fecha de realización registrada (opcional)", completed, clearable = true, enabled = !busy) { completed = it }
         Text("Cambiar el estado conserva la fecha de realización registrada. Puedes borrarla explícitamente si necesitas corregirla.", style = MaterialTheme.typography.bodySmall)
         ExamRecordTextField("Médico que lo solicitó (opcional)", physician, 512, busy) { physician = it }
@@ -168,12 +169,12 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
         Text("Las fechas no crean citas ni notificaciones.", style = MaterialTheme.typography.bodySmall)
         if (invalid) Text("Indica el estudio y, si está completado, la fecha de realización. Revisa las fechas y los límites de los campos.", color = MaterialTheme.colorScheme.error)
         if (saveError) Text("No pudimos guardar el estudio. Tus cambios siguen en el formulario.", color = MaterialTheme.colorScheme.error)
-        Button(enabled = !busy, onClick = {
+        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val exam = examRecordForSave(initial, name, kind, requested, scheduled, completed, status, physician, results, notes, attachment)
             invalid = exam == null
             if (exam != null) onSave(exam)
         }) { Text(if (busy) "Guardando…" else "Guardar estudio") }
-        OutlinedButton(enabled = !busy, onClick = onCancel) { Text("Cancelar") }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text("Cancelar") }
     }
 }
 

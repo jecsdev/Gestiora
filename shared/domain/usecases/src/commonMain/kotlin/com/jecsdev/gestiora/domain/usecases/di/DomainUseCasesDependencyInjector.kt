@@ -6,6 +6,7 @@ import com.jecsdev.gestiora.domain.usecases.ManageAppointments
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import com.jecsdev.gestiora.domain.usecases.ManagePrenatalNotes
+import com.jecsdev.gestiora.domain.usecases.ManagePersonalReminders
 
 import com.jecsdev.gestiora.domain.usecases.ManageConsultations
 
@@ -23,6 +24,7 @@ object DomainUseCasesDependencyInjector : KoinModuleLoader {
         single { CalculatePregnancyAge() }
         single { ManageAppointments(get()) }
         single { ManagePrenatalNotes(get()) }
+        single { ManagePersonalReminders(get()) }
         single { ManageConsultations(get()) }
         single { ManageVitalRecords(get()) }
         single { ManageMedicalConditions(get()) }

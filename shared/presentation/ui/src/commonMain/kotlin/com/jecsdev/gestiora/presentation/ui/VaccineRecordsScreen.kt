@@ -59,9 +59,8 @@ internal fun VaccineRecordsScreen(viewModel: VaccineRecordViewModel, onNavigatio
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Vacunas", style = MaterialTheme.typography.headlineSmall)
-        Text("Tus registros de vacunación se guardan en este dispositivo.")
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        EditorialHeader("Vacunas", "Tus registros de vacunación se guardan en este dispositivo.", compact = true)
         when {
             loadError -> {
                 Text("No pudimos leer tus vacunas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
@@ -73,12 +72,12 @@ internal fun VaccineRecordsScreen(viewModel: VaccineRecordViewModel, onNavigatio
             }
             vaccines == null -> CircularProgressIndicator()
             else -> {
-                Button(enabled = !busy, onClick = { operationError = false; editing = VaccineRecord("", ""); onNavigationLockChange(true) }) { Text("Nueva vacuna") }
+                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = VaccineRecord("", ""); onNavigationLockChange(true) }) { Text("Nueva vacuna") }
                 if (vaccines!!.isEmpty()) Text("Aún no tienes vacunas registradas.")
                 vaccines!!.forEach { vaccine ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(vaccine.status.label(), style = MaterialTheme.typography.labelLarge)
+                    EditorialRecordCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            EditorialStatus(vaccine.status.label())
                             Text(vaccine.name, style = MaterialTheme.typography.titleMedium)
                             vaccine.dose?.let { VaccineRecordDetail("Dosis", it) }
                             val summaryDate = if (vaccine.status == VaccineStatus.ADMINISTERED) vaccine.administered else vaccine.scheduled
@@ -89,7 +88,7 @@ internal fun VaccineRecordsScreen(viewModel: VaccineRecordViewModel, onNavigatio
                             vaccine.location?.let { VaccineRecordDetail("Lugar", it) }
                             vaccine.proof?.let { VaccineRecordDetail("Comprobante (referencia)", it) }
                             vaccine.notes?.let { VaccineRecordDetail("Notas", it) }
-                            Row {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = vaccine; onNavigationLockChange(true) }) { Text("Editar") }
                                 TextButton(enabled = !busy, onClick = { deleting = vaccine; onNavigationLockChange(true) }) { Text("Eliminar") }
                             }
@@ -141,14 +140,16 @@ private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: 
     var proof by retain(initial) { mutableStateOf(initial.proof.orEmpty()) }
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (initial.id.isEmpty()) "Nueva vacuna" else "Editar vacuna", style = MaterialTheme.typography.headlineLarge)
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader(if (initial.id.isEmpty()) "Nueva vacuna" else "Editar vacuna")
         VaccineRecordTextField("Vacuna", name, 512, busy, invalid && name.isBlank()) { name = it }
         VaccineRecordTextField("Dosis (opcional)", dose, 512, busy) { dose = it }
         DateField("Fecha programada (opcional)", scheduled, clearable = true, enabled = !busy) { scheduled = it }
         Text("Estado", style = MaterialTheme.typography.labelLarge)
-        VaccineStatus.entries.forEach { option ->
-            FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label()) })
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            VaccineStatus.entries.forEach { option ->
+                FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label()) })
+            }
         }
         DateField(if (status == VaccineStatus.ADMINISTERED) "Fecha de aplicación" else "Fecha de aplicación registrada (opcional)", administered, clearable = true, enabled = !busy) { administered = it }
         Text("Cambiar el estado conserva la fecha de aplicación registrada. Puedes borrarla explícitamente si necesitas corregirla.", style = MaterialTheme.typography.bodySmall)
@@ -160,12 +161,12 @@ private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: 
         Text("La fecha programada no crea una cita ni una notificación.", style = MaterialTheme.typography.bodySmall)
         if (invalid) Text("Indica la vacuna y, si está aplicada, la fecha de aplicación. Revisa las fechas y los límites de los campos.", color = MaterialTheme.colorScheme.error)
         if (saveError) Text("No pudimos guardar la vacuna. Tus cambios siguen en el formulario.", color = MaterialTheme.colorScheme.error)
-        Button(enabled = !busy, onClick = {
+        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val vaccine = vaccineRecordForSave(initial, name, dose, scheduled, administered, status, provider, location, proof, notes)
             invalid = vaccine == null
             if (vaccine != null) onSave(vaccine)
         }) { Text(if (busy) "Guardando…" else "Guardar vacuna") }
-        OutlinedButton(enabled = !busy, onClick = onCancel) { Text("Cancelar") }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text("Cancelar") }
     }
 }
 

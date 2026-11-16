@@ -23,11 +23,17 @@ internal fun RecordsScreen(initialNotesStatus: NoteTaskStatus?, initialCondition
     var locked by retain { mutableStateOf(false) }
     val lock: (Boolean) -> Unit = { locked = it; onNavigationLockChange(it) }
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (!locked) {
+            Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp)) {
+                EditorialHeader("Mis registros", eyebrow = "TU HISTORIAL PRENATAL")
+            }
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RecordSection.entries.forEach { section ->
                 FilterChip(selected == section, { selected = section }, enabled = !locked, label = { Text(section.label) })
             }
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
         Box(Modifier.weight(1f)) {
             when (selected) {
                 RecordSection.HEALTH -> VitalRecordsScreen(koinInject<VitalRecordViewModel>(), lock)

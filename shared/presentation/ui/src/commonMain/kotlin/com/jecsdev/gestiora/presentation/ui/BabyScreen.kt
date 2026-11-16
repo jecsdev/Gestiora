@@ -61,15 +61,14 @@ fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
     val referenceWeek = babyReferenceWeek(week)
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
-            .verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Text("Cada semana, un pequeño milagro", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-        Text(profile.babyName?.takeIf { it.isNotBlank() } ?: "Mi bebé", style = MaterialTheme.typography.headlineLarge)
+        EditorialHeader(profile.babyName?.takeIf { it.isNotBlank() } ?: "Mi bebé", eyebrow = "Cada semana, un pequeño milagro")
         if (actualWeek == null) Text("Revisa las fechas de tu perfil para conocer tu semana actual.", style = MaterialTheme.typography.bodySmall)
         if (actualWeek != null && actualWeek !in 4..40) Text("Tu semana actual es $actualWeek. El explorador muestra las semanas 4 a 40.", style = MaterialTheme.typography.bodySmall)
-        Card(shape = RoundedCornerShape(30.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+            Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Explora su desarrollo", style = MaterialTheme.typography.labelMedium)
                 Text("Semana $week", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -88,20 +87,20 @@ fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
                 }
             }
         }
-        Card(shape = RoundedCornerShape(24.dp)) {
-            Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        EditorialRecordCard {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Desarrollo aproximado", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Text("Como ${stage.size}", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
             }
         }
-        Text("Pequeños grandes avances", style = MaterialTheme.typography.headlineSmall)
-        Text(stage.text, style = MaterialTheme.typography.bodyMedium)
-        stage.milestones.forEachIndexed { index, milestone ->
-            Card(shape = RoundedCornerShape(16.dp)) {
-                Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialSection("Pequeños grandes avances") {
+            Text(stage.text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            stage.milestones.forEachIndexed { index, milestone ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("0${index + 1}", color = MaterialTheme.colorScheme.primary)
                     Text(milestone, style = MaterialTheme.typography.bodyMedium)
                 }
+                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
             }
         }
         Text("Cada embarazo es diferente. Esta información es orientativa, no una evaluación clínica.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

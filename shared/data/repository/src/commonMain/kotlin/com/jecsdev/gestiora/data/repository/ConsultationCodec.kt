@@ -6,7 +6,8 @@ class CorruptConsultationsException : IllegalStateException("Stored consultation
 class UnsupportedConsultationsVersionException : IllegalStateException("Stored consultations version is unsupported")
 
 internal object ConsultationCodec {
-    private const val HEADER = "GESTIORA_CONSULTATIONS:1\n"
+    private const val HEADER = "GESTIORA_CONSULTATIONS:2\n"
+    private const val LEGACY_HEADER = "GESTIORA_CONSULTATIONS:1\n"
     fun encode(records: List<Consultation>): String {
         require(records.size <= 1000 && records.map { it.id }.toSet().size == records.size)
         records.forEach(::validateConsultation)
@@ -14,7 +15,7 @@ internal object ConsultationCodec {
             append(HEADER).append(records.size).append('\n')
             records.forEach { record ->
                 listOf(record.id, record.date, record.gestationalAge, record.doctor, record.observations,
-                    record.instructions, record.medications, record.exams, record.followUp, record.nextDate).forEach {
+                    record.instructions, record.medications, record.exams, record.followUp, record.nextDate, record.attachments).forEach {
                     if (it == null) append("-1:") else append(it.length).append(':').append(it)
                 }
             }
@@ -25,10 +26,14 @@ internal object ConsultationCodec {
 
     fun decode(raw: String): List<Consultation> {
         if (raw.length > 1_000_000 || !raw.startsWith("GESTIORA_CONSULTATIONS:")) throw CorruptConsultationsException()
-        if (!raw.startsWith(HEADER)) throw UnsupportedConsultationsVersionException()
-        val end = raw.indexOf('\n', HEADER.length)
-        if (end < 0 || end - HEADER.length !in 1..4) throw CorruptConsultationsException()
-        val countText = raw.substring(HEADER.length, end)
+        val header = when {
+            raw.startsWith(HEADER) -> HEADER
+            raw.startsWith(LEGACY_HEADER) -> LEGACY_HEADER
+            else -> throw UnsupportedConsultationsVersionException()
+        }
+        val end = raw.indexOf('\n', header.length)
+        if (end < 0 || end - header.length !in 1..4) throw CorruptConsultationsException()
+        val countText = raw.substring(header.length, end)
         if (countText.any { it !in '0'..'9' }) throw CorruptConsultationsException()
         val count = countText.toIntOrNull()?.takeIf { it in 0..1000 } ?: throw CorruptConsultationsException()
         var position = end + 1
@@ -45,7 +50,8 @@ internal object ConsultationCodec {
         }
         fun required() = field() ?: throw CorruptConsultationsException()
         val records = List(count) {
-            Consultation(required(), required(), field(), field(), field(), field(), field(), field(), field(), field())
+            Consultation(required(), required(), field(), field(), field(), field(), field(), field(), field(), field(),
+                if (header == HEADER) field() else null)
         }
         if (position != raw.length || records.map { it.id }.toSet().size != records.size) throw CorruptConsultationsException()
         try { records.forEach(::validateConsultation) } catch (_: IllegalArgumentException) { throw CorruptConsultationsException() }
@@ -57,6 +63,7 @@ internal fun validateConsultation(record: Consultation) {
     require(record.id.isNotBlank() && record.id.length <= 128)
     require(validCivilDate(record.date))
     require((record.gestationalAge?.length ?: 0) <= 512 && (record.doctor?.length ?: 0) <= 512)
+    require((record.attachments?.length ?: 0) <= 512)
     require(listOf(record.observations, record.instructions, record.medications, record.exams, record.followUp).all { (it?.length ?: 0) <= 4096 })
     record.nextDate?.let { require(validCivilDate(it)) }
 }

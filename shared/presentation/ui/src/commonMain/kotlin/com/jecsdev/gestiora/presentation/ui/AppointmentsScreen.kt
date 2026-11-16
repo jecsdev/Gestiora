@@ -2,7 +2,7 @@ package com.jecsdev.gestiora.presentation.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,7 +11,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -117,9 +116,8 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
         return
     }
 
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Calendario", style = MaterialTheme.typography.headlineLarge)
-        Text("Tus citas se guardan en este dispositivo.", style = MaterialTheme.typography.bodyMedium)
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        EditorialHeader("Calendario", "Tus citas se guardan en este dispositivo.")
         when {
             loadError -> {
                 Text("No pudimos leer tus citas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
@@ -158,18 +156,18 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
                     Text(if (selectedDate.isEmpty()) "Aún no tienes citas registradas." else "No tienes citas para esta fecha.")
                 }
                 visibleAppointments.forEach { appointment ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    EditorialRecordCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("${dateLabel(appointment.date)} · ${appointment.time}", style = MaterialTheme.typography.titleMedium)
                             Text("${appointment.doctor} · ${appointment.specialty}")
                             Text(appointment.clinic)
                             Text(appointment.reason)
-                            Text(appointment.status.label(), style = MaterialTheme.typography.labelMedium)
+                            EditorialStatus(appointment.status.label())
                             if (appointment.reminder != AppointmentReminder.NONE) {
                                 Text("Preferencia: ${appointment.reminder.label()} · sin notificación", style = MaterialTheme.typography.bodySmall)
                             }
                             appointment.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(onClick = { operationError = false; onNavigationLockChange(true); editing = appointment }, enabled = !busy) { Text("Editar") }
                                 TextButton(onClick = { onNavigationLockChange(true); deleting = appointment }, enabled = !busy) { Text("Eliminar") }
                             }
@@ -216,8 +214,8 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
     var status by retain(initial) { mutableStateOf(initial.status) }
     var reminder by retain(initial) { mutableStateOf(initial.reminder) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (initial.id.isEmpty()) "Nueva cita" else "Editar cita", style = MaterialTheme.typography.headlineLarge)
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader(if (initial.id.isEmpty()) "Nueva cita" else "Editar cita")
         DateField("Fecha", date, enabled = !busy) { date = it }
         TimeField(time, enabled = !busy) { time = it }
         AppointmentTextField("Médico/a", doctor, 512, !busy, true) { doctor = it }
@@ -226,11 +224,15 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
         AppointmentTextField("Motivo", reason, 512, !busy, false) { reason = it }
         AppointmentTextField("Notas (opcional)", notes, 4096, !busy, false) { notes = it }
         Text("Estado", style = MaterialTheme.typography.labelLarge)
-        AppointmentStatus.entries.forEach { option -> FilterChip(selected = status == option, enabled = !busy, onClick = { status = option }, label = { Text(option.label()) }) }
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppointmentStatus.entries.forEach { option -> FilterChip(selected = status == option, enabled = !busy, onClick = { status = option }, label = { Text(option.label()) }) }
+        }
         Text("Preferencia de recordatorio", style = MaterialTheme.typography.labelLarge)
         Text("Esta opción solo guarda tu preferencia. No se enviará una notificación.", style = MaterialTheme.typography.bodySmall)
-        AppointmentReminder.entries.forEach { option ->
-            FilterChip(selected = reminder == option, enabled = !busy, onClick = { reminder = option }, label = { Text(option.label()) })
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppointmentReminder.entries.forEach { option ->
+                FilterChip(selected = reminder == option, enabled = !busy, onClick = { reminder = option }, label = { Text(option.label()) })
+            }
         }
         if (invalid) Text("Completa los campos, respeta sus límites y usa una hora válida en formato HH:mm.", color = MaterialTheme.colorScheme.error)
         if (saveError) Text("No pudimos guardar la cita. Revisa los campos e inténtalo de nuevo; el formulario sigue aquí.", color = MaterialTheme.colorScheme.error)

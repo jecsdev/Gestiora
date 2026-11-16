@@ -78,9 +78,8 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Notas y seguimiento", style = MaterialTheme.typography.headlineSmall)
-        Text("Tus notas se guardan en este dispositivo.")
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        EditorialHeader("Notas y seguimiento", "Tus notas se guardan en este dispositivo.", compact = true)
         when {
             loadError -> {
                 Text("No pudimos leer tus notas. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
@@ -99,20 +98,20 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
                         FilterChip(statusFilter == option, { statusFilter = option }, enabled = !busy, label = { Text(option.label()) })
                     }
                 }
-                Button(enabled = !busy, onClick = { operationError = false; editing = PrenatalNote("", ""); onNavigationLockChange(true) }) { Text("Nueva nota") }
+                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = PrenatalNote("", ""); onNavigationLockChange(true) }) { Text("Nueva nota") }
                 val visibleNotes = filterNotes(notes!!, query, statusFilter)
                 if (notes!!.isEmpty()) Text("Aún no tienes notas registradas.")
                 else if (visibleNotes.isEmpty()) Text("No hay notas que coincidan con estos filtros.")
                 if (query.isNotEmpty() || statusFilter != null) TextButton(enabled = !busy, onClick = { query = ""; statusFilter = null }) { Text("Limpiar filtros") }
                 visibleNotes.forEach { note ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    EditorialRecordCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(note.title, style = MaterialTheme.typography.titleMedium)
                             Text(note.category.label(), style = MaterialTheme.typography.labelMedium)
                             note.body?.let { Text(it) }
-                            Text(note.status.label())
+                            EditorialStatus(note.status.label())
                             note.followUp?.let { Text("Seguimiento: ${dateLabel(it)}") }
-                            Row {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = note; onNavigationLockChange(true) }) { Text("Editar") }
                                 TextButton(enabled = !busy, onClick = { deleting = note; onNavigationLockChange(true) }) { Text("Eliminar") }
                             }
@@ -152,22 +151,26 @@ private fun PrenatalNoteForm(initial: PrenatalNote, busy: Boolean, saveError: Bo
     var status by retain(initial) { mutableStateOf(initial.status) }
     var followUp by retain(initial) { mutableStateOf(initial.followUp.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (initial.id.isEmpty()) "Nueva nota" else "Editar nota", style = MaterialTheme.typography.headlineLarge)
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader(if (initial.id.isEmpty()) "Nueva nota" else "Editar nota")
         OutlinedTextField(title, { title = it }, label = { Text("Título") }, singleLine = true, enabled = !busy, isError = title.length > 512, supportingText = { Text("${title.length}/512") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(body, { body = it }, label = { Text("Contenido (opcional)") }, enabled = !busy, isError = body.length > 4096, supportingText = { Text("${body.length}/4096") }, modifier = Modifier.fillMaxWidth())
         Text("Categoría", style = MaterialTheme.typography.labelLarge)
-        NoteCategory.entries.forEach { option -> FilterChip(category == option, { category = option }, enabled = !busy, label = { Text(option.label()) }) }
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            NoteCategory.entries.forEach { option -> FilterChip(category == option, { category = option }, enabled = !busy, label = { Text(option.label()) }) }
+        }
         Text("Seguimiento", style = MaterialTheme.typography.labelLarge)
-        NoteTaskStatus.entries.forEach { option -> FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label()) }) }
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            NoteTaskStatus.entries.forEach { option -> FilterChip(status == option, { status = option }, enabled = !busy, label = { Text(option.label()) }) }
+        }
         DateField("Fecha de seguimiento (opcional)", followUp, clearable = true, enabled = !busy) { followUp = it }
         Text("La fecha de seguimiento no genera una notificación.", style = MaterialTheme.typography.bodySmall)
         if (invalid) Text("Indica un título y respeta los límites de los campos.", color = MaterialTheme.colorScheme.error)
         if (saveError) Text("No pudimos guardar la nota. Tus cambios siguen en el formulario.", color = MaterialTheme.colorScheme.error)
-        Button(enabled = !busy, onClick = {
+        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             invalid = title.isBlank() || title.length > 512 || body.length > 4096 || (followUp.isNotEmpty() && isoToUtcMillis(followUp) == null)
             if (!invalid) onSave(initial.copy(title = title.trim(), body = body.trim().ifEmpty { null }, category = category, status = status, followUp = followUp.ifEmpty { null }))
         }) { Text(if (busy) "Guardando…" else "Guardar nota") }
-        OutlinedButton(enabled = !busy, onClick = onCancel) { Text("Cancelar") }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text("Cancelar") }
     }
 }

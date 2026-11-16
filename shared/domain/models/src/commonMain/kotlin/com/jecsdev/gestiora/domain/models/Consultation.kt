@@ -12,4 +12,5 @@ data class Consultation(
     val exams: String? = null,
     val followUp: String? = null,
     val nextDate: String? = null,
+    val attachments: String? = null,
 )

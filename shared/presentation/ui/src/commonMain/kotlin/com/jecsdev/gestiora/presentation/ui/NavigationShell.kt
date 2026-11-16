@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -104,7 +103,7 @@ internal fun NavigationShell(
                     calendarDate = date
                     onDestinationChange(AppDestination.Calendar)
                 }
-                AppDestination.Calendar -> AppointmentsScreen(koinInject<AppointmentViewModel>(), calendarDate) { navigationLocked = it }
+                AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
                 AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
                 AppDestination.Baby -> BabyScreen(profile, viewModel)
                 AppDestination.Profile -> ProfileScreen(profile, onEdit, preferences)
@@ -127,16 +126,20 @@ private fun UnavailableScreen(title: String, message: String) {
 @Composable
 private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit, preferences: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Text("Mi perfil", style = MaterialTheme.typography.headlineLarge)
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader("Mi perfil", eyebrow = "TU ESPACIO PERSONAL")
+        EditorialSection("Sobre ti y tu bebé") {
+            EditorialRecordCard {
                 ProfileLine("Tu nombre", profile.motherName ?: "No indicado")
                 ProfileLine("Apodo del bebé", profile.babyName ?: "No indicado")
                 ProfileLine("País", profile.country)
                 ProfileLine("Idioma", profile.language)
+            }
+        }
+        EditorialSection("Fechas del embarazo") {
+            EditorialRecordCard {
                 val method = when (profile.dating.method) {
                     DatingMethod.FUM -> "Última menstruación"
                     DatingMethod.ULTRASOUND -> "Ecografía"

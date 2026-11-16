@@ -27,9 +27,9 @@ internal fun TimeField(value: String, enabled: Boolean, onValueChange: (String) 
     Column {
         Text("Hora", style = MaterialTheme.typography.labelLarge)
         OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().semantics {
-            contentDescription = "Hora: $value"
+            contentDescription = "Hora: ${value.ifEmpty { "Todo el día" }}"
         }) {
-            Text(value, modifier = Modifier.clearAndSetSemantics { })
+            Text(value.ifEmpty { "Todo el día" }, modifier = Modifier.clearAndSetSemantics { })
         }
     }
     if (open) {

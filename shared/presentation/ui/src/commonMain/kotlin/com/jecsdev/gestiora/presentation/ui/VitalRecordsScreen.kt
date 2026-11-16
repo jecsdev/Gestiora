@@ -59,9 +59,8 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
         }
         return
     }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Historial de salud", style = MaterialTheme.typography.headlineSmall)
-        Text("Guarda la información indicada por tu equipo de salud. Tus registros se conservan en este dispositivo.")
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        EditorialHeader("Historial de salud", "Guarda la información indicada por tu equipo de salud. Tus registros se conservan en este dispositivo.", compact = true)
         when {
             loadError -> {
                 Text("No pudimos leer tus registros de salud. Tus datos no se han borrado.", color = MaterialTheme.colorScheme.error)
@@ -73,17 +72,17 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
             }
             records == null -> CircularProgressIndicator()
             else -> {
-                Button(enabled = !busy, onClick = { operationError = false; editing = VitalRecord("", todayIsoDate(), VitalType.WEIGHT); onNavigationLockChange(true) }) { Text("Nuevo registro de salud") }
+                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = VitalRecord("", todayIsoDate(), VitalType.WEIGHT); onNavigationLockChange(true) }) { Text("Nuevo registro de salud") }
                 LatestVitalSummaries(records!!)
                 if (records!!.isEmpty()) Text("Aún no tienes registros de salud.")
                 orderedVitalRecords(records!!).forEach { record ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    EditorialRecordCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(if (record.type == VitalType.CUSTOM) record.label.orEmpty() else record.type.label(), style = MaterialTheme.typography.titleMedium)
                             Text(dateLabel(record.date), style = MaterialTheme.typography.labelLarge)
                             Text(vitalRecordValue(record), style = MaterialTheme.typography.titleLarge)
                             record.notes?.let { Text(it) }
-                            Row {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = record; onNavigationLockChange(true) }) { Text("Editar") }
                                 TextButton(enabled = !busy, onClick = { deleting = record; onNavigationLockChange(true) }) { Text("Eliminar") }
                             }
@@ -148,8 +147,8 @@ private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Bool
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var typeMenu by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (initial.id.isEmpty()) "Nuevo registro de salud" else "Editar registro de salud", style = MaterialTheme.typography.headlineLarge)
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        EditorialHeader(if (initial.id.isEmpty()) "Nuevo registro de salud" else "Editar registro de salud")
         DateField("Fecha", date, enabled = !busy) { date = it }
         Text("Tipo de registro", style = MaterialTheme.typography.labelLarge)
         Box {
@@ -180,11 +179,11 @@ private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Bool
         OutlinedTextField(notes, { notes = it }, label = { Text("Notas (opcional)") }, enabled = !busy, isError = notes.length > 4096, supportingText = { Text("${notes.length}/4096") }, modifier = Modifier.fillMaxWidth())
         if (invalid) Text("Revisa la fecha y los campos requeridos. Respeta los límites indicados.", color = MaterialTheme.colorScheme.error)
         if (saveError) Text("No pudimos guardar el registro. Tus cambios siguen en el formulario.", color = MaterialTheme.colorScheme.error)
-        Button(enabled = !busy, onClick = {
+        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val record = vitalRecordForSave(initial, date, type, value, value2, label, text, notes)
             invalid = record == null
             if (record != null) onSave(record)
         }) { Text(if (busy) "Guardando…" else "Guardar registro") }
-        OutlinedButton(enabled = !busy, onClick = onCancel) { Text("Cancelar") }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text("Cancelar") }
     }
 }

@@ -5,6 +5,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.Typography
+import androidx.compose.material3.Shapes
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -78,7 +81,17 @@ fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable ()
         labelMedium = defaults.labelMedium.copy(fontFamily = body),
         labelSmall = defaults.labelSmall.copy(fontFamily = body),
     )
-    MaterialTheme(colorScheme = if (darkTheme) darkColors else lightColors, typography = typography) {
+    MaterialTheme(
+        colorScheme = if (darkTheme) darkColors else lightColors,
+        typography = typography,
+        shapes = Shapes(
+            extraSmall = RoundedCornerShape(8.dp),
+            small = RoundedCornerShape(12.dp),
+            medium = RoundedCornerShape(16.dp),
+            large = RoundedCornerShape(22.dp),
+            extraLarge = RoundedCornerShape(28.dp),
+        ),
+    ) {
         // MaterialTheme supplies the palette; Surface supplies the default content color.
         Surface(
             modifier = Modifier.fillMaxSize(),
