@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
 import com.jecsdev.gestiora.data.datasources.SecureAppointmentsStore
+import com.jecsdev.gestiora.data.datasources.core.room.RoomAppointmentsStore
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File
@@ -16,7 +17,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 internal actual fun secureAppointmentsStoreModule(): Module = module {
-    single<SecureAppointmentsStore> { AndroidSecureAppointmentsStore(get<Context>()) }
+    single<SecureAppointmentsStore> { RoomAppointmentsStore(get()) }
 }
 
 /** Appointments ciphertext stays in noBackupFilesDir; the non-exportable key stays in Android Keystore. */

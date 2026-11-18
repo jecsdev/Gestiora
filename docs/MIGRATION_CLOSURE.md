@@ -8,7 +8,7 @@ Shared Compose onboarding, pregnancy dating/profile, Home, calendar appointments
 
 Mi bebé also includes offline educational questions with specific official-source citations. See EDUCATIONAL_CONTENT.md for the reviewed URLs, claim mapping and remaining clinical-review/device gates. AI remains deferred; this feature is a prepared FAQ.
 
-The app still uses nine protected stores (profile plus eight collections), not a database. Android uses Keystore/AES-GCM and AtomicFile; provisional iOS adapters use Keychain. Appearance is separate. No dependency or architecture replacement was introduced in this closure slice.
+At the 2026-11-16 closure checkpoint the app used nine protected stores (profile plus eight collections), not a database. On 2026-11-17 Android Room replaced all nine clinical bindings with encrypted payload rows and two transactional legacy import groups. All provisional iOS Keychain adapters remain unchanged; physical Room verification is deferred by the user. Appearance is separate. See ROOM_PERSISTENCE.md for current scope and verification limits.
 
 ## Reference audit
 
@@ -46,7 +46,7 @@ The React reminder hint explicitly says it does not send system notifications. I
 
 ## Database work: required design decisions
 
-The user's selected database is Room. No Room dependency or implementation is installed yet. Preserve domain/repository boundaries and replace the data implementation incrementally after the localization/motion/Home slice (see LOCALIZATION_AND_MOTION.md).
+The user's selected database is Room. Its Android encrypted storage integration now covers all nine clinical stores; the following requirements continue to govern validation and release. See ROOM_PERSISTENCE.md and the current handoff for validation. Domain/repository boundaries remain intact.
 
 - Keep local data protected. Do not replace encrypted files with a plaintext database merely to gain SQL queries. Decide and test encryption/key availability, backup exclusions and iOS behavior with the chosen driver.
 - Import all nine protected stores through their existing decoders. Preserve IDs, ISO civil dates, historical dating/gestational-age text, status values, nulls and text references; theme preferences stay separate.

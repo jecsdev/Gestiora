@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
 import com.jecsdev.gestiora.data.datasources.SecureVaccineRecordsStore
+import com.jecsdev.gestiora.data.datasources.core.room.RoomVaccineRecordsStore
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File
@@ -16,7 +17,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 internal actual fun secureVaccineRecordsStoreModule(): Module = module {
-    single<SecureVaccineRecordsStore> { AndroidSecureVaccineRecordsStore(get<Context>()) }
+    single<SecureVaccineRecordsStore> { RoomVaccineRecordsStore(get()) }
 }
 
 /** VaccineRecords ciphertext stays in noBackupFilesDir; the non-exportable key stays in Android Keystore. */

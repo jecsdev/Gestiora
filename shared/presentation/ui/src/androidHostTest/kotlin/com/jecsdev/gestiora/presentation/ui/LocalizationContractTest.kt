@@ -70,4 +70,26 @@ class LocalizationContractTest {
         assertEquals("Question 2 sur 2", copy("values-fr").s(Res.string.question_position, 2, 2))
         assertEquals("Tu recorrido · 25%", copy("values-es").s(Res.string.your_journey, 25))
     }
+
+    @Test fun packagedCatalogUsesRealTranslationsStableIdsAndExistingCitations() {
+        val ids = babyQuestions.map { it.id }.toSet()
+        for (locale in listOf("es", "en", "fr")) {
+            val ui = copy("values-$locale")
+            val seed = educationalSeed(ui)
+            assertEquals(7, seed.size)
+            assertEquals(ids, seed.map { it.id }.toSet())
+            seed.forEach { article ->
+                val question = babyQuestions.single { it.id == article.id }
+                assertEquals(locale, article.locale)
+                assertEquals(ui.s(question.question), article.title)
+                assertEquals(ui.s(question.answer), article.body)
+                assertEquals(question.source.url, article.sources.single().url)
+                assertEquals(BABY_QUESTIONS_CHECKED_ON, article.sourceCheckedOn)
+                assertEquals("2026-11-16", utcMillisToIso(article.updatedAt))
+                assertNull(article.reviewedOn)
+                assertFalse(article.isFavorite)
+            }
+            assertTrue(ui.s(Res.string.catalog_disclaimer).isNotBlank())
+        }
+    }
 }

@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
 import com.jecsdev.gestiora.data.datasources.SecurePersonalRemindersStore
+import com.jecsdev.gestiora.data.datasources.core.room.RoomPersonalRemindersStore
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File
@@ -16,7 +17,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 internal actual fun securePersonalRemindersStoreModule(): Module = module {
-    single<SecurePersonalRemindersStore> { AndroidSecurePersonalRemindersStore(get<Context>()) }
+    single<SecurePersonalRemindersStore> { RoomPersonalRemindersStore(get()) }
 }
 
 /** PersonalReminders ciphertext stays in noBackupFilesDir; the non-exportable key stays in Android Keystore. */

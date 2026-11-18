@@ -9,7 +9,7 @@ Statuses: Not started, In progress, Implemented, Verified, Blocked. Verified req
 | ES/EN/FR localization | Implemented | Shared Compose XML resources, localized labels/errors/accessibility/dates/FAQ and source metadata display; Android/iOS locale declarations. Real XML contracts and localized date/user-text tests pass. Full device/language/clinical review pending; see LOCALIZATION_AND_MOTION.md. |
 | FAQ and navigation motion | Implemented | Finite FAQ fade/expansion and entry-only destination/form fade/slide. Native reduced-motion adapters; no background timers or auto-rotation. Android build passes; motion/device accessibility and iOS verification pending. |
 | Home WHO questions | Implemented | Reuses two WHO-backed answers with manual previous/next, position and citations; selection test passes. Phone visual/source-link checks pending. |
-| Room integration | Not started | Explicitly selected by user as next database technology. Preserve encryption, legacy IDs/history and transactional/idempotent import. Current app still uses protected files/Keychain. |
+| Room integration | In progress | All nine Android stores use AES-GCM Room payloads and two transactional/idempotent import groups; legacy sources retained. 103 host tests pass; all five isolated device tests passed on Samsung; English library smoke/restart passed. iOS remains on Keychain. See ROOM_PERSISTENCE.md; native verification and source cleanup pending. |
 | Calma editorial redesign | Implemented | User approved the Calma editorial proposal. Home hierarchy, week/artwork hero, separate date summary, calendar-date appointment previews, quieter follow-up rows and navigation styling implemented. Profile editing lives in Profile. Android build and UI host regressions pass; Editorial headers/cards/status chips, shapes and wrapping actions now cover Calendar/Records/forms/Baby/Profile/onboarding. Samsung dark Home/calendar inspected; broader phone/TalkBack/large-font and iOS checks pending. |
 | Welcome and screen spacing | Implemented | Welcome follows the reference's viewport-height composition, proportional illustration and full-width lower panel, with scroll fallback. Drawing-safe insets replace gesture-safe padding across screen containers to remove gesture-related lateral margins. Physical-device/large-font/landscape and iOS visual validation pending; demo/account actions remain deferred. |
 | Spanish date presentation | Implemented | Shared compact Spanish civil-date labels across forms, Home, Profile, calendar and all Records sections; expanded picker/calendar accessibility labels and calendar selection semantics. ISO storage/filtering unchanged. Host coverage for months, leap days, year boundaries and invalid/missing dates; device/TalkBack and iOS validation pending. |
@@ -57,3 +57,14 @@ Statuses: Not started, In progress, Implemented, Verified, Blocked. Verified req
 ## Closure audit
 
 See [MIGRATION_CLOSURE.md](MIGRATION_CLOSURE.md) for the 2026-11-16 reference comparison, 84 passing host tests, Samsung reminder CRUD/restart/envelope checks and explicit remaining gates. Database integration is the next objective; the full migration is not marked complete.
+# Educational catalog extension — 2026-11-17
+
+Local catalog implemented; see EDUCATIONAL_CATALOG.md for exact scope and test limits. Remote publishing/sync and monetization remain planned in EDUCATIONAL_CONTENT_SYNC_PLAN.md.
+
+| Feature | Status | Scope |
+| --- | --- | --- |
+| Room educational catalog and seed | Implemented; native tests passed | Separate v1 database, seven resource-backed ES/EN/FR entries, per-locale atomic seed, multiple citations and distinct dates. iOS builder uncompiled. |
+| Offline search and favorites | Implemented; English UI/SQLite passed | Literal local substring search with ES/FR folding; independent favorites shared across locales. Host and isolated native tests pass; English UI/restart passed, ES/FR visual review pending. |
+| Supabase editorial publishing and catalog sync | Not started | Published-only RLS, stable server cursor/snapshot, tombstones, transactional apply/checkpoint, failure/retry tests. |
+| Educational disclaimers and publication review | Partial | Library has visible disclaimer and dates/citations. Onboarding/Play audit, clinical/editorial review and assigned owner remain pending. |
+| Non-interruptive AdMob | Not started | Later phase; category controls, privacy/consent assessment and actual creative review. |

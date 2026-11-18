@@ -35,6 +35,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
+import com.jecsdev.gestiora.presentation.viewmodels.EducationViewModel
+import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
 internal data class BabyStage(val from: Int, val size: StringResource, val text: StringResource, val milestones: List<StringResource>)
@@ -57,15 +59,21 @@ internal fun babyReferenceWeek(week: Int): Int = listOf(36, 28, 20, 16, 12, 8, 4
 @Composable
 fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
     val ui = LocalUiCopy.current
+    var catalogOpen by retain { mutableStateOf(false) }
     val actualWeek = viewModel.preview(profile.dating, todayIsoDate())?.weeks
     val nearestWeek = actualWeek?.coerceIn(4, 40)
     var chosen by retain(profile.dating) { mutableStateOf<Int?>(null) }
     val week = chosen ?: nearestWeek ?: 4
     val stage = babyStage(week)
     val referenceWeek = babyReferenceWeek(week)
+    val scroll = rememberScrollState()
+    if (catalogOpen) {
+        EducationalCatalogScreen(koinInject<EducationViewModel>()) { catalogOpen = false }
+        return
+    }
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
-            .verticalScroll(rememberScrollState()).padding(24.dp),
+            .verticalScroll(scroll).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         EditorialHeader(profile.babyName?.takeIf { it.isNotBlank() } ?: ui.s(Res.string.my_baby), eyebrow = ui.s(Res.string.each_week_a_little_miracle))
@@ -106,6 +114,9 @@ fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
                 }
                 androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
             }
+        }
+        OutlinedButton(onClick = { catalogOpen = true }, modifier = Modifier.fillMaxWidth()) {
+            Text(ui.s(Res.string.catalog_open))
         }
         BabyQuestionsSection(week)
         Text(ui.s(Res.string.every_pregnancy_is_different_this_information_is_educational), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

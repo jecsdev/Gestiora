@@ -1,6 +1,10 @@
 package com.jecsdev.gestiora.data.repository.di
 
 import com.jecsdev.gestiora.core.common.di.KoinModuleLoader
+import com.jecsdev.gestiora.data.datasources.LegacyClinicalPayloadValidator
+import com.jecsdev.gestiora.data.repository.LocalEducationalRepository
+import com.jecsdev.gestiora.domain.repository.EducationalRepository
+import com.jecsdev.gestiora.data.repository.ClinicalPayloadValidator
 import com.jecsdev.gestiora.data.repository.SecurePregnancyProfileRepository
 import com.jecsdev.gestiora.data.repository.SecureAppointmentRepository
 import com.jecsdev.gestiora.domain.repository.AppointmentRepository
@@ -31,6 +35,8 @@ import com.jecsdev.gestiora.domain.repository.ExamRecordRepository
 
 object DataRepositoryDependencyInjector : KoinModuleLoader {
     override val modules: List<Module> = listOf(module {
+        single<LegacyClinicalPayloadValidator> { ClinicalPayloadValidator() }
+        single<EducationalRepository> { LocalEducationalRepository(get()) }
         single<PregnancyProfileRepository> { SecurePregnancyProfileRepository(get()) }
         single<AppointmentRepository> { SecureAppointmentRepository(get()) }
         single<PrenatalNoteRepository> { SecurePrenatalNoteRepository(get()) }

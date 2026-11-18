@@ -5,6 +5,13 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
 import com.jecsdev.gestiora.data.datasources.SecureProfileStore
+import com.jecsdev.gestiora.data.datasources.core.room.AndroidClinicalPayloadCipher
+import com.jecsdev.gestiora.data.datasources.core.room.ClinicalDatabase
+import com.jecsdev.gestiora.data.datasources.core.room.ProtectedClinicalStorage
+import com.jecsdev.gestiora.data.datasources.core.room.RoomProfileStore
+import com.jecsdev.gestiora.data.datasources.core.room.clinicalDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File
@@ -16,7 +23,30 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 internal actual fun secureProfileStoreModule(): Module = module {
-    single<SecureProfileStore> { AndroidSecureProfileStore(get<Context>()) }
+    single { clinicalDatabase(get<Context>()) }
+    single {
+        val database = get<ClinicalDatabase>()
+        val dao = database.payloads()
+        ProtectedClinicalStorage(
+            dao,
+            AndroidClinicalPayloadCipher(
+                hasCiphertext = { runBlocking(Dispatchers.IO) { dao.count() > 0 } },
+            ),
+            AndroidSecureProfileStore(get<Context>()),
+            AndroidSecurePersonalRemindersStore(get<Context>()),
+            get(),
+            legacyCollections = mapOf(
+                "appointments" to AndroidSecureAppointmentsStore(get<Context>())::read,
+                "consultations" to AndroidSecureConsultationsStore(get<Context>())::read,
+                "vital_records" to AndroidSecureVitalRecordsStore(get<Context>())::read,
+                "medical_conditions" to AndroidSecureMedicalConditionsStore(get<Context>())::read,
+                "vaccine_records" to AndroidSecureVaccineRecordsStore(get<Context>())::read,
+                "exam_records" to AndroidSecureExamRecordsStore(get<Context>())::read,
+                "prenatal_notes" to AndroidSecurePrenatalNotesStore(get<Context>())::read,
+            ),
+        )
+    }
+    single<SecureProfileStore> { RoomProfileStore(get()) }
 }
 
 /** Profile ciphertext stays in noBackupFilesDir; the non-exportable key stays in Android Keystore. */

@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
 import com.jecsdev.gestiora.data.datasources.SecureVitalRecordsStore
+import com.jecsdev.gestiora.data.datasources.core.room.RoomVitalRecordsStore
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File
@@ -16,7 +17,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 internal actual fun secureVitalRecordsStoreModule(): Module = module {
-    single<SecureVitalRecordsStore> { AndroidSecureVitalRecordsStore(get<Context>()) }
+    single<SecureVitalRecordsStore> { RoomVitalRecordsStore(get()) }
 }
 
 /** VitalRecords ciphertext stays in noBackupFilesDir; the non-exportable key stays in Android Keystore. */
