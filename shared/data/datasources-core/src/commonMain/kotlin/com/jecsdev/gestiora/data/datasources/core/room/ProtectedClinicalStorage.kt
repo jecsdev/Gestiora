@@ -19,8 +19,25 @@ class ProtectedClinicalStorage(
     private val legacyReminders: SecurePersonalRemindersStore,
     private val validator: LegacyClinicalPayloadValidator,
     private val legacyCollections: Map<String, () -> String?> = emptyMap(),
+    private val cleanupLegacy: (verifiedStores: Set<String>) -> Unit = {},
 ) {
     private val mutex = Mutex()
+
+    /** Import both groups, then authenticate/validate EVERY destination before source removal.
+     * The durable markers make an interrupted cleanup retryable without reimporting stale files.
+     */
+    suspend fun finishMigration() = mutex.withLock {
+        ensureImported()
+        ensureCollectionsImported()
+        val verified = mutableSetOf<String>()
+        (COLLECTIONS + PROFILE + REMINDERS).forEach { store ->
+            dao.read(store)?.let {
+                validate(store, cipher.decrypt(store, it.ciphertext))
+                verified.add(store)
+            }
+        }
+        cleanupLegacy(verified)
+    }
 
     suspend fun read(store: String): String? = mutex.withLock {
         requireStore(store)

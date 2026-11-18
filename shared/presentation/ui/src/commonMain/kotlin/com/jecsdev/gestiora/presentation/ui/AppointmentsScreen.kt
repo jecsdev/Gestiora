@@ -167,7 +167,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
                             Text(appointment.reason)
                             EditorialStatus(appointment.status.label(ui))
                             if (appointment.reminder != AppointmentReminder.NONE) {
-                                Text(ui.s(Res.string.preference_no_notification, appointment.reminder.label(ui)), style = MaterialTheme.typography.bodySmall)
+                                Text(appointment.reminder.label(ui), style = MaterialTheme.typography.bodySmall)
                             }
                             appointment.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -178,7 +178,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
                     }
                 }
                 if (operationError) Text(ui.s(Res.string.we_couldn_t_delete_the_appointment_try_again), color = MaterialTheme.colorScheme.error)
-                Text(ui.s(Res.string.reminder_preferences_are_saved_system_notifications_are_not), style = MaterialTheme.typography.bodySmall)
+                ReminderNotificationSettings()
             }
         }
     }
@@ -232,7 +232,7 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
             AppointmentStatus.entries.forEach { option -> FilterChip(selected = status == option, enabled = !busy, onClick = { status = option }, label = { Text(option.label(ui)) }) }
         }
         Text(ui.s(Res.string.reminder_preference), style = MaterialTheme.typography.labelLarge)
-        Text(ui.s(Res.string.this_option_only_saves_your_preference_no_notification), style = MaterialTheme.typography.bodySmall)
+        ReminderNotificationSettings()
         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AppointmentReminder.entries.forEach { option ->
                 FilterChip(selected = reminder == option, enabled = !busy, onClick = { reminder = option }, label = { Text(option.label(ui)) })

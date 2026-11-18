@@ -8,14 +8,15 @@ class CorruptExamRecordsException : IllegalStateException("Stored records are co
 class UnsupportedExamRecordsVersionException : IllegalStateException("Stored records version is unsupported")
 
 internal object ExamRecordCodec {
-    private const val HEADER = "GESTIORA_EXAMS:1\n"
+    private const val HEADER = "GESTIORA_EXAMS:2\n"
+    private const val LEGACY_HEADER = "GESTIORA_EXAMS:1\n"
     fun encode(records: List<ExamRecord>): String {
         require(records.size <= 1000 && records.map { it.id }.toSet().size == records.size)
         records.forEach(::validateExamRecord)
         val raw = buildString {
             append(HEADER).append(records.size).append('\n')
             records.forEach { record ->
-                listOf(record.id, record.name, record.kind.name, record.requested, record.scheduled, record.completed, record.status.name, record.physician, record.results, record.notes, record.attachment).forEach {
+                listOf(record.id, record.name, record.kind.name, record.requested, record.scheduled, record.completed, record.status.name, record.physician, record.results, record.notes, record.attachment, record.reminder.toString()).forEach {
                     if (it == null) append("-1:") else append(it.length).append(':').append(it)
                 }
             }
@@ -26,7 +27,8 @@ internal object ExamRecordCodec {
 
     fun decode(raw: String): List<ExamRecord> {
         if (raw.length > 1_000_000 || !raw.startsWith("GESTIORA_EXAMS:")) throw CorruptExamRecordsException()
-        if (!raw.startsWith(HEADER)) throw UnsupportedExamRecordsVersionException()
+        if (!raw.startsWith(HEADER) && !raw.startsWith(LEGACY_HEADER)) throw UnsupportedExamRecordsVersionException()
+        val legacy = raw.startsWith(LEGACY_HEADER)
         val end = raw.indexOf('\n', HEADER.length)
         if (end < 0 || end - HEADER.length !in 1..4) throw CorruptExamRecordsException()
         val countText = raw.substring(HEADER.length, end)
@@ -55,7 +57,16 @@ internal object ExamRecordCodec {
             val completed = field()
             val statusName = required()
             val status = ExamStatus.entries.firstOrNull { it.name == statusName } ?: throw CorruptExamRecordsException()
-            ExamRecord(id, name, kind, requested, scheduled, completed, status, field(), field(), field(), field())
+            val physician = field()
+            val results = field()
+            val notes = field()
+            val attachment = field()
+            val reminder = if (legacy) false else when (required()) {
+                "true" -> true
+                "false" -> false
+                else -> throw CorruptExamRecordsException()
+            }
+            ExamRecord(id, name, kind, requested, scheduled, completed, status, physician, results, notes, attachment, reminder)
         }
         if (position != raw.length || records.map { it.id }.toSet().size != records.size) throw CorruptExamRecordsException()
         try { records.forEach(::validateExamRecord) } catch (_: IllegalArgumentException) { throw CorruptExamRecordsException() }

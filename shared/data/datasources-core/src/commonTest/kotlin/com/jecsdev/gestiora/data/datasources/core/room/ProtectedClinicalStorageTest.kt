@@ -10,6 +10,51 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.*
 
 class ProtectedClinicalStorageTest {
+    @Test fun verifiedCleanupRetriesWithoutReimportAndDoesNotResurrectClearedProfile() = runBlocking {
+        val f = Fixture()
+        var cleanups = 0
+        val sources = ProtectedClinicalStorage.COLLECTIONS.associateWith { store -> { "$store:original" } }
+        fun open() = ProtectedClinicalStorage(f.dao, f.cipher, f.profile, f.reminders, validator, sources) {
+            cleanups++
+            assertTrue(ProtectedClinicalStorage.IMPORT_ID in f.dao.markers)
+            assertTrue(ProtectedClinicalStorage.COLLECTIONS_IMPORT_ID in f.dao.markers)
+            if (cleanups == 1) error("Interrupted filesystem cleanup")
+        }
+        assertFailsWith<IllegalStateException> { open().finishMigration() }
+        assertEquals(9, f.dao.rows.size)
+        open().write("appointments", "appointments:edited")
+        open().clearProfile()
+        f.profile.failRead = true
+        open().finishMigration()
+        assertEquals(2, cleanups)
+        assertNull(open().read(ProtectedClinicalStorage.PROFILE))
+        assertEquals("appointments:edited", open().read("appointments"))
+    }
+
+    @Test fun cleanupRefusedIfAnyDestinationFailsAuthenticationOrValidation() = runBlocking {
+        val f = Fixture()
+        var cleaned = false
+        val sources = ProtectedClinicalStorage.COLLECTIONS.associateWith { store -> { "$store:original" } }
+        val storage = ProtectedClinicalStorage(f.dao, f.cipher, f.profile, f.reminders, validator, sources) { cleaned = true }
+        storage.read("appointments")
+        f.dao.rows["vital_records"] = ProtectedPayload("vital_records", "tampered".encodeToByteArray())
+        assertFailsWith<IllegalStateException> { storage.finishMigration() }
+        assertFalse(cleaned)
+        f.dao.rows["vital_records"] = ProtectedPayload("vital_records", "vital_records|invalid".encodeToByteArray())
+        assertFailsWith<IllegalArgumentException> { storage.finishMigration() }
+        assertFalse(cleaned)
+    }
+
+    @Test fun cleanupRefusedWhenSecondImportGroupCannotComplete() = runBlocking {
+        val f = Fixture()
+        var cleaned = false
+        val sources = ProtectedClinicalStorage.COLLECTIONS.associateWith { store -> { if (store == "exam_records") "broken" else "$store:original" } }
+        val storage = ProtectedClinicalStorage(f.dao, f.cipher, f.profile, f.reminders, validator, sources) { cleaned = true }
+        assertFailsWith<IllegalArgumentException> { storage.finishMigration() }
+        assertFalse(cleaned)
+        assertFalse(f.dao.imported(ProtectedClinicalStorage.COLLECTIONS_IMPORT_ID))
+        assertEquals(2, f.dao.rows.size)
+    }
     private class Profile(var raw: String? = "profile:Lucía") : SecureProfileStore {
         var reads = 0
         var failRead = false

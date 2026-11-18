@@ -35,17 +35,18 @@ import com.jecsdev.gestiora.domain.repository.ExamRecordRepository
 
 object DataRepositoryDependencyInjector : KoinModuleLoader {
     override val modules: List<Module> = listOf(module {
+        single<com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier> { com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier {} }
         single<LegacyClinicalPayloadValidator> { ClinicalPayloadValidator() }
         single<EducationalRepository> { LocalEducationalRepository(get()) }
         single<PregnancyProfileRepository> { SecurePregnancyProfileRepository(get()) }
-        single<AppointmentRepository> { SecureAppointmentRepository(get()) }
+        single<AppointmentRepository> { SecureAppointmentRepository(get(), get()) }
         single<PrenatalNoteRepository> { SecurePrenatalNoteRepository(get()) }
         single<PersonalReminderRepository> { SecurePersonalReminderRepository(get()) }
         single<ConsultationRepository> { SecureConsultationRepository(get()) }
         single<VitalRecordRepository> { SecureVitalRecordRepository(get()) }
         single<MedicalConditionRepository> { SecureMedicalConditionRepository(get()) }
         single<VaccineRecordRepository> { SecureVaccineRecordRepository(get()) }
-        single<ExamRecordRepository> { SecureExamRecordRepository(get()) }
+        single<ExamRecordRepository> { SecureExamRecordRepository(get(), get()) }
         single<ThemePreferenceRepository> { LocalThemePreferenceRepository(get()) }
     })
 }

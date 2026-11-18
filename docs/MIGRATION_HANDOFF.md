@@ -1,5 +1,18 @@
 # Gestiora migration handoff
 
+## Current checkpoint — Android local v1, 2026-11-17
+
+This section supersedes historical status paragraphs below. Login, AI and Supabase/CMS/catalog sync are explicitly deferred by the user to phase 2. They are not v1 migration gates. See LOCAL_CONTENT_POLICY.md for the bundled-content update/review process.
+
+Android appointment system reminders and explicit examination reminders are implemented; see LOCAL_REMINDERS.md for permission, inexact timing, boot/clock reconciliation, cancellation and platform limits. The welcome screen now includes the existing localized educational disclaimer.
+
+Legacy cleanup is implemented after both durable import groups and authenticated/validated Room read-back. An existing legacy collection without a verified destination blocks the entire deletion pass. Only nine named AtomicFile stores and their old individual keys are eligible; Room databases, active encryption key and unrelated files are preserved. Interrupted deletion retries without reimport. Profile clear does not reset the remaining collections. Reset-all/export still require their own feature and tests.
+
+Executed: Android assembleDebug; **120 host tests, zero failures** (5 Android reminder-policy, 5 use-case, 14 datasource-core, 47 repository, 13 ViewModel, 36 UI); **six isolated Samsung instrumentation tests passed**, including real legacy AES/Keystore -> SQLite read-back -> file/key cleanup and refusal with missing destination verification. No emulator or iOS build.
+
+Remaining migration gates: local export/reset-all, consultation/note appointment associations, isolated demo, broader physical clinical/accessibility/rotation coverage, and macOS/Xcode/iOS validation (including iOS system notifications). Editorial approval/ownership and illustration rights remain publication gates. Full migration is **not** declared complete; Supabase is not required to close the local v1 scope.
+
+
 ## Current status
 
 Latest slice (2026-11-17): local educational library/search/favorites implemented from Mi bebé, reusing the seven existing FAQ/citations and ES/EN/FR resources. Separate public-content Room v1 database and independent favorite state; literal accent/case-folded search, per-locale transactional seed, update/reopen policy, citations/dates/disclaimer and reduced-motion expansion. Android build, five host tasks (110 tests, zero failures/errors) and isolated device-test APK compilation passed. All five native SQLite/Keystore tests passed on the connected Samsung SM-A546E (Android 16/API 36). English dark-theme library UI, search, citations, favorite/filter and persistence after process restart passed; temporary favorite restored and app returned to Home. No production APK reinstall or clinical mutation. ES/FR visual/accessibility and iOS checks remain pending. iOS educational Room builder/binding is written but uncompiled; clinical iOS stays in Keychain. All nine Android clinical stores remain on encrypted Room. No emulator, device install, commit or push. Supabase, ads and AI remain pending. See EDUCATIONAL_CATALOG.md and ROOM_PERSISTENCE.md.

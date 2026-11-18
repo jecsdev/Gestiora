@@ -16,4 +16,6 @@ data class ExamRecord(
     val results: String? = null,
     val notes: String? = null,
     val attachment: String? = null,
+    /** Optional reminder at 09:00 local time on the day BEFORE scheduled; not an exam time. */
+    val reminder: Boolean = false,
 )

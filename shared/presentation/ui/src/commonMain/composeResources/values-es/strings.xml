@@ -594,4 +594,12 @@
     <string name="catalog_tags_movements">movimientos patadas patrón disminución</string>
     <string name="catalog_french">Francés</string>
     <string name="catalog_disclaimer">La información educativa no sustituye la evaluación ni el consejo de un profesional de salud.</string>
+    <string name="notifications_unavailable">Los avisos del sistema todavía no están disponibles en esta plataforma.</string>
+    <string name="notifications_disabled">Las notificaciones están desactivadas. Actívalas para recibir tus avisos programados.</string>
+    <string name="notifications_enabled">Las notificaciones están activadas. Tus avisos se aplican solo a registros agendados.</string>
+    <string name="notifications_timing">Android puede retrasar los avisos para ahorrar batería. El aviso abre Gestiora y no muestra detalles médicos.</string>
+    <string name="notifications_manage">Configurar notificaciones</string>
+    <string name="notifications_retry_message">No pudimos verificar el almacenamiento o actualizar los avisos. Tus registros se conservaron. Reintenta aquí.</string>
+    <string name="exam_reminder_option">Avisarme el día anterior a las 9:00</string>
+    <string name="exam_reminder_detail">Solo se aplica con estado Agendado y fecha programada. Es la hora del aviso, no la hora del examen.</string>
 </resources>

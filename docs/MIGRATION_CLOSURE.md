@@ -1,5 +1,18 @@
 # Migration closure and database entry criteria
 
+## Current checkpoint — Android local v1, 2026-11-17
+
+This section supersedes historical status paragraphs below. Login, AI and Supabase/CMS/catalog sync are explicitly deferred by the user to phase 2. They are not v1 migration gates. See LOCAL_CONTENT_POLICY.md for the bundled-content update/review process.
+
+Android appointment system reminders and explicit examination reminders are implemented; see LOCAL_REMINDERS.md for permission, inexact timing, boot/clock reconciliation, cancellation and platform limits. The welcome screen now includes the existing localized educational disclaimer.
+
+Legacy cleanup is implemented after both durable import groups and authenticated/validated Room read-back. An existing legacy collection without a verified destination blocks the entire deletion pass. Only nine named AtomicFile stores and their old individual keys are eligible; Room databases, active encryption key and unrelated files are preserved. Interrupted deletion retries without reimport. Profile clear does not reset the remaining collections. Reset-all/export still require their own feature and tests.
+
+Executed: Android assembleDebug; **120 host tests, zero failures** (5 Android reminder-policy, 5 use-case, 14 datasource-core, 47 repository, 13 ViewModel, 36 UI); **six isolated Samsung instrumentation tests passed**, including real legacy AES/Keystore -> SQLite read-back -> file/key cleanup and refusal with missing destination verification. No emulator or iOS build.
+
+Remaining migration gates: local export/reset-all, consultation/note appointment associations, isolated demo, broader physical clinical/accessibility/rotation coverage, and macOS/Xcode/iOS validation (including iOS system notifications). Editorial approval/ownership and illustration rights remain publication gates. Full migration is **not** declared complete; Supabase is not required to close the local v1 scope.
+
+
 Last reviewed: 2026-11-16. This is an evidence-based gap list, not a declaration of full migration completion.
 
 ## Implemented local scope

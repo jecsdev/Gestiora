@@ -35,11 +35,15 @@ import org.koin.core.module.Module
 import kotlinx.coroutines.launch
 
 @Composable
-fun App(platformModules: List<Module> = emptyList()) {
-    val graph = retain { RetainedAppGraph(CoreDependencyInjection.modules + platformModules) }
-    KoinIsolatedContext(context = graph.application) {
+fun App(
+    platformModules: List<Module> = emptyList(),
+    applicationGraph: org.koin.core.KoinApplication? = null,
+    notificationControls: NotificationControls = NotificationControls(),
+) {
+    val application = applicationGraph ?: retain { RetainedAppGraph(CoreDependencyInjection.modules + platformModules) }.application
+    KoinIsolatedContext(context = application) {
         // Material controls also use rememberSaveable internally. Medical drafts stay in RAM.
-        CompositionLocalProvider(LocalSaveableStateRegistry provides null) {
+        CompositionLocalProvider(LocalSaveableStateRegistry provides null, LocalNotificationControls provides notificationControls) {
             UiCopyProvider {
                 MotionPreferences {
                     ThemeRoot(koinInject()) { preferences -> ProfileRoot(koinInject(), preferences) }

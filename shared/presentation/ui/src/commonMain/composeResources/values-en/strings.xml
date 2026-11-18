@@ -594,4 +594,12 @@
     <string name="catalog_tags_movements">movements kicks pattern reduced movements</string>
     <string name="catalog_french">French</string>
     <string name="catalog_disclaimer">Educational information does not replace assessment or advice from a qualified health professional.</string>
+    <string name="notifications_unavailable">System reminders are not available on this platform yet.</string>
+    <string name="notifications_disabled">Notifications are off. Enable them to receive your scheduled reminders.</string>
+    <string name="notifications_enabled">Notifications are enabled. Your reminder choices apply to scheduled records only.</string>
+    <string name="notifications_timing">Android may delay reminders to save battery. Opening a reminder takes you to Gestiora; no medical details appear in the notification.</string>
+    <string name="notifications_manage">Manage notifications</string>
+    <string name="notifications_retry_message">We could not verify storage or refresh your reminders. Your records were kept. Retry here.</string>
+    <string name="exam_reminder_option">Remind me the day before at 09:00</string>
+    <string name="exam_reminder_detail">Applies only when the status is Scheduled and a scheduled date is present. This is a reminder time, not the examination time.</string>
 </resources>

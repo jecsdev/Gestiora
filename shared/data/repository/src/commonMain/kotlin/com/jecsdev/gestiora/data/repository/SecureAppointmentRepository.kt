@@ -9,7 +9,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** Each read-modify-write is one serialized operation; storage failures are never treated as empty. */
-class SecureAppointmentRepository(private val store: SecureAppointmentsStore) : AppointmentRepository {
+class SecureAppointmentRepository(
+    private val store: SecureAppointmentsStore,
+    private val scheduleChanges: com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier = com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier {},
+) : AppointmentRepository {
     private val mutex = Mutex()
 
     override suspend fun list(): List<Appointment> = mutex.withLock {
@@ -37,6 +40,9 @@ class SecureAppointmentRepository(private val store: SecureAppointmentsStore) : 
         withContext(Dispatchers.Default) {
             val current = readAll()
             store.write(AppointmentCodec.encode(change(current)))
+            // A platform scheduling failure must not turn a committed save into a failed CRUD.
+            runCatching { scheduleChanges.requestReconcile() }
+            Unit
         }
     }
 

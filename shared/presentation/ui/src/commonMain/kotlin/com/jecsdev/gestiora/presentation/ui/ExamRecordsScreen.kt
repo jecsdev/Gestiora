@@ -145,6 +145,7 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
     var results by retain(initial) { mutableStateOf(initial.results.orEmpty()) }
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var attachment by retain(initial) { mutableStateOf(initial.attachment.orEmpty()) }
+    var reminder by retain(initial) { mutableStateOf(initial.reminder) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var kindMenu by retain(initial) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -170,13 +171,18 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
         ExamRecordTextField(ui.s(Res.string.medical_observations_optional), notes, 4096, busy) { notes = it }
         ExamRecordTextField(ui.s(Res.string.document_or_image_reference_optional), attachment, 512, busy) { attachment = it }
         Text(ui.s(Res.string.the_reference_is_text_files_are_not_attached), style = MaterialTheme.typography.bodySmall)
-        Text(ui.s(Res.string.dates_do_not_create_appointments_or_notifications), style = MaterialTheme.typography.bodySmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Switch(checked = reminder, onCheckedChange = { reminder = it }, enabled = !busy)
+            Text(ui.s(Res.string.exam_reminder_option), modifier = Modifier.weight(1f))
+        }
+        Text(ui.s(Res.string.exam_reminder_detail), style = MaterialTheme.typography.bodySmall)
+        ReminderNotificationSettings()
         if (invalid) Text(ui.s(Res.string.enter_the_examination_and_if_completed_its_completion), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_examination_your_changes), color = MaterialTheme.colorScheme.error)
         Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val exam = examRecordForSave(initial, name, kind, requested, scheduled, completed, status, physician, results, notes, attachment)
             invalid = exam == null
-            if (exam != null) onSave(exam)
+            if (exam != null) onSave(exam.copy(reminder = reminder))
         }) { Text(if (busy) ui.s(Res.string.saving) else ui.s(Res.string.save_examination)) }
         OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = onCancel) { Text(ui.s(Res.string.cancel)) }
     }

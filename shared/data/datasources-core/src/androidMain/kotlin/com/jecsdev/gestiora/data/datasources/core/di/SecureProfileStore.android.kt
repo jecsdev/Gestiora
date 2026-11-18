@@ -10,6 +10,7 @@ import com.jecsdev.gestiora.data.datasources.core.room.ClinicalDatabase
 import com.jecsdev.gestiora.data.datasources.core.room.ProtectedClinicalStorage
 import com.jecsdev.gestiora.data.datasources.core.room.RoomProfileStore
 import com.jecsdev.gestiora.data.datasources.core.room.clinicalDatabase
+import com.jecsdev.gestiora.data.datasources.core.room.cleanupLegacyClinicalFiles
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.koin.core.module.Module
@@ -44,6 +45,7 @@ internal actual fun secureProfileStoreModule(): Module = module {
                 "exam_records" to AndroidSecureExamRecordsStore(get<Context>())::read,
                 "prenatal_notes" to AndroidSecurePrenatalNotesStore(get<Context>())::read,
             ),
+            cleanupLegacy = { cleanupLegacyClinicalFiles(get<Context>(), it) },
         )
     }
     single<SecureProfileStore> { RoomProfileStore(get()) }

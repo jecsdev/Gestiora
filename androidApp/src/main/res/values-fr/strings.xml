@@ -1,0 +1,5 @@
+<resources>
+    <string name="notification_channel">Rappels programmés</string>
+    <string name="notification_appointment">Vous avez un rappel de rendez-vous. Ouvrez Gestiora pour le consulter.</string>
+    <string name="notification_exam">Vous avez un rappel d’examen. Ouvrez Gestiora pour le consulter.</string>
+</resources>

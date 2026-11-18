@@ -73,3 +73,8 @@ Consultadas el 2026-11-17; volver a comprobar antes del lanzamiento:
 - AdMob blocking controls: https://support.google.com/admob/answer/3150235
 - Google Play Health apps declaration: https://support.google.com/googleplay/android-developer/answer/14738291
 - Google Play sensitive information permissions: https://support.google.com/googleplay/android-developer/answer/16558241
+
+
+## V1 scope decision — 2026-11-17
+
+Supabase/CMS/catalog synchronization, login and AI are deferred explicitly by the user to phase 2. V1 continues using the bundled offline catalog; corrections require an app update. See LOCAL_CONTENT_POLICY.md for ownership/review/versioning/release process and its limitations. The design above remains a future contract, not an active backend or a v1 closure requirement.

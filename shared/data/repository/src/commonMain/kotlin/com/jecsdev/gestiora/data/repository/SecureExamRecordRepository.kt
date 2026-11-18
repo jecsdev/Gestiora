@@ -9,7 +9,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** Each read-modify-write is one serialized operation; storage failures are never treated as empty. */
-class SecureExamRecordRepository(private val store: SecureExamRecordsStore) : ExamRecordRepository {
+class SecureExamRecordRepository(
+    private val store: SecureExamRecordsStore,
+    private val scheduleChanges: com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier = com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier {},
+) : ExamRecordRepository {
     private val mutex = Mutex()
 
     override suspend fun list(): List<ExamRecord> = mutex.withLock {
@@ -37,6 +40,8 @@ class SecureExamRecordRepository(private val store: SecureExamRecordsStore) : Ex
         withContext(Dispatchers.Default) {
             val current = readAll()
             store.write(ExamRecordCodec.encode(change(current)))
+            runCatching { scheduleChanges.requestReconcile() }
+            Unit
         }
     }
 

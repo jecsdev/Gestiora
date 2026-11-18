@@ -8,6 +8,35 @@ import kotlinx.coroutines.*
 import kotlin.test.*
 
 class SecureExamRecordRepositoryTest {
+    @Test fun legacyV1ReadsWithoutEnablingRemindersAndV2PreservesExplicitChoice() {
+        val row = record("old")
+        val legacy = ExamRecordCodec.encode(listOf(row)).replace("GESTIORA_EXAMS:2", "GESTIORA_EXAMS:1").removeSuffix("5:false")
+        assertEquals(listOf(row), ExamRecordCodec.decode(legacy))
+        val optedIn = row.copy(reminder = true)
+        assertEquals(listOf(optedIn), ExamRecordCodec.decode(ExamRecordCodec.encode(listOf(optedIn))))
+        assertFailsWith<CorruptExamRecordsException> { ExamRecordCodec.decode(ExamRecordCodec.encode(listOf(row)).removeSuffix("5:false") + "3:yes") }
+    }
+
+    @Test fun schedulerOnlyRunsAfterDurableSaveAndCannotInvalidateSuccessfulCrud() = runBlocking<Unit> {
+        val store = Store()
+        var calls = 0
+        val repo = SecureExamRecordRepository(store, com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier {
+            calls++
+            assertNotNull(store.payload)
+            error("Scheduler unavailable")
+        })
+        repo.add(record("one"))
+        repo.update(record("one").copy(reminder = true))
+        assertTrue(repo.list().single().reminder)
+        assertEquals(2, calls)
+        store.failWrite = true
+        assertFails { repo.delete("one") }
+        assertEquals(2, calls)
+        store.failWrite = false
+        repo.delete("one")
+        assertEquals(3, calls)
+        assertTrue(repo.list().isEmpty())
+    }
     private class Store(var payload: String? = null) : SecureExamRecordsStore {
         var failRead = false
         var failWrite = false
@@ -72,7 +101,7 @@ class SecureExamRecordRepositoryTest {
 
     @Test fun malformedAndUnsupportedPayloadsArePreserved() = runBlocking<Unit> {
         val encoded = ExamRecordCodec.encode(listOf(record("one")))
-        val payloads = listOf("broken", "GESTIORA_EXAMS:2\n0\n", encoded.dropLast(1), encoded + "extra",
+        val payloads = listOf("broken", "GESTIORA_EXAMS:99\n0\n", encoded.dropLast(1), encoded + "extra",
             encoded.replace("9:COMPLETED", "7:UNKNOWN"), encoded.replace("10:BLOOD_TEST", "7:UNKNOWN"), encoded.replace("2028-03-01", "2027-02-29"),
             encoded.replace("\n1\n", "\n2\n") + encoded.substringAfter("\n1\n"),
             "GESTIORA_EXAMS:1\n1001\n", "GESTIORA_EXAMS:1\n1\n99999:x", "x".repeat(1_000_001))

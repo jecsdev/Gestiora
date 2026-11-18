@@ -594,4 +594,12 @@
     <string name="catalog_tags_movements">mouvements coups rythme diminution</string>
     <string name="catalog_french">Français</string>
     <string name="catalog_disclaimer">Les informations éducatives ne remplacent pas l’évaluation ni les conseils d’un professionnel de santé.</string>
+    <string name="notifications_unavailable">Les rappels système ne sont pas encore disponibles sur cette plateforme.</string>
+    <string name="notifications_disabled">Les notifications sont désactivées. Activez-les pour recevoir vos rappels.</string>
+    <string name="notifications_enabled">Les notifications sont activées. Vos rappels concernent uniquement les rendez-vous et examens programmés.</string>
+    <string name="notifications_timing">Android peut retarder les rappels pour économiser la batterie. Le rappel ouvre Gestiora sans afficher de détails médicaux.</string>
+    <string name="notifications_manage">Gérer les notifications</string>
+    <string name="notifications_retry_message">Impossible de vérifier le stockage ou de mettre à jour les rappels. Vos données sont conservées. Réessayez ici.</string>
+    <string name="exam_reminder_option">Me rappeler la veille à 9 h</string>
+    <string name="exam_reminder_detail">Uniquement pour le statut Programmé avec une date prévue. Il s’agit de l’heure du rappel, pas de l’examen.</string>
 </resources>
