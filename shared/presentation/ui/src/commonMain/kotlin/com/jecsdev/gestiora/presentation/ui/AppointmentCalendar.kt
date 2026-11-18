@@ -62,7 +62,7 @@ internal fun AppointmentCalendar(
     val previous = shiftCalendarMonth(month, -1)
     val next = shiftCalendarMonth(month, 1)
     val days = calendarMonthDays(month)
-    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surface,
+    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surface, shadowElevation = 3.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))) {
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -94,7 +94,8 @@ internal fun AppointmentCalendar(
                             date != null && !date.startsWith(month) -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
-                        Box(Modifier.weight(1f).heightIn(min = 48.dp).padding(2.dp).background(background, CircleShape)
+                        Box(Modifier.weight(1f).heightIn(min = 48.dp).padding(2.dp)
+                            .then(if (isSelected) Modifier.background(accentGradient(), CircleShape) else Modifier.background(background, CircleShape))
                             .then(if (date == null) Modifier else Modifier.semantics {
                                 contentDescription = ui.s(Res.string.calendar_day_accessibility, dateLabel(ui, date, expanded = true), if (date == today) ", " + ui.s(Res.string.today) else "", if (marked) ", $markedLabel" else "")
                                 selected = isSelected

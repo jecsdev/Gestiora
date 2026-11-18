@@ -1,5 +1,20 @@
 # Gestiora migration handoff
 
+## Physical visual follow-up — 2026-11-17
+
+Both themes were reviewed on the unlocked Samsung; see PASTEL_UI.md for the exact matrix and limits. Final build fixes Home summary column overlap, uses a compact EN/ES/FR days counter and smaller section headings, and softens nav/hero shadows. Android assembleDebug and 36 UI host tests pass; final APK installed. Original SYSTEM theme restored and confirmed; app left on Home. No clinical writes, emulator, commit or push. Prior temporary GestioraExamTest draft was confirmed and discarded without saving. Remaining: export/reset; other scope exclusions below are unchanged.
+
+## Latest visual slice — 2026-11-17
+
+User approved applying the supplied Lovable screenshots as the visual reference. Implemented theme-aware lavender/rose/cream background, purple/rose primary-action gradients, pastel hero cards, round form fields with opaque surfaces, elevated record/empty cards, floating rounded bottom navigation, side-by-side health summaries when width/font scale permit, compact Home week/artwork with date summary inside the hero, Baby illustration halo/inline week controls, profile identity hero and segmented onboarding progress (retains accessibility progress semantics). Existing fonts/artwork, translations, data, navigation locks and draft behavior are preserved; no new dependencies/assets/clinical copy or backend. Dark palette is independent of system theme detection so saved theme preferences apply. See PASTEL_UI.md.
+
+Android assembleDebug and all 36 UI host regression tests pass. Source-level color contrast checks performed for button/hero endpoints; these do not certify complete accessibility or rendered layouts. Physical visual check requested: ADB detects the Samsung but it is locked. Do not claim phone visuals until performed. No emulator, commit or push in this slice. Existing ReminderPlan.kt working-tree change predates this visual slice and was preserved.
+
+Scope confirmed by user: **complete local export/reset to close Android v1; appointment associations and isolated demo move to phase 2**, together with login, AI and Supabase/CMS. Export/reset implementation has not started. iOS validation still requires macOS/Xcode. Earlier lists below that still gate closure on associations/demo are historical.
+
+Continuity from the interrupted notification check: appointment permission, cancellation/rearm, real background notification delivery, generic private content, notification tap/open and removal of the temporary appointment were verified on Samsung. Temporary delivered/posted tokens were empty afterward; the real existing appointment remained armed. Five retained legacy files disappeared after verified main-package migration, with Room files preserved and Home/profile still visible. An additional temporary **unsaved** GestioraExamTest draft had its scheduled-date picker open when the user interrupted to discuss design; no examination was saved. Before reinstalling, inspect the current screen and discard only that known test draft, never an unrelated user form.
+
+
 ## Current checkpoint — Android local v1, 2026-11-17
 
 This section supersedes historical status paragraphs below. Login, AI and Supabase/CMS/catalog sync are explicitly deferred by the user to phase 2. They are not v1 migration gates. See LOCAL_CONTENT_POLICY.md for the bundled-content update/review process.

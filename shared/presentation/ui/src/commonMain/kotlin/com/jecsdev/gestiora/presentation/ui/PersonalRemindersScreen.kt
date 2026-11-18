@@ -57,21 +57,22 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
         dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     editing?.let { initial ->
-        PersonalReminderForm(initial, busy, saveError, onCancel = { discard = true }) { record ->
-            busy = true
-            scope.launch {
-                try {
-                    saveError = false
-                    val result = if (record.id.isEmpty()) viewModel.add(record) else viewModel.update(record)
-                    if (result.isSuccess) {
-                        if (selectedDate.isNotEmpty()) { selectedDate = record.date; month = record.date.take(7) }
-                        editing = null
-                        reload()
-                    } else saveError = true
-                } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
+            PersonalReminderForm(initial, busy, saveError, onCancel = { discard = true }) { record ->
+                busy = true
+                scope.launch {
+                    try {
+                        saveError = false
+                        val result = if (record.id.isEmpty()) viewModel.add(record) else viewModel.update(record)
+                        if (result.isSuccess) {
+                            if (selectedDate.isNotEmpty()) { selectedDate = record.date; month = record.date.take(7) }
+                            editing = null
+                            reload()
+                        } else saveError = true
+                    } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+                }
             }
         }
-        return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         EditorialHeader(ui.s(Res.string.reminders), ui.s(Res.string.organize_your_tasks_on_this_device_reminders_appear))
@@ -87,7 +88,7 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
             else -> {
                 AppointmentCalendar(month, selectedDate, todayIsoDate(), records!!.map { it.date }.toSet(), !busy,
                     onMonthChange = { month = it }, onDateSelect = { selectedDate = it; month = it.take(7) }, markedDescription = ui.s(Res.string.has_reminders))
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+                GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
                     saveError = false; editing = PersonalReminder("", "", selectedDate.ifEmpty { todayIsoDate() }); onNavigationLockChange(true)
                 }) { Text(ui.s(Res.string.new_reminder)) }
                 if (selectedDate.isNotEmpty()) {
@@ -141,9 +142,9 @@ private fun PersonalReminderForm(initial: PersonalReminder, busy: Boolean, saveE
     var kind by retain(initial) { mutableStateOf(initial.kind) }
     var done by retain(initial) { mutableStateOf(initial.done) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_reminder) else ui.s(Res.string.edit_reminder))
-        OutlinedTextField(title, { title = it }, label = { Text(ui.s(Res.string.title)) }, modifier = Modifier.fillMaxWidth(), enabled = !busy,
+        PastelTextField(title, { title = it }, label = { Text(ui.s(Res.string.title)) }, modifier = Modifier.fillMaxWidth(), enabled = !busy,
             isError = title.length > 512 || (invalid && title.isBlank()), supportingText = { Text("${title.length}/512") })
         DateField(ui.s(Res.string.date), date, enabled = !busy) { date = it }
         TimeField(time, enabled = !busy) { time = it }
@@ -155,7 +156,7 @@ private fun PersonalReminderForm(initial: PersonalReminder, busy: Boolean, saveE
         FilterChip(done, { done = !done }, enabled = !busy, label = { Text(ui.s(Res.string.completed_2)) })
         if (invalid) Text(ui.s(Res.string.enter_a_title_of_up_to_512_characters), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_reminder_your_changes), color = MaterialTheme.colorScheme.error)
-        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+        GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             invalid = title.isBlank() || title.length > 512 || isoToUtcMillis(date) == null
             if (!invalid) onSave(initial.copy(title = title.trim(), date = date, time = time.ifEmpty { null }, kind = kind, done = done))
         }) { Text(if (busy) ui.s(Res.string.saving) else ui.s(Res.string.save_reminder)) }

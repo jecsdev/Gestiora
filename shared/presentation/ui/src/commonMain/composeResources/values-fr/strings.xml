@@ -602,4 +602,5 @@
     <string name="notifications_retry_message">Impossible de vérifier le stockage ou de mettre à jour les rappels. Vos données sont conservées. Réessayez ici.</string>
     <string name="exam_reminder_option">Me rappeler la veille à 9 h</string>
     <string name="exam_reminder_detail">Uniquement pour le statut Programmé avec une date prévue. Il s’agit de l’heure du rappel, pas de l’examen.</string>
+    <string name="days_count">%1$s jours</string>
 </resources>

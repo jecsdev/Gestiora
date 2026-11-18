@@ -12,12 +12,10 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.retain.retain
@@ -99,24 +97,25 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
     LaunchedEffect(viewModel) { reload() }
 
     if (editing != null) {
-        AppointmentForm(editing!!, busy, operationError, onCancel = { confirmDiscard = true }) { appointment ->
-            busy = true
-            scope.launch {
-                try {
-                    operationError = false
-                    val result = if (appointment.id.isEmpty()) viewModel.add(appointment) else viewModel.update(appointment)
-                    if (result.isSuccess) {
-                        if (selectedDate.isNotEmpty()) {
-                            selectedDate = appointment.date
-                            displayedMonth = appointment.date.take(7)
-                        }
-                        editing = null
-                        reload()
-                    } else operationError = true
-                } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+        RecordFormSheet(busy = busy, onDismissRequest = { confirmDiscard = true }) {
+            AppointmentForm(editing!!, busy, operationError, onCancel = { confirmDiscard = true }) { appointment ->
+                busy = true
+                scope.launch {
+                    try {
+                        operationError = false
+                        val result = if (appointment.id.isEmpty()) viewModel.add(appointment) else viewModel.update(appointment)
+                        if (result.isSuccess) {
+                            if (selectedDate.isNotEmpty()) {
+                                selectedDate = appointment.date
+                                displayedMonth = appointment.date.take(7)
+                            }
+                            editing = null
+                            reload()
+                        } else operationError = true
+                    } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+                }
             }
         }
-        return
     }
 
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -149,7 +148,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
                 } else {
                     Text(ui.s(Res.string.all_appointments), style = MaterialTheme.typography.titleMedium)
                 }
-                Button(onClick = {
+                GradientButton(onClick = {
                     operationError = false
                     onNavigationLockChange(true)
                     editing = Appointment("", selectedDate.ifEmpty { todayIsoDate() }, "09:00", "", "", "", "", AppointmentStatus.SCHEDULED)
@@ -218,7 +217,7 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
     var status by retain(initial) { mutableStateOf(initial.status) }
     var reminder by retain(initial) { mutableStateOf(initial.reminder) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_appointment) else ui.s(Res.string.edit_appointment))
         DateField(ui.s(Res.string.date), date, enabled = !busy) { date = it }
         TimeField(time, enabled = !busy) { time = it }
@@ -240,7 +239,7 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
         }
         if (invalid) Text(ui.s(Res.string.complete_the_fields_respect_their_limits_and_enter), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_appointment_check_the), color = MaterialTheme.colorScheme.error)
-        Button(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
+        GradientButton(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
             val validTime = time.length == 5 && time[2] == ':' && time.substring(0, 2).toIntOrNull() in 0..23 && time.substring(3, 5).toIntOrNull() in 0..59 && time.filterIndexed { index, _ -> index != 2 }.all { it in '0'..'9' }
             invalid = isoToUtcMillis(date) == null || !validTime || listOf(doctor, specialty, clinic, reason).any { it.isBlank() || it.length > 512 } || notes.length > 4096
             if (!invalid) onSave(Appointment(initial.id, date, time, doctor.trim(), specialty.trim(), clinic.trim(), reason.trim(), status, notes.trim().ifEmpty { null }, reminder))
@@ -252,7 +251,7 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
 @Composable
 private fun AppointmentTextField(label: String, value: String, limit: Int, enabled: Boolean, singleLine: Boolean, onValueChange: (String) -> Unit) {
     val ui = LocalUiCopy.current
-    OutlinedTextField(
+    PastelTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },

@@ -47,20 +47,21 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
         dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     if (editing != null) {
-        ConsultationForm(editing!!, busy, operationError, onCancel = { discard = true }) { consultation ->
-            busy = true
-            scope.launch {
-                try {
-                    operationError = false
-                    val result = if (consultation.id.isEmpty()) viewModel.add(consultation) else viewModel.update(consultation)
-                    if (result.isSuccess) {
-                        editing = null
-                        reload()
-                    } else operationError = true
-                } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
+            ConsultationForm(editing!!, busy, operationError, onCancel = { discard = true }) { consultation ->
+                busy = true
+                scope.launch {
+                    try {
+                        operationError = false
+                        val result = if (consultation.id.isEmpty()) viewModel.add(consultation) else viewModel.update(consultation)
+                        if (result.isSuccess) {
+                            editing = null
+                            reload()
+                        } else operationError = true
+                    } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+                }
             }
         }
-        return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         EditorialHeader(ui.s(Res.string.prenatal_consultations), ui.s(Res.string.your_history_is_saved_on_this_device_the), compact = true)
@@ -75,8 +76,8 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
             }
             consultations == null -> CircularProgressIndicator()
             else -> {
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = Consultation("", todayIsoDate()); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_consultation)) }
-                if (consultations!!.isEmpty()) Text(ui.s(Res.string.you_haven_t_recorded_any_consultations_yet))
+                GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = Consultation("", todayIsoDate()); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_consultation)) }
+                if (consultations!!.isEmpty()) EditorialEmptyState(ui.s(Res.string.you_haven_t_recorded_any_consultations_yet))
                 consultations!!.sortedWith(compareByDescending<Consultation> { it.date }.thenBy { it.id }).forEach { consultation ->
                     EditorialRecordCard {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -143,7 +144,7 @@ private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Bo
     var nextDate by retain(initial) { mutableStateOf(initial.nextDate.orEmpty()) }
     var attachments by retain(initial) { mutableStateOf(initial.attachments.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_consultation) else ui.s(Res.string.edit_consultation))
         DateField(ui.s(Res.string.consultation_date), date, enabled = !busy) { date = it }
         ConsultationTextField(ui.s(Res.string.recorded_gestational_age_optional), ga, 512, busy) { ga = it }
@@ -160,7 +161,7 @@ private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Bo
         Text(ui.s(Res.string.save_a_reference_to_the_document_such_as), style = MaterialTheme.typography.bodySmall)
         if (invalid) Text(ui.s(Res.string.select_a_valid_date_and_respect_the_field), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_consultation_your_changes), color = MaterialTheme.colorScheme.error)
-        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+        GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             invalid = isoToUtcMillis(date) == null || (nextDate.isNotEmpty() && isoToUtcMillis(nextDate) == null) || ga.length > 512 || doctor.length > 512 || attachments.length > 512 || listOf(observations, instructions, medications, exams, followUp).any { it.length > 4096 }
             fun optional(value: String) = value.trim().ifEmpty { null }
             if (!invalid) onSave(initial.copy(date = date, gestationalAge = optional(ga), doctor = optional(doctor), observations = optional(observations), instructions = optional(instructions), medications = optional(medications), exams = optional(exams), followUp = optional(followUp), nextDate = nextDate.ifEmpty { null }, attachments = optional(attachments)))
@@ -171,5 +172,5 @@ private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Bo
 
 @Composable
 private fun ConsultationTextField(label: String, value: String, limit: Int, busy: Boolean, onChange: (String) -> Unit) {
-    OutlinedTextField(value, onChange, label = { Text(label) }, enabled = !busy, singleLine = limit == 512, isError = value.length > limit, supportingText = { Text("${value.length}/$limit") }, modifier = Modifier.fillMaxWidth())
+    PastelTextField(value, onChange, label = { Text(label) }, enabled = !busy, singleLine = limit == 512, isError = value.length > limit, supportingText = { Text("${value.length}/$limit") }, modifier = Modifier.fillMaxWidth())
 }

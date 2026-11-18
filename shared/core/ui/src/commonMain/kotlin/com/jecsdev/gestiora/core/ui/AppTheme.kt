@@ -3,6 +3,8 @@ package com.jecsdev.gestiora.core.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.Typography
 import androidx.compose.material3.Shapes
@@ -13,39 +15,53 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import gestiora.shared.core.ui.generated.resources.*
 import org.jetbrains.compose.resources.Font
 
 private val lightColors = lightColorScheme(
-    primary = Color(0xFF80559E),
+    primary = Color(0xFF7B47A3),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFEEDFF5),
+    primaryContainer = Color(0xFFEDE0FF),
     onPrimaryContainer = Color(0xFF392343),
-    secondary = Color(0xFFB76882),
-    secondaryContainer = Color(0xFFF8E5EB),
-    background = Color(0xFFFCF8F4),
+    secondary = Color(0xFFA64C70),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFE4EC),
+    onSecondaryContainer = Color(0xFF58253C),
+    tertiary = Color(0xFF945044),
+    tertiaryContainer = Color(0xFFFFE3DE),
+    onTertiaryContainer = Color(0xFF5A2923),
+    background = Color(0xFFFBF7F1),
     onBackground = Color(0xFF302836),
-    surface = Color(0xFFFFFEFC),
+    surface = Color(0xFFFFFDFC),
     onSurface = Color(0xFF302836),
     surfaceVariant = Color(0xFFF5EDF5),
     onSurfaceVariant = Color(0xFF6D6470),
+    outline = Color(0xFF89758F),
+    outlineVariant = Color(0xFFE5DCEA),
 )
 
 private val darkColors = darkColorScheme(
-    primary = Color(0xFFCAA5DE),
+    primary = Color(0xFFD0ACEC),
     onPrimary = Color(0xFF30203C),
-    primaryContainer = Color(0xFF47304F),
+    primaryContainer = Color(0xFF453052),
     onPrimaryContainer = Color(0xFFF3DDFB),
     secondary = Color(0xFFE2A8B9),
     secondaryContainer = Color(0xFF533844),
-    background = Color(0xFF211B24),
+    onSecondaryContainer = Color(0xFFFFDFE9),
+    tertiary = Color(0xFFF0B5AA),
+    tertiaryContainer = Color(0xFF573833),
+    onTertiaryContainer = Color(0xFFFFE1DB),
+    background = Color(0xFF211B25),
     onBackground = Color(0xFFF5EEF4),
     surface = Color(0xFF2C2530),
     onSurface = Color(0xFFF5EEF4),
     surfaceVariant = Color(0xFF372B3C),
     onSurfaceVariant = Color(0xFFCEBFCD),
+    outline = Color(0xFFA28CAB),
+    outlineVariant = Color(0xFF514456),
 )
 
 @Composable
@@ -85,19 +101,24 @@ fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable ()
         colorScheme = if (darkTheme) darkColors else lightColors,
         typography = typography,
         shapes = Shapes(
-            extraSmall = RoundedCornerShape(8.dp),
-            small = RoundedCornerShape(12.dp),
-            medium = RoundedCornerShape(16.dp),
-            large = RoundedCornerShape(22.dp),
-            extraLarge = RoundedCornerShape(28.dp),
+            extraSmall = RoundedCornerShape(20.dp),
+            small = RoundedCornerShape(20.dp),
+            medium = RoundedCornerShape(24.dp),
+            large = RoundedCornerShape(28.dp),
+            extraLarge = RoundedCornerShape(32.dp),
         ),
     ) {
         // MaterialTheme supplies the palette; Surface supplies the default content color.
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
+            if (darkTheme) listOf(Color(0xFF302437), Color(0xFF2A202B), darkColors.background, darkColors.background)
+            else listOf(Color(0xFFF3EBFA), Color(0xFFFFF0EC), lightColors.background, lightColors.background),
+        ))) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
+            color = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onBackground,
             content = content,
         )
+        }
     }
 }

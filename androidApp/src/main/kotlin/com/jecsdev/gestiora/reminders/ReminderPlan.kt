@@ -8,9 +8,9 @@ import java.util.TimeZone
 
 internal data class PlannedReminder(val kind: String, val id: String, val dueAt: Long, val expiresAt: Long) {
     // Only an opaque digest is persisted outside encrypted clinical storage.
-    val token: String get() = MessageDigest.getInstance("SHA-256")
+    val token: String = MessageDigest.getInstance("SHA-256")
         .digest("$kind\n$id\n$dueAt".toByteArray(Charsets.UTF_8))
-        .joinToString("") { "%02x".format(it) }
+        .joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
 }
 
 /** Never catch up reminders first discovered after their due time. Only previously armed items

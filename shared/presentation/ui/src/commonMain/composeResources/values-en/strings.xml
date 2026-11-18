@@ -602,4 +602,5 @@
     <string name="notifications_retry_message">We could not verify storage or refresh your reminders. Your records were kept. Retry here.</string>
     <string name="exam_reminder_option">Remind me the day before at 09:00</string>
     <string name="exam_reminder_detail">Applies only when the status is Scheduled and a scheduled date is present. This is a reminder time, not the examination time.</string>
+    <string name="days_count">%1$s days</string>
 </resources>

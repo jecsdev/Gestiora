@@ -69,7 +69,7 @@ internal fun EducationalCatalogScreen(viewModel: EducationViewModel, onBack: () 
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item {
-            OutlinedTextField(value = state.query, onValueChange = { if (it.length <= 256) state.query = it },
+            PastelTextField(value = state.query, onValueChange = { if (it.length <= 256) state.query = it },
                 label = { Text(ui.s(Res.string.catalog_search)) }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(), enabled = !state.saving,
                 trailingIcon = { if (state.query.isNotEmpty()) TextButton(onClick = { state.query = "" }, enabled = !state.saving) {

@@ -64,22 +64,23 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
         dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     if (editing != null) {
-        PrenatalNoteForm(editing!!, busy, operationError, onCancel = { discard = true }) { note ->
-            busy = true
-            scope.launch {
-                try {
-                    operationError = false
-                    val result = if (note.id.isEmpty()) viewModel.add(note) else viewModel.update(note)
-                    if (result.isSuccess) {
-                        query = ""
-                        if (statusFilter != null) statusFilter = note.status
-                        editing = null
-                        reload()
-                    } else operationError = true
-                } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
+            PrenatalNoteForm(editing!!, busy, operationError, onCancel = { discard = true }) { note ->
+                busy = true
+                scope.launch {
+                    try {
+                        operationError = false
+                        val result = if (note.id.isEmpty()) viewModel.add(note) else viewModel.update(note)
+                        if (result.isSuccess) {
+                            query = ""
+                            if (statusFilter != null) statusFilter = note.status
+                            editing = null
+                            reload()
+                        } else operationError = true
+                    } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+                }
             }
         }
-        return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         EditorialHeader(ui.s(Res.string.notes_and_follow_up), ui.s(Res.string.your_notes_are_saved_on_this_device), compact = true)
@@ -94,17 +95,17 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
             }
             notes == null -> CircularProgressIndicator()
             else -> {
-                OutlinedTextField(query, { query = it }, label = { Text(ui.s(Res.string.search_title_and_content)) }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth())
+                PastelTextField(query, { query = it }, label = { Text(ui.s(Res.string.search_title_and_content)) }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth())
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(statusFilter == null, { statusFilter = null }, enabled = !busy, label = { Text(ui.s(Res.string.all)) })
                     NoteTaskStatus.entries.forEach { option ->
                         FilterChip(statusFilter == option, { statusFilter = option }, enabled = !busy, label = { Text(option.label(ui)) })
                     }
                 }
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = PrenatalNote("", ""); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_note)) }
+                GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = PrenatalNote("", ""); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_note)) }
                 val visibleNotes = filterNotes(notes!!, query, statusFilter)
-                if (notes!!.isEmpty()) Text(ui.s(Res.string.you_haven_t_recorded_any_notes_yet))
-                else if (visibleNotes.isEmpty()) Text(ui.s(Res.string.no_notes_match_these_filters))
+                if (notes!!.isEmpty()) EditorialEmptyState(ui.s(Res.string.you_haven_t_recorded_any_notes_yet))
+                else if (visibleNotes.isEmpty()) EditorialEmptyState(ui.s(Res.string.no_notes_match_these_filters))
                 if (query.isNotEmpty() || statusFilter != null) TextButton(enabled = !busy, onClick = { query = ""; statusFilter = null }) { Text(ui.s(Res.string.clear_filters)) }
                 visibleNotes.forEach { note ->
                     EditorialRecordCard {
@@ -155,10 +156,10 @@ private fun PrenatalNoteForm(initial: PrenatalNote, busy: Boolean, saveError: Bo
     var status by retain(initial) { mutableStateOf(initial.status) }
     var followUp by retain(initial) { mutableStateOf(initial.followUp.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_note) else ui.s(Res.string.edit_note))
-        OutlinedTextField(title, { title = it }, label = { Text(ui.s(Res.string.title)) }, singleLine = true, enabled = !busy, isError = title.length > 512, supportingText = { Text("${title.length}/512") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(body, { body = it }, label = { Text(ui.s(Res.string.content_optional)) }, enabled = !busy, isError = body.length > 4096, supportingText = { Text("${body.length}/4096") }, modifier = Modifier.fillMaxWidth())
+        PastelTextField(title, { title = it }, label = { Text(ui.s(Res.string.title)) }, singleLine = true, enabled = !busy, isError = title.length > 512, supportingText = { Text("${title.length}/512") }, modifier = Modifier.fillMaxWidth())
+        PastelTextField(body, { body = it }, label = { Text(ui.s(Res.string.content_optional)) }, enabled = !busy, isError = body.length > 4096, supportingText = { Text("${body.length}/4096") }, modifier = Modifier.fillMaxWidth())
         Text(ui.s(Res.string.category), style = MaterialTheme.typography.labelLarge)
         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             NoteCategory.entries.forEach { option -> FilterChip(category == option, { category = option }, enabled = !busy, label = { Text(option.label(ui)) }) }
@@ -171,7 +172,7 @@ private fun PrenatalNoteForm(initial: PrenatalNote, busy: Boolean, saveError: Bo
         Text(ui.s(Res.string.the_follow_up_date_does_not_generate_a), style = MaterialTheme.typography.bodySmall)
         if (invalid) Text(ui.s(Res.string.enter_a_title_and_respect_the_field_limits), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_note_your_changes), color = MaterialTheme.colorScheme.error)
-        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+        GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             invalid = title.isBlank() || title.length > 512 || body.length > 4096 || (followUp.isNotEmpty() && isoToUtcMillis(followUp) == null)
             if (!invalid) onSave(initial.copy(title = title.trim(), body = body.trim().ifEmpty { null }, category = category, status = status, followUp = followUp.ifEmpty { null }))
         }) { Text(if (busy) ui.s(Res.string.saving) else ui.s(Res.string.save_note)) }

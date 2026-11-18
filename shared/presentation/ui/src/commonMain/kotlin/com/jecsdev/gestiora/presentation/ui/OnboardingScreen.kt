@@ -10,13 +10,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -25,10 +26,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +37,9 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.DatingMethod
@@ -53,6 +57,8 @@ fun OnboardingScreen(
     saveFailed: Boolean,
     onSave: (PregnancyProfile) -> Unit,
     onCancel: () -> Unit = {},
+    cancelRequested: Boolean = false,
+    onCancelRequestHandled: () -> Unit = {},
 ) {
     val ui = LocalUiCopy.current
     val deviceLanguage = androidx.compose.ui.text.intl.Locale.current.language.let { if (it in listOf("es", "en", "fr")) it else "en" }
@@ -68,6 +74,12 @@ fun OnboardingScreen(
     var referenceDays by retain(initialProfile) { mutableStateOf(initialProfile?.dating?.referenceDays?.toString() ?: "0") }
     var error by retain { mutableStateOf<org.jetbrains.compose.resources.StringResource?>(null) }
     var discardOpen by retain(initialProfile) { mutableStateOf(false) }
+    LaunchedEffect(cancelRequested) {
+        if (cancelRequested) {
+            if (!saving && initialProfile != null) discardOpen = true
+            onCancelRequestHandled()
+        }
+    }
 
     fun back() {
         when (onboardingBackAction(step, initialProfile != null, saving, discardOpen)) {
@@ -122,7 +134,7 @@ fun OnboardingScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().screenEntrance().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
+        Modifier.fillMaxSize().screenEntrance().then(if (initialProfile == null) Modifier.safeDrawingPadding() else Modifier)
             .verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
@@ -132,14 +144,22 @@ fun OnboardingScreen(
             TextButton(onClick = ::back, enabled = !saving) { Text(ui.s(Res.string.back)) }
             Column(Modifier.weight(1f)) {
                 Text(ui.s(Res.string.your_setup_of_3, step), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                LinearProgressIndicator(progress = { step / 3f }, modifier = Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp).semantics {
+                    progressBarRangeInfo = ProgressBarRangeInfo(step / 3f, 0f..1f)
+                }, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    repeat(3) { index ->
+                        Box(Modifier.weight(1f).height(6.dp).background(
+                            if (index < step) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(50)))
+                    }
+                }
             }
         }
         when (step) {
             1 -> {
                 EditorialHeader(ui.s(Res.string.tell_us_a_little_about_yourself), ui.s(Res.string.names_are_optional_you_can_skip_them))
-                OutlinedTextField(motherName, { motherName = it }, label = { Text(ui.s(Res.string.your_name_optional)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(babyName, { babyName = it }, label = { Text(ui.s(Res.string.baby_s_nickname_optional)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                PastelTextField(motherName, { motherName = it }, label = { Text(ui.s(Res.string.your_name_optional)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                PastelTextField(babyName, { babyName = it }, label = { Text(ui.s(Res.string.baby_s_nickname_optional)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 CountryField(country) { country = it }
                 Text(ui.s(Res.string.the_app_follows_your_device_language), style = MaterialTheme.typography.bodyMedium)
                 Text(ui.s(Res.string.available_in_spanish_english_and_french), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -152,7 +172,7 @@ fun OnboardingScreen(
                         DatingMethod.ULTRASOUND to ui.s(Res.string.ultrasound),
                         DatingMethod.MEDICAL to ui.s(Res.string.medical_adjustment),
                     ).forEach { (value, label) ->
-                        FilterChip(selected = method == value, onClick = { method = value; error = null }, label = { Text(label) }, modifier = Modifier.fillMaxWidth())
+                        FilterChip(selected = method == value, onClick = { method = value; error = null }, label = { Text(label) }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp))
                     }
                 }
                 if (method == DatingMethod.FUM) {
@@ -161,8 +181,8 @@ fun OnboardingScreen(
                 } else {
                     DateField(ui.s(Res.string.date_established), referenceDate, maxDate = todayIsoDate()) { referenceDate = it }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedTextField(referenceWeeks, { referenceWeeks = it }, label = { Text(ui.s(Res.string.weeks)) }, modifier = Modifier.weight(1f), singleLine = true)
-                        OutlinedTextField(referenceDays, { referenceDays = it }, label = { Text(ui.s(Res.string.days)) }, modifier = Modifier.weight(1f), singleLine = true)
+                        PastelTextField(referenceWeeks, { referenceWeeks = it }, label = { Text(ui.s(Res.string.weeks)) }, modifier = Modifier.weight(1f), singleLine = true)
+                        PastelTextField(referenceDays, { referenceDays = it }, label = { Text(ui.s(Res.string.days)) }, modifier = Modifier.weight(1f), singleLine = true)
                     }
                 }
                 if (age != null) {
@@ -187,7 +207,7 @@ fun OnboardingScreen(
         }
         error?.let { Text(ui.s(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         if (saveFailed) Text(ui.s(Res.string.we_couldn_t_save_your_profile_try_again), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        Button(
+        GradientButton(
             onClick = {
                 if (step < 3) next()
                 else {

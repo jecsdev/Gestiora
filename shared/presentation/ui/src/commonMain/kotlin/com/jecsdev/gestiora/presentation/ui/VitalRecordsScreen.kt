@@ -47,20 +47,21 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
         dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     if (editing != null) {
-        VitalRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { record ->
-            busy = true
-            scope.launch {
-                try {
-                    operationError = false
-                    val result = if (record.id.isEmpty()) viewModel.add(record) else viewModel.update(record)
-                    if (result.isSuccess) {
-                        editing = null
-                        reload()
-                    } else operationError = true
-                } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
+            VitalRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { record ->
+                busy = true
+                scope.launch {
+                    try {
+                        operationError = false
+                        val result = if (record.id.isEmpty()) viewModel.add(record) else viewModel.update(record)
+                        if (result.isSuccess) {
+                            editing = null
+                            reload()
+                        } else operationError = true
+                    } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+                }
             }
         }
-        return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         EditorialHeader(ui.s(Res.string.health_history), ui.s(Res.string.save_information_provided_by_your_care_team_your), compact = true)
@@ -75,9 +76,9 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
             }
             records == null -> CircularProgressIndicator()
             else -> {
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = VitalRecord("", todayIsoDate(), VitalType.WEIGHT); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_health_record)) }
+                GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = VitalRecord("", todayIsoDate(), VitalType.WEIGHT); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_health_record)) }
                 LatestVitalSummaries(records!!)
-                if (records!!.isEmpty()) Text(ui.s(Res.string.you_haven_t_recorded_any_health_data_yet))
+                if (records!!.isEmpty()) EditorialEmptyState(ui.s(Res.string.you_haven_t_recorded_any_health_data_yet))
                 orderedVitalRecords(records!!).forEach { record ->
                     EditorialRecordCard {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -124,18 +125,32 @@ private fun LatestVitalSummaries(records: List<VitalRecord>) {
     val ui = LocalUiCopy.current
     val weight = latestVitalRecord(records, VitalType.WEIGHT)
     val pressure = latestVitalRecord(records, VitalType.BLOOD_PRESSURE)
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(ui.s(Res.string.latest_weight), style = MaterialTheme.typography.titleMedium)
-            Text(weight?.let { vitalRecordValue(it, ui) } ?: ui.s(Res.string.no_records), style = MaterialTheme.typography.headlineSmall)
-            weight?.let { Text(dateLabel(ui, it.date), style = MaterialTheme.typography.labelMedium) }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val largeText = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f
+        val weightCard: @Composable (Modifier) -> Unit = { modifier ->
+            Card(modifier, shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(ui.s(Res.string.latest_weight), style = MaterialTheme.typography.labelMedium)
+                    Text(weight?.let { vitalRecordValue(it, ui) } ?: ui.s(Res.string.no_records), style = MaterialTheme.typography.headlineSmall)
+                    weight?.let { Text(dateLabel(ui, it.date), style = MaterialTheme.typography.labelSmall) }
+                }
+            }
         }
-    }
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(ui.s(Res.string.blood_pressure), style = MaterialTheme.typography.titleMedium)
-            Text(pressure?.let { vitalRecordValue(it, ui) } ?: ui.s(Res.string.no_records), style = MaterialTheme.typography.headlineSmall)
-            pressure?.let { Text(dateLabel(ui, it.date), style = MaterialTheme.typography.labelMedium) }
+        val pressureCard: @Composable (Modifier) -> Unit = { modifier ->
+            Card(modifier, shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(ui.s(Res.string.blood_pressure), style = MaterialTheme.typography.labelMedium)
+                    Text(pressure?.let { vitalRecordValue(it, ui) } ?: ui.s(Res.string.no_records), style = MaterialTheme.typography.headlineSmall)
+                    pressure?.let { Text(dateLabel(ui, it.date), style = MaterialTheme.typography.labelSmall) }
+                }
+            }
+        }
+        if (maxWidth < 300.dp || largeText) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            weightCard(Modifier.fillMaxWidth()); pressureCard(Modifier.fillMaxWidth())
+        } else Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            weightCard(Modifier.weight(1f)); pressureCard(Modifier.weight(1f))
         }
     }
 }
@@ -152,7 +167,7 @@ private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Bool
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var typeMenu by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_health_record) else ui.s(Res.string.edit_health_record))
         DateField(ui.s(Res.string.date), date, enabled = !busy) { date = it }
         Text(ui.s(Res.string.record_type), style = MaterialTheme.typography.labelLarge)
@@ -165,26 +180,26 @@ private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Bool
             }
         }
         if (type == VitalType.CUSTOM) {
-            OutlinedTextField(label, { label = it }, label = { Text(ui.s(Res.string.measurement_name)) }, singleLine = true, enabled = !busy, isError = label.length > 512 || (invalid && label.isBlank()), supportingText = { Text("${label.length}/512") }, modifier = Modifier.fillMaxWidth())
+            PastelTextField(label, { label = it }, label = { Text(ui.s(Res.string.measurement_name)) }, singleLine = true, enabled = !busy, isError = label.length > 512 || (invalid && label.isBlank()), supportingText = { Text("${label.length}/512") }, modifier = Modifier.fillMaxWidth())
         }
         if (type.isNumeric) {
             val parsed = parseVitalNumber(value)
-            OutlinedTextField(value, { value = it }, label = { Text(if (type == VitalType.BLOOD_PRESSURE) ui.s(Res.string.systolic_mmhg) else ui.s(Res.string.value)) }, singleLine = true, enabled = !busy,
+            PastelTextField(value, { value = it }, label = { Text(if (type == VitalType.BLOOD_PRESSURE) ui.s(Res.string.systolic_mmhg) else ui.s(Res.string.value)) }, singleLine = true, enabled = !busy,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                 isError = invalid && (parsed == null || parsed !in 0.0..400.0), supportingText = { Text(ui.s(Res.string.number_between_0_and_400_you_can_use)) }, modifier = Modifier.fillMaxWidth())
             if (type == VitalType.BLOOD_PRESSURE) {
                 val parsed2 = parseVitalNumber(value2)
-                OutlinedTextField(value2, { value2 = it }, label = { Text(ui.s(Res.string.diastolic_mmhg)) }, singleLine = true, enabled = !busy,
+                PastelTextField(value2, { value2 = it }, label = { Text(ui.s(Res.string.diastolic_mmhg)) }, singleLine = true, enabled = !busy,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     isError = invalid && (parsed2 == null || parsed2 !in 20.0..200.0), supportingText = { Text(ui.s(Res.string.number_between_20_and_200)) }, modifier = Modifier.fillMaxWidth())
             }
         } else {
-            OutlinedTextField(text, { text = it }, label = { Text(ui.s(Res.string.description)) }, enabled = !busy, isError = text.length > 4096 || (invalid && text.isBlank()), supportingText = { Text("${text.length}/4096") }, modifier = Modifier.fillMaxWidth())
+            PastelTextField(text, { text = it }, label = { Text(ui.s(Res.string.description)) }, enabled = !busy, isError = text.length > 4096 || (invalid && text.isBlank()), supportingText = { Text("${text.length}/4096") }, modifier = Modifier.fillMaxWidth())
         }
-        OutlinedTextField(notes, { notes = it }, label = { Text(ui.s(Res.string.notes_optional)) }, enabled = !busy, isError = notes.length > 4096, supportingText = { Text("${notes.length}/4096") }, modifier = Modifier.fillMaxWidth())
+        PastelTextField(notes, { notes = it }, label = { Text(ui.s(Res.string.notes_optional)) }, enabled = !busy, isError = notes.length > 4096, supportingText = { Text("${notes.length}/4096") }, modifier = Modifier.fillMaxWidth())
         if (invalid) Text(ui.s(Res.string.check_the_date_and_required_fields_respect_the), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_record_your_changes), color = MaterialTheme.colorScheme.error)
-        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+        GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val record = vitalRecordForSave(initial, date, type, value, value2, label, text, notes)
             invalid = record == null
             if (record != null) onSave(record)

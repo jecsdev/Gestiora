@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,7 +38,7 @@ import org.jetbrains.compose.resources.painterResource
 internal fun WelcomeScreen(onStart: () -> Unit) {
     val ui = LocalUiCopy.current
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding(),
+        Modifier.fillMaxSize().safeDrawingPadding(),
     ) {
         val viewportHeight = maxHeight
         // Like the reference's min-h-dvh/flex layout, fill tall screens but allow overflow
@@ -67,14 +67,14 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
             }
             Column(
                 Modifier.fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f), RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
                     .padding(horizontal = 24.dp, vertical = 28.dp),
             ) {
                 Text(ui.s(Res.string.your_prenatal_space), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 Text(
                     buildAnnotatedString {
                         append(ui.s(Res.string.your_pregnancy_n))
-                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append(ui.s(Res.string.at_ease)) }
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontStyle = FontStyle.Italic)) { append(ui.s(Res.string.at_ease)) }
                     },
                     modifier = Modifier.padding(top = 8.dp),
                     color = MaterialTheme.colorScheme.onSurface,
@@ -86,7 +86,7 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Button(onClick = onStart, modifier = Modifier.padding(top = 24.dp).fillMaxWidth().heightIn(min = 52.dp)) {
+                GradientButton(onClick = onStart, modifier = Modifier.padding(top = 24.dp).fillMaxWidth().heightIn(min = 52.dp)) {
                     Text(ui.s(Res.string.get_started))
                 }
                 Text(

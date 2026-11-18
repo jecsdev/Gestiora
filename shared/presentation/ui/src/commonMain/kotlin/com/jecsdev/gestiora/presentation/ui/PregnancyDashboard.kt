@@ -40,6 +40,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.domain.models.PregnancyAge
 import com.jecsdev.gestiora.domain.models.Appointment
@@ -70,8 +72,8 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
         loadError = result.isFailure
     }
     Column(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
-            .verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 24.dp),
+        Modifier.fillMaxSize().safeDrawingPadding()
+            .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -86,8 +88,7 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
             Text(if (profile.motherName.isNullOrBlank()) ui.s(Res.string.hello) else ui.s(Res.string.hello_2, profile.motherName), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(ui.s(Res.string.your_pregnancy), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
         }
-        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer), shape = RoundedCornerShape(24.dp)) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        PastelHero {
                 if (age == null) {
                     Text(ui.s(Res.string.the_saved_dates_are_no_longer_within_the), style = MaterialTheme.typography.bodyLarge)
                     TextButton(onClick = onProfile) { Text(ui.s(Res.string.review_dates_in_my_profile)) }
@@ -96,10 +97,11 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
                     PregnancyWeekIllustration(age)
                     LinearProgressIndicator(progress = { age.progress.toFloat() }, modifier = Modifier.fillMaxWidth())
                     Text(ui.s(Res.string.your_journey, (age.progress * 100).toInt()), style = MaterialTheme.typography.labelMedium)
+                    Surface(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f), shape = RoundedCornerShape(24.dp)) {
+                        Box(Modifier.padding(16.dp)) { PregnancyDateSummary(age) }
+                    }
                 }
-            }
         }
-        if (age != null) PregnancyDateSummary(age)
         EditorialSection(ui.s(Res.string.upcoming_appointments), ui.s(Res.string.view_calendar), onAction = { onCalendar(null) }) {
             when {
                 loadError -> {
@@ -108,7 +110,9 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
                 }
                 appointments == null -> CircularProgressIndicator()
                 appointments!!.isEmpty() -> {
-                    Text(ui.s(Res.string.no_upcoming_appointments_add_your_next_prenatal_check), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    EditorialRecordCard {
+                        Text(ui.s(Res.string.no_upcoming_appointments_add_your_next_prenatal_check), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
                 else -> appointments!!.forEach { appointment ->
                     AppointmentPreview(appointment, onClick = { onCalendar(appointment.date) })
@@ -173,16 +177,18 @@ private fun PregnancyWeekIllustration(age: PregnancyAge) {
     val ui = LocalUiCopy.current
     val fontScale = LocalDensity.current.fontScale
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val stacked = maxWidth < 320.dp || fontScale > 1.2f
+        val stacked = maxWidth < 270.dp || fontScale > 1.2f
         val summary: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("${age.weeks}", style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Medium)
+                Text("${age.weeks}", style = MaterialTheme.typography.displayLarge.copy(fontSize = 76.sp), fontWeight = FontWeight.Medium)
                 Text(ui.s(Res.string.weeks_days, age.days), style = MaterialTheme.typography.bodyLarge)
             }
         }
         val illustration: @Composable () -> Unit = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                BabyIllustration(age.weeks, Modifier.size(if (stacked) 180.dp else 144.dp))
+                Box(Modifier.size(if (stacked) 160.dp else 124.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f), CircleShape), contentAlignment = Alignment.Center) {
+                    BabyIllustration(age.weeks, Modifier.size(if (stacked) 152.dp else 116.dp))
+                }
                 Text(ui.s(Res.string.reference_week, babyReferenceWeek(age.weeks)), style = MaterialTheme.typography.labelSmall)
             }
         }
@@ -210,15 +216,15 @@ private fun PregnancyDateSummary(age: PregnancyAge) {
         val remaining: @Composable () -> Unit = {
             Column {
                 Text(ui.s(Res.string.until_we_meet), style = MaterialTheme.typography.labelSmall)
-                Text(ui.s(Res.string.days_remaining, age.daysLeft.coerceAtLeast(0)), fontWeight = FontWeight.Bold)
+                Text(ui.s(Res.string.days_count, age.daysLeft.coerceAtLeast(0)), fontWeight = FontWeight.Bold)
             }
         }
-        if (maxWidth < 320.dp || fontScale > 1.2f) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (maxWidth < 240.dp || fontScale > 1.2f) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             due()
             remaining()
-        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            due()
-            remaining()
+        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.weight(1f)) { due() }
+            Column(Modifier.weight(1f)) { remaining() }
         }
     }
 }

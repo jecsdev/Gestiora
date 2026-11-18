@@ -47,20 +47,21 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
         dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     if (editing != null) {
-        ExamRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { exam ->
-            busy = true
-            scope.launch {
-                try {
-                    operationError = false
-                    val result = if (exam.id.isEmpty()) viewModel.add(exam) else viewModel.update(exam)
-                    if (result.isSuccess) {
-                        editing = null
-                        reload()
-                    } else operationError = true
-                } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
+            ExamRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { exam ->
+                busy = true
+                scope.launch {
+                    try {
+                        operationError = false
+                        val result = if (exam.id.isEmpty()) viewModel.add(exam) else viewModel.update(exam)
+                        if (result.isSuccess) {
+                            editing = null
+                            reload()
+                        } else operationError = true
+                    } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+                }
             }
         }
-        return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         EditorialHeader(ui.s(Res.string.examinations), ui.s(Res.string.your_examinations_and_results_are_saved_on_this), compact = true)
@@ -75,8 +76,8 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
             }
             exams == null -> CircularProgressIndicator()
             else -> {
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = ExamRecord("", "", requested = todayIsoDate()); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_examination)) }
-                if (exams!!.isEmpty()) Text(ui.s(Res.string.you_haven_t_recorded_any_examinations_yet))
+                GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = ExamRecord("", "", requested = todayIsoDate()); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_examination)) }
+                if (exams!!.isEmpty()) EditorialEmptyState(ui.s(Res.string.you_haven_t_recorded_any_examinations_yet))
                 exams!!.forEach { exam ->
                     EditorialRecordCard {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -148,7 +149,7 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
     var reminder by retain(initial) { mutableStateOf(initial.reminder) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var kindMenu by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_examination) else ui.s(Res.string.edit_examination))
         ExamRecordTextField(ui.s(Res.string.examination_name), name, 512, busy, invalid && name.isBlank()) { name = it }
         Text(ui.s(Res.string.type), style = MaterialTheme.typography.labelLarge)
@@ -179,7 +180,7 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
         ReminderNotificationSettings()
         if (invalid) Text(ui.s(Res.string.enter_the_examination_and_if_completed_its_completion), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_examination_your_changes), color = MaterialTheme.colorScheme.error)
-        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+        GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val exam = examRecordForSave(initial, name, kind, requested, scheduled, completed, status, physician, results, notes, attachment)
             invalid = exam == null
             if (exam != null) onSave(exam.copy(reminder = reminder))
@@ -190,5 +191,5 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
 
 @Composable
 private fun ExamRecordTextField(label: String, value: String, limit: Int, busy: Boolean, requiredError: Boolean = false, onChange: (String) -> Unit) {
-    OutlinedTextField(value, onChange, label = { Text(label) }, enabled = !busy, singleLine = limit == 512, isError = requiredError || value.length > limit, supportingText = { Text("${value.length}/$limit") }, modifier = Modifier.fillMaxWidth())
+    PastelTextField(value, onChange, label = { Text(label) }, enabled = !busy, singleLine = limit == 512, isError = requiredError || value.length > limit, supportingText = { Text("${value.length}/$limit") }, modifier = Modifier.fillMaxWidth())
 }

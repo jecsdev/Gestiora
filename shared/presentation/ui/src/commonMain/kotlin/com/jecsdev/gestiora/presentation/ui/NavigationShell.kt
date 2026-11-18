@@ -14,9 +14,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -65,18 +69,19 @@ internal fun NavigationShell(
     var notesStatus by retain { mutableStateOf<NoteTaskStatus?>(null) }
     var openConditions by retain { mutableStateOf(false) }
     Scaffold(
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            Column {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
+            Surface(modifier = Modifier.padding(horizontal = 10.dp).navigationBarsPadding().padding(bottom = 6.dp),
+                color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(30.dp), shadowElevation = 3.dp) {
+                NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
                     AppDestination.entries.forEach { item ->
                         NavigationBarItem(
                             selected = destination == item,
                             enabled = !navigationLocked,
                             onClick = { calendarDate = null; notesStatus = null; openConditions = false; onDestinationChange(item) },
                             icon = { DestinationIcon(item) },
-                            label = { Text(ui.s(item.label)) },
+                            label = { Text(ui.s(item.label), fontSize = 10.sp) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.primary,
                                 selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -138,6 +143,19 @@ private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit, prefere
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         EditorialHeader(ui.s(Res.string.my_profile), eyebrow = ui.s(Res.string.your_personal_space))
+        PastelHero {
+            androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)) {
+                    Text(profile.motherName?.firstOrNull()?.uppercase() ?: "G", style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(profile.motherName?.takeIf { it.isNotBlank() } ?: ui.s(Res.string.my_profile), style = MaterialTheme.typography.titleLarge)
+                    Text(countryLabel(profile.country, ui), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
         EditorialSection(ui.s(Res.string.about_you_and_your_baby)) {
             EditorialRecordCard {
                 ProfileLine(ui.s(Res.string.your_name), profile.motherName ?: ui.s(Res.string.not_provided))
@@ -162,7 +180,7 @@ private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit, prefere
                 }
             }
         }
-        Button(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text(ui.s(Res.string.edit_my_profile_and_dates)) }
+        GradientButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text(ui.s(Res.string.edit_my_profile_and_dates)) }
         preferences()
     }
 }

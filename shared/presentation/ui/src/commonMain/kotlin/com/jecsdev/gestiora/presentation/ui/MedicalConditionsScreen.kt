@@ -47,20 +47,21 @@ internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNav
         dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     if (editing != null) {
-        MedicalConditionForm(editing!!, busy, operationError, onCancel = { discard = true }) { condition ->
-            busy = true
-            scope.launch {
-                try {
-                    operationError = false
-                    val result = if (condition.id.isEmpty()) viewModel.add(condition) else viewModel.update(condition)
-                    if (result.isSuccess) {
-                        editing = null
-                        reload()
-                    } else operationError = true
-                } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
+            MedicalConditionForm(editing!!, busy, operationError, onCancel = { discard = true }) { condition ->
+                busy = true
+                scope.launch {
+                    try {
+                        operationError = false
+                        val result = if (condition.id.isEmpty()) viewModel.add(condition) else viewModel.update(condition)
+                        if (result.isSuccess) {
+                            editing = null
+                            reload()
+                        } else operationError = true
+                    } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+                }
             }
         }
-        return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         EditorialHeader(ui.s(Res.string.conditions_and_risks), ui.s(Res.string.only_conditions_and_risks_identified_by_a_health), compact = true)
@@ -75,8 +76,8 @@ internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNav
             }
             conditions == null -> CircularProgressIndicator()
             else -> {
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = MedicalCondition("", "", todayIsoDate(), ""); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_condition)) }
-                if (conditions!!.isEmpty()) Text(ui.s(Res.string.you_haven_t_recorded_any_conditions_yet))
+                GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = MedicalCondition("", "", todayIsoDate(), ""); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_condition)) }
+                if (conditions!!.isEmpty()) EditorialEmptyState(ui.s(Res.string.you_haven_t_recorded_any_conditions_yet))
                 conditions!!.forEach { condition ->
                     EditorialRecordCard {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -142,7 +143,7 @@ private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveE
     var status by retain(initial) { mutableStateOf(initial.status) }
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_condition) else ui.s(Res.string.edit_condition))
         Text(ui.s(Res.string.only_conditions_and_risks_identified_by_a_health), style = MaterialTheme.typography.bodySmall)
         MedicalConditionTextField(ui.s(Res.string.condition_identified_by_a_professional), name, 512, busy, invalid && name.isBlank()) { name = it }
@@ -162,7 +163,7 @@ private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveE
         MedicalConditionTextField(ui.s(Res.string.historical_notes_optional), notes, 4096, busy) { notes = it }
         if (invalid) Text(ui.s(Res.string.enter_the_condition_professional_and_a_valid_date), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_condition_your_changes), color = MaterialTheme.colorScheme.error)
-        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+        GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val condition = medicalConditionForSave(initial, name, date, professional, instructions, treatment, monitoring, followUp, status, notes)
             invalid = condition == null
             if (condition != null) onSave(condition)
@@ -173,5 +174,5 @@ private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveE
 
 @Composable
 private fun MedicalConditionTextField(label: String, value: String, limit: Int, busy: Boolean, requiredError: Boolean = false, onChange: (String) -> Unit) {
-    OutlinedTextField(value, onChange, label = { Text(label) }, enabled = !busy, singleLine = limit == 512, isError = requiredError || value.length > limit, supportingText = { Text("${value.length}/$limit") }, modifier = Modifier.fillMaxWidth())
+    PastelTextField(value, onChange, label = { Text(label) }, enabled = !busy, singleLine = limit == 512, isError = requiredError || value.length > limit, supportingText = { Text("${value.length}/$limit") }, modifier = Modifier.fillMaxWidth())
 }

@@ -6,6 +6,9 @@ import org.jetbrains.compose.resources.StringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,22 +75,27 @@ fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
         return
     }
     Column(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
+        Modifier.fillMaxSize().safeDrawingPadding()
             .verticalScroll(scroll).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         EditorialHeader(profile.babyName?.takeIf { it.isNotBlank() } ?: ui.s(Res.string.my_baby), eyebrow = ui.s(Res.string.each_week_a_little_miracle))
         if (actualWeek == null) Text(ui.s(Res.string.check_your_profile_dates_to_find_out_your), style = MaterialTheme.typography.bodySmall)
         if (actualWeek != null && actualWeek !in 4..40) Text(ui.s(Res.string.your_current_week_is_the_explorer_covers_weeks, actualWeek), style = MaterialTheme.typography.bodySmall)
-        Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-            Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(ui.s(Res.string.explore_development), style = MaterialTheme.typography.labelMedium)
-                Text(ui.s(Res.string.week, week), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        PastelHero {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(onClick = { chosen = week - 1 }, enabled = week > 4, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.previous_week) }) { Text("‹") }
+                    Column(Modifier.weight(1f).padding(horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(ui.s(Res.string.explore_development), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+                        Text(ui.s(Res.string.week, week), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+                    }
                     OutlinedButton(onClick = { chosen = week + 1 }, enabled = week < 40, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.next_week) }) { Text("›") }
                 }
-                BabyIllustration(week, Modifier.fillMaxWidth().heightIn(max = 280.dp))
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(240.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.32f), CircleShape))
+                    BabyIllustration(week, Modifier.fillMaxWidth().heightIn(max = 280.dp))
+                }
                 Text(ui.s(Res.string.illustrative_reference_stage_week_does_not_represent_exact, referenceWeek), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
                 Slider(value = week.toFloat(), onValueChange = { chosen = it.roundToInt().coerceIn(4, 40) }, valueRange = 4f..40f, steps = 35, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.pregnancy_week) })
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

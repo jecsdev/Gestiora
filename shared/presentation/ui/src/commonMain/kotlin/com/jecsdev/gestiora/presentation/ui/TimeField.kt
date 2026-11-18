@@ -2,6 +2,9 @@ package com.jecsdev.gestiora.presentation.ui
 
 import gestiora.shared.presentation.ui.generated.resources.*
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
@@ -29,7 +32,7 @@ internal fun TimeField(value: String, enabled: Boolean, onValueChange: (String) 
     var open by remember { mutableStateOf(false) }
     Column {
         Text(ui.s(Res.string.time), style = MaterialTheme.typography.labelLarge)
-        OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth().semantics {
+        OutlinedButton(onClick = { open = true }, enabled = enabled, colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface), modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics {
             contentDescription = ui.s(Res.string.time_accessibility, value.ifEmpty { ui.s(Res.string.all_day) })
         }) {
             Text(value.ifEmpty { ui.s(Res.string.all_day) }, modifier = Modifier.clearAndSetSemantics { })

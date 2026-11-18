@@ -47,20 +47,21 @@ internal fun VaccineRecordsScreen(viewModel: VaccineRecordViewModel, onNavigatio
         dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
     )
     if (editing != null) {
-        VaccineRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { vaccine ->
-            busy = true
-            scope.launch {
-                try {
-                    operationError = false
-                    val result = if (vaccine.id.isEmpty()) viewModel.add(vaccine) else viewModel.update(vaccine)
-                    if (result.isSuccess) {
-                        editing = null
-                        reload()
-                    } else operationError = true
-                } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
+            VaccineRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { vaccine ->
+                busy = true
+                scope.launch {
+                    try {
+                        operationError = false
+                        val result = if (vaccine.id.isEmpty()) viewModel.add(vaccine) else viewModel.update(vaccine)
+                        if (result.isSuccess) {
+                            editing = null
+                            reload()
+                        } else operationError = true
+                    } finally { busy = false; if (editing == null) onNavigationLockChange(false) }
+                }
             }
         }
-        return
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         EditorialHeader(ui.s(Res.string.vaccines), ui.s(Res.string.your_vaccination_records_are_saved_on_this_device), compact = true)
@@ -75,8 +76,8 @@ internal fun VaccineRecordsScreen(viewModel: VaccineRecordViewModel, onNavigatio
             }
             vaccines == null -> CircularProgressIndicator()
             else -> {
-                Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = VaccineRecord("", ""); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_vaccination)) }
-                if (vaccines!!.isEmpty()) Text(ui.s(Res.string.you_haven_t_recorded_any_vaccinations_yet))
+                GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { operationError = false; editing = VaccineRecord("", ""); onNavigationLockChange(true) }) { Text(ui.s(Res.string.new_vaccination)) }
+                if (vaccines!!.isEmpty()) EditorialEmptyState(ui.s(Res.string.you_haven_t_recorded_any_vaccinations_yet))
                 vaccines!!.forEach { vaccine ->
                     EditorialRecordCard {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -144,7 +145,7 @@ private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: 
     var proof by retain(initial) { mutableStateOf(initial.proof.orEmpty()) }
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().screenEntrance().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_vaccination) else ui.s(Res.string.edit_vaccination))
         VaccineRecordTextField(ui.s(Res.string.vaccine), name, 512, busy, invalid && name.isBlank()) { name = it }
         VaccineRecordTextField(ui.s(Res.string.dose_optional), dose, 512, busy) { dose = it }
@@ -165,7 +166,7 @@ private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: 
         Text(ui.s(Res.string.the_scheduled_date_does_not_create_an_appointment), style = MaterialTheme.typography.bodySmall)
         if (invalid) Text(ui.s(Res.string.enter_the_vaccine_and_if_administered_its_administration), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_vaccination_your_changes), color = MaterialTheme.colorScheme.error)
-        Button(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
+        GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             val vaccine = vaccineRecordForSave(initial, name, dose, scheduled, administered, status, provider, location, proof, notes)
             invalid = vaccine == null
             if (vaccine != null) onSave(vaccine)
@@ -176,5 +177,5 @@ private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: 
 
 @Composable
 private fun VaccineRecordTextField(label: String, value: String, limit: Int, busy: Boolean, requiredError: Boolean = false, onChange: (String) -> Unit) {
-    OutlinedTextField(value, onChange, label = { Text(label) }, enabled = !busy, singleLine = limit == 512, isError = requiredError || value.length > limit, supportingText = { Text("${value.length}/$limit") }, modifier = Modifier.fillMaxWidth())
+    PastelTextField(value, onChange, label = { Text(label) }, enabled = !busy, singleLine = limit == 512, isError = requiredError || value.length > limit, supportingText = { Text("${value.length}/$limit") }, modifier = Modifier.fillMaxWidth())
 }

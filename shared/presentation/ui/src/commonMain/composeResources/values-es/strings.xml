@@ -602,4 +602,5 @@
     <string name="notifications_retry_message">No pudimos verificar el almacenamiento o actualizar los avisos. Tus registros se conservaron. Reintenta aquí.</string>
     <string name="exam_reminder_option">Avisarme el día anterior a las 9:00</string>
     <string name="exam_reminder_detail">Solo se aplica con estado Agendado y fecha programada. Es la hora del aviso, no la hora del examen.</string>
+    <string name="days_count">%1$s días</string>
 </resources>

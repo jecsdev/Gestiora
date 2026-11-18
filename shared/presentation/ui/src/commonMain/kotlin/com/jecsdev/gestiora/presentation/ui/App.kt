@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -59,6 +58,7 @@ private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable ()
     var loadAttempt by retain { mutableIntStateOf(0) }
     var state by retain { mutableStateOf<ProfileLoad>(ProfileLoad.Loading) }
     var editing by retain { mutableStateOf(false) }
+    var requestEditCancel by retain { mutableStateOf(false) }
     var destination by retain { mutableStateOf(AppDestination.Home) }
     var saving by retain { mutableStateOf(false) }
     var saveFailed by retain { mutableStateOf(false) }
@@ -86,7 +86,7 @@ private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable ()
         ProfileLoad.Loading -> CenterMessage { CircularProgressIndicator() }
         ProfileLoad.Error -> CenterMessage {
             Text(ui.s(Res.string.we_couldn_t_read_your_profile_your_data), style = MaterialTheme.typography.bodyLarge)
-            Button(onClick = { state = ProfileLoad.Loading; loadAttempt++ }) { Text(ui.s(Res.string.retry)) }
+            GradientButton(onClick = { state = ProfileLoad.Loading; loadAttempt++ }) { Text(ui.s(Res.string.retry)) }
         }
         ProfileLoad.Empty -> OnboardingScreen(
             initialProfile = null,
@@ -95,24 +95,29 @@ private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable ()
             saveFailed = saveFailed,
             onSave = ::save,
         )
-        is ProfileLoad.Ready -> if (editing) {
-            OnboardingScreen(
-                initialProfile = current.profile,
-                viewModel = viewModel,
-                saving = saving,
-                saveFailed = saveFailed,
-                onSave = ::save,
-                onCancel = { editing = false; saveFailed = false },
-            )
-        } else {
+        is ProfileLoad.Ready -> {
             NavigationShell(current.profile, viewModel, destination, onDestinationChange = { destination = it }, onEdit = { editing = true }, preferences = preferences)
+            if (editing) {
+                RecordFormSheet(busy = saving, onDismissRequest = { requestEditCancel = true }) {
+                    OnboardingScreen(
+                        initialProfile = current.profile,
+                        viewModel = viewModel,
+                        saving = saving,
+                        saveFailed = saveFailed,
+                        onSave = ::save,
+                        onCancel = { editing = false; saveFailed = false; requestEditCancel = false },
+                        cancelRequested = requestEditCancel,
+                        onCancelRequestHandled = { requestEditCancel = false },
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun CenterMessage(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding().padding(24.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) { content() }
     }
 }
