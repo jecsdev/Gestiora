@@ -3,6 +3,15 @@ package com.jecsdev.gestiora.presentation.ui
 import gestiora.shared.presentation.ui.generated.resources.*
 import org.jetbrains.compose.resources.StringResource
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Transition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -40,9 +49,12 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
@@ -68,9 +80,14 @@ internal fun babyStage(week: Int): BabyStage = stages.last { week.coerceIn(4, 40
 internal fun babyReferenceWeek(week: Int): Int = listOf(36, 28, 20, 16, 12, 8, 4).first { week.coerceIn(4, 40) >= it }
 
 @Composable
-fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
+internal fun BabyScreen(
+    profile: PregnancyProfile,
+    viewModel: ProfileViewModel,
+    catalogTransition: Transition<Boolean>,
+    showBabyContent: Boolean,
+    onCatalogOpenChange: (Boolean) -> Unit,
+) {
     val ui = LocalUiCopy.current
-    var catalogOpen by retain { mutableStateOf(false) }
     val actualWeek = viewModel.preview(profile.dating, todayIsoDate())?.weeks
     val nearestWeek = actualWeek?.coerceIn(4, 40)
     var chosen by retain(profile.dating) { mutableStateOf<Int?>(null) }
@@ -78,10 +95,19 @@ fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
     val stage = babyStage(week)
     val referenceWeek = babyReferenceWeek(week)
     val scroll = rememberScrollState()
-    if (catalogOpen) {
-        EducationalCatalogScreen(koinInject<EducationViewModel>()) { catalogOpen = false }
-        return
+    val reducedMotion = LocalReducedMotion.current
+    val direction = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
+    val catalogOffset = with(LocalDensity.current) { 28.dp.roundToPx() } * direction
+    catalogTransition.AnimatedVisibility(
+        visible = { it },
+        enter = if (reducedMotion) EnterTransition.None else
+            fadeIn(tween(220)) + slideInHorizontally(tween(220)) { catalogOffset },
+        exit = if (reducedMotion) ExitTransition.None else
+            fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { catalogOffset },
+    ) {
+        EducationalCatalogScreen(koinInject<EducationViewModel>()) { onCatalogOpenChange(false) }
     }
+    if (!showBabyContent) return
     Column(
         Modifier.fillMaxSize().safeDrawingPadding()
             .verticalScroll(scroll).padding(24.dp),
@@ -141,7 +167,7 @@ fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
                 androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
             }
         }
-        OutlinedButton(onClick = { catalogOpen = true }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = { onCatalogOpenChange(true) }, modifier = Modifier.fillMaxWidth()) {
             Text(ui.s(Res.string.catalog_open))
         }
         BabyQuestionsSection(week)

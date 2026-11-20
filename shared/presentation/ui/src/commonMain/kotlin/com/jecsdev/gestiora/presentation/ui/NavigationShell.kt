@@ -4,6 +4,7 @@ import gestiora.shared.presentation.ui.generated.resources.*
 import org.jetbrains.compose.resources.StringResource
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,10 +70,14 @@ internal fun NavigationShell(
     var calendarDate by retain { mutableStateOf<String?>(null) }
     var notesStatus by retain { mutableStateOf<NoteTaskStatus?>(null) }
     var openConditions by retain { mutableStateOf(false) }
+    var catalogOpen by retain { mutableStateOf(false) }
+    val catalogTransition = updateTransition(catalogOpen, label = "Learning library")
+    val showBabyContent = !catalogTransition.currentState && !catalogTransition.targetState && !catalogTransition.isRunning
     Scaffold(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
+            if (destination == AppDestination.Baby && !showBabyContent) return@Scaffold
             Surface(modifier = Modifier.padding(horizontal = 10.dp).navigationBarsPadding().padding(bottom = 6.dp),
                 color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(30.dp), shadowElevation = 3.dp) {
                 NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
@@ -117,7 +122,7 @@ internal fun NavigationShell(
                     }
                     AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
                     AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
-                    AppDestination.Baby -> BabyScreen(profile, viewModel)
+                    AppDestination.Baby -> BabyScreen(profile, viewModel, catalogTransition, showBabyContent) { catalogOpen = it }
                     AppDestination.Profile -> ProfileScreen(profile, onEdit, preferences)
                 }
             }
