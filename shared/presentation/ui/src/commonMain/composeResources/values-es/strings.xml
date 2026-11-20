@@ -611,4 +611,5 @@
     <string name="weight_input_kg">Peso (kg)</string>
     <string name="weight_input_lb">Peso (lb)</string>
     <string name="weight_input_range">Introduce un valor equivalente a 0–400 kg.</string>
+    <string name="backup_available_in_profile">Puedes guardar una copia cifrada desde Perfil para llevar tus registros a otro dispositivo.</string>
 </resources>

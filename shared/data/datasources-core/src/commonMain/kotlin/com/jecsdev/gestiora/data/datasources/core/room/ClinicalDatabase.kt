@@ -43,11 +43,43 @@ abstract class ProtectedPayloadDao {
     abstract suspend fun delete(store: String)
 
     @Transaction
+    open suspend fun snapshot(stores: List<String>): List<ProtectedPayload> = stores.mapNotNull { read(it) }
+
+    @Transaction
+    open suspend fun writeClinicalData(payload: ProtectedPayload) {
+        write(payload)
+        markClinicalDataUsed()
+    }
+
+    @Transaction
+    open suspend fun clearClinicalProfile() {
+        if (read(ProtectedClinicalStorage.PROFILE) != null) markClinicalDataUsed()
+        delete(ProtectedClinicalStorage.PROFILE)
+    }
+
+    open suspend fun canRestoreBackup(): Boolean =
+        count() == 0 && !imported(ProtectedClinicalStorage.CLINICAL_DATA_USED)
+
+    @Transaction
+    open suspend fun restoreBackup(payloads: List<ProtectedPayload>): Boolean {
+        if (!canRestoreBackup()) return false
+        insert(payloads)
+        markClinicalDataUsed()
+        return true
+    }
+
+    private suspend fun markClinicalDataUsed() {
+        val id = ProtectedClinicalStorage.CLINICAL_DATA_USED
+        if (!imported(id)) markImported(LegacyImport(id))
+    }
+
+    @Transaction
     open suspend fun importOnce(id: String, payloads: List<ProtectedPayload>) {
         if (imported(id)) return
         check(count() == 0) { "Unmarked clinical database contains data; import refused" }
         insert(payloads)
         markImported(LegacyImport(id))
+        if (payloads.isNotEmpty()) markClinicalDataUsed()
     }
 
     @Transaction
@@ -59,6 +91,7 @@ abstract class ProtectedPayloadDao {
         check(stores.all { read(it) == null }) { "Unmarked clinical collection contains data; import refused" }
         insert(payloads)
         markImported(LegacyImport(id))
+        if (payloads.isNotEmpty()) markClinicalDataUsed()
     }
 }
 

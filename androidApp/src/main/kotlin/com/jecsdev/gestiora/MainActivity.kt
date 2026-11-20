@@ -19,6 +19,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import com.jecsdev.gestiora.backup.rememberBackupControls
 import com.jecsdev.gestiora.presentation.ui.App
 import com.jecsdev.gestiora.presentation.ui.NotificationControls
 import com.jecsdev.gestiora.reminders.AndroidReminderScheduler
@@ -45,7 +46,7 @@ class MainActivity : ComponentActivity() {
                 app.refreshReminders()
             }
             val enabled = remember(resumed) { AndroidReminderScheduler.notificationsEnabled(this) }
-            App(applicationGraph = app.graph, notificationControls = NotificationControls(
+            App(applicationGraph = app.graph, backupControls = rememberBackupControls(app), notificationControls = NotificationControls(
                 supported = true,
                 enabled = enabled,
                 needsRetry = app.reminderRefreshFailed,

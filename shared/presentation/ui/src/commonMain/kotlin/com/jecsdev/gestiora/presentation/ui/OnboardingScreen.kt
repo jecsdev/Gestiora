@@ -59,6 +59,8 @@ fun OnboardingScreen(
     onCancel: () -> Unit = {},
     cancelRequested: Boolean = false,
     onCancelRequestHandled: () -> Unit = {},
+    restoreBackup: (@Composable () -> Unit)? = null,
+    supportsBackup: Boolean = false,
 ) {
     val ui = LocalUiCopy.current
     val deviceLanguage = androidx.compose.ui.text.intl.Locale.current.language.let { if (it in listOf("es", "en", "fr")) it else "en" }
@@ -129,7 +131,7 @@ fun OnboardingScreen(
     }
 
     if (step == 0) {
-        WelcomeScreen(onStart = { step = 1 })
+        WelcomeScreen(onStart = { step = 1 }, restoreBackup = restoreBackup)
         return
     }
 
@@ -201,7 +203,8 @@ fun OnboardingScreen(
                 EditorialRecordCard {
                         Text(ui.s(Res.string.this_profile_will_be_saved_securely_on_this))
                         Text(ui.s(Res.string.gestiora_does_not_diagnose_or_replace_your_care))
-                        Text(ui.s(Res.string.data_recovery_on_another_device_is_not_available))
+                        Text(ui.s(if (supportsBackup) Res.string.backup_available_in_profile
+                            else Res.string.data_recovery_on_another_device_is_not_available))
                 }
             }
         }

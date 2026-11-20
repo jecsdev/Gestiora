@@ -10,6 +10,33 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.*
 
 class ProtectedClinicalStorageTest {
+    @Test fun clinicalBackupRestoresAllStoresAndRefusesAnExistingInstallation() = runBlocking {
+        val source = Fixture()
+        val original = ProtectedClinicalStorage(
+            source.dao, source.cipher, source.profile, source.reminders, validator,
+            ProtectedClinicalStorage.COLLECTIONS.associateWith { store -> { "$store:example" } },
+        )
+        val snapshot = original.backupSnapshot()
+        assertEquals(9, snapshot.size)
+
+        val target = Fixture()
+        target.profile.raw = null
+        target.reminders.raw = null
+        val restored = ProtectedClinicalStorage(
+            target.dao, target.cipher, target.profile, target.reminders, validator,
+            ProtectedClinicalStorage.COLLECTIONS.associateWith { { null } },
+        )
+        assertTrue(restored.canRestoreBackup())
+        assertFailsWith<IllegalArgumentException> {
+            restored.restoreBackup(snapshot + ("appointments" to "invalid"))
+        }
+        assertTrue(restored.canRestoreBackup())
+        assertTrue(restored.restoreBackup(snapshot))
+        assertEquals(snapshot, restored.backupSnapshot())
+        assertFalse(restored.restoreBackup(snapshot))
+        assertFalse(original.restoreBackup(snapshot))
+    }
+
     @Test fun verifiedCleanupRetriesWithoutReimportAndDoesNotResurrectClearedProfile() = runBlocking {
         val f = Fixture()
         var cleanups = 0
@@ -131,7 +158,10 @@ class ProtectedClinicalStorageTest {
         assertEquals("reminders:edited", reopened.read(ProtectedClinicalStorage.REMINDERS))
         ProtectedClinicalStorage.COLLECTIONS.forEach { assertEquals("$it:empty", reopened.read(it)) }
         assertEquals(7, reads)
-        assertEquals(2, f.dao.markers.size)
+        assertEquals(
+            setOf(ProtectedClinicalStorage.IMPORT_ID, ProtectedClinicalStorage.COLLECTIONS_IMPORT_ID, ProtectedClinicalStorage.CLINICAL_DATA_USED),
+            f.dao.markers,
+        )
     }
 
     @Test fun invalidCollectionOrEncryptionFailureLeavesFirstGroupAccessibleAndSecondRetryable() = runBlocking {
