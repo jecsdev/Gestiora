@@ -463,7 +463,7 @@
     <string name="enter_the_vaccine_and_if_administered_its_administration">Indiquez le vaccin et, s'il a été administré, la date d'administration. Vérifiez les dates et les limites des champs.</string>
     <string name="we_couldn_t_save_the_vaccination_your_changes">Impossible d'enregistrer la vaccination. Vos modifications restent dans le formulaire.</string>
     <string name="save_vaccination">Enregistrer la vaccination</string>
-    <string name="maternal_weight_kg">Poids maternel (kg)</string>
+    <string name="maternal_weight_kg">Poids maternel</string>
     <string name="blood_pressure_mmhg">Pression artérielle (mmHg)</string>
     <string name="maternal_heart_rate_bpm">Fréquence cardiaque maternelle (bpm)</string>
     <string name="fetal_heart_rate_bpm">Fréquence cardiaque fœtale (bpm)</string>
@@ -603,4 +603,12 @@
     <string name="exam_reminder_option">Me rappeler la veille à 9 h</string>
     <string name="exam_reminder_detail">Uniquement pour le statut Programmé avec une date prévue. Il s’agit de l’heure du rappel, pas de l’examen.</string>
     <string name="days_count">%1$s jours</string>
+    <string name="dominican_republic">République dominicaine</string>
+    <string name="weight_unit_kg">Kilogrammes (kg)</string>
+    <string name="weight_unit_lb">Livres (lb)</string>
+    <string name="weight_kg_lb">%1$s kg (%2$s lb)</string>
+    <string name="weight_lb_kg">%1$s lb (%2$s kg)</string>
+    <string name="weight_input_kg">Poids (kg)</string>
+    <string name="weight_input_lb">Poids (lb)</string>
+    <string name="weight_input_range">Saisissez une valeur équivalente à 0–400 kg.</string>
 </resources>

@@ -31,9 +31,27 @@ class VitalRecordQueriesTest {
         assertNull(latestVitalRecord(records, VitalType.FETAL_HEART_RATE))
         assertNull(latestVitalRecord(emptyList(), VitalType.WEIGHT))
         assertEquals("120/80 mmHg", vitalRecordValue(records[2]))
-        assertEquals("62.5 kg", vitalRecordValue(records[1]))
+        assertEquals("62.5 kg (137.8 lb)", vitalRecordValue(records[1]))
         assertEquals("Registro", vitalRecordValue(records.last()))
-        assertEquals("0 kg", vitalRecordValue(VitalRecord("zero", "2026-11-12", VitalType.WEIGHT, 0.0)))
+        assertEquals("0 kg (0 lb)", vitalRecordValue(VitalRecord("zero", "2026-11-12", VitalType.WEIGHT, 0.0)))
+    }
+
+    @Test fun weightUnitsConvertBothWaysWithoutChangingStoredPrecisionOnToggle() {
+        assertEquals("73.4 kg (161.8 lb)", weightDisplay(73.4, WeightUnit.KILOGRAMS))
+        assertEquals("161.8 lb (73.4 kg)", weightDisplay(73.4, WeightUnit.POUNDS))
+        val original = 73.41234567
+        var entry = WeightEntry.fromKilograms(original, WeightUnit.KILOGRAMS)
+        repeat(20) { entry = entry.switchTo(WeightUnit.POUNDS).switchTo(WeightUnit.KILOGRAMS) }
+        assertEquals(original, entry.kilograms)
+        val pounds = WeightEntry.fromKilograms(null, WeightUnit.POUNDS).edit("150,5")
+        assertEquals(68.265651685, assertNotNull(pounds.kilograms), 0.000000001)
+        val record = assertNotNull(vitalRecordForSave(VitalRecord("x", "2026-11-17", VitalType.WEIGHT),
+            "2026-11-17", VitalType.WEIGHT, formatVitalNumber(pounds.kilograms!!), "", "", "", ""))
+        assertEquals(pounds.kilograms, record.value)
+        assertNull(pounds.edit("invalid").kilograms)
+        assertNull(pounds.edit("").kilograms)
+        assertNull(vitalRecordForSave(record, record.date, VitalType.WEIGHT,
+            formatVitalNumber(WeightEntry.fromKilograms(null, WeightUnit.POUNDS).edit("1000").kilograms!!), "", "", "", ""))
     }
 
     @Test fun changingTypeClearsHiddenFieldsAndKeepsOnlyApplicableRequiredValues() {

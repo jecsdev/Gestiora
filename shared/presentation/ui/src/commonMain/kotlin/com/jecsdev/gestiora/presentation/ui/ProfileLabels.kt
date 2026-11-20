@@ -13,6 +13,7 @@ private val countries = mapOf(
     "México" to Res.string.mexico,
     "Paraguay" to Res.string.paraguay,
     "Perú" to Res.string.peru,
+    "República Dominicana" to Res.string.dominican_republic,
     "Uruguay" to Res.string.uruguay,
     "Venezuela" to Res.string.venezuela,
     "Otro" to Res.string.other

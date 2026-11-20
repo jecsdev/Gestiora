@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
@@ -146,9 +147,18 @@ private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit, prefere
         PastelHero {
             androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)) {
-                    Text(profile.motherName?.firstOrNull()?.uppercase() ?: "G", style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
+                Surface(
+                    modifier = Modifier.size(56.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                ) {
+                    Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Text(
+                            profile.motherName?.firstOrNull()?.uppercase() ?: "G",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
                 Column(Modifier.weight(1f)) {
                     Text(profile.motherName?.takeIf { it.isNotBlank() } ?: ui.s(Res.string.my_profile), style = MaterialTheme.typography.titleLarge)

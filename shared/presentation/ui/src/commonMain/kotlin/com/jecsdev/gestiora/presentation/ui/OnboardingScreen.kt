@@ -47,7 +47,7 @@ import com.jecsdev.gestiora.domain.models.PregnancyDating
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
 
-private val countries = listOf("Argentina", "Bolivia", "Chile", "Colombia", "Ecuador", "España", "Estados Unidos", "México", "Paraguay", "Perú", "Uruguay", "Venezuela", "Otro")
+private val countries = listOf("Argentina", "Bolivia", "Chile", "Colombia", "Ecuador", "España", "Estados Unidos", "México", "Paraguay", "Perú", "República Dominicana", "Uruguay", "Venezuela", "Otro")
 
 @Composable
 fun OnboardingScreen(

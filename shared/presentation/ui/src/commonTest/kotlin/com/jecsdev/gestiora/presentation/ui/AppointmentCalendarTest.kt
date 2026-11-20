@@ -6,6 +6,15 @@ import kotlin.test.assertNull
 
 class AppointmentCalendarTest {
     @Test
+    fun newEventOnlyPrefillsDatesInTheVisibleMonth() {
+        val today = "2024-12-15"
+        assertEquals("2024-12-31", newCalendarEventDate("2024-12", "2024-12-31", today))
+        assertEquals(today, newCalendarEventDate("2024-12", "", today))
+        assertEquals("", newCalendarEventDate("2025-01", "2024-12-31", today))
+        assertEquals("", newCalendarEventDate("2025-01", "", today))
+    }
+
+    @Test
     fun monthGridStartsMondayAndIncludesAdjacentDays() {
         val days = calendarMonthDays("2024-02")
         assertEquals(35, days.size)

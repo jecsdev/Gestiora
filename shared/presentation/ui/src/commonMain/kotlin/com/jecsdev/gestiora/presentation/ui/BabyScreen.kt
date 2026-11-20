@@ -3,10 +3,12 @@ package com.jecsdev.gestiora.presentation.ui
 import gestiora.shared.presentation.ui.generated.resources.*
 import org.jetbrains.compose.resources.StringResource
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Row
@@ -20,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -32,6 +35,11 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -85,12 +93,22 @@ fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
         PastelHero {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedButton(onClick = { chosen = week - 1 }, enabled = week > 4, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.previous_week) }) { Text("‹") }
+                    WeekNavigationButton(
+                        onClick = { chosen = week - 1 },
+                        enabled = week > 4,
+                        description = ui.s(Res.string.previous_week),
+                        pointsRight = false,
+                    )
                     Column(Modifier.weight(1f).padding(horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(ui.s(Res.string.explore_development), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
                         Text(ui.s(Res.string.week, week), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
                     }
-                    OutlinedButton(onClick = { chosen = week + 1 }, enabled = week < 40, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.next_week) }) { Text("›") }
+                    WeekNavigationButton(
+                        onClick = { chosen = week + 1 },
+                        enabled = week < 40,
+                        description = ui.s(Res.string.next_week),
+                        pointsRight = true,
+                    )
                 }
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Box(Modifier.size(240.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.32f), CircleShape))
@@ -128,5 +146,35 @@ fun BabyScreen(profile: PregnancyProfile, viewModel: ProfileViewModel) {
         }
         BabyQuestionsSection(week)
         Text(ui.s(Res.string.every_pregnancy_is_different_this_information_is_educational), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun WeekNavigationButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    description: String,
+    pointsRight: Boolean,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.size(width = 56.dp, height = 48.dp)
+            .semantics { contentDescription = description },
+        contentPadding = PaddingValues(0.dp),
+    ) {
+        val color = LocalContentColor.current
+        Canvas(Modifier.size(24.dp)) {
+            val direction = if (pointsRight) 1 else -1
+            val tip = center + Offset(3.dp.toPx() * direction, 0f)
+            val tailX = center.x - 3.dp.toPx() * direction
+            val halfHeight = 6.dp.toPx()
+            val chevron = Path().apply {
+                moveTo(tailX, center.y - halfHeight)
+                lineTo(tip.x, tip.y)
+                lineTo(tailX, center.y + halfHeight)
+            }
+            drawPath(chevron, color, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        }
     }
 }

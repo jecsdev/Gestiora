@@ -58,7 +58,7 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
     )
     editing?.let { initial ->
         RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
-            PersonalReminderForm(initial, busy, saveError, onCancel = { discard = true }) { record ->
+            PersonalReminderForm(initial, busy, saveError, month, onCancel = { discard = true }) { record ->
                 busy = true
                 scope.launch {
                     try {
@@ -87,9 +87,15 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
             records == null -> CircularProgressIndicator()
             else -> {
                 AppointmentCalendar(month, selectedDate, todayIsoDate(), records!!.map { it.date }.toSet(), !busy,
-                    onMonthChange = { month = it }, onDateSelect = { selectedDate = it; month = it.take(7) }, markedDescription = ui.s(Res.string.has_reminders))
+                    onMonthChange = {
+                        month = it
+                        selectedDate = ""
+                    },
+                    onDateSelect = { selectedDate = it; month = it.take(7) }, markedDescription = ui.s(Res.string.has_reminders))
                 GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
-                    saveError = false; editing = PersonalReminder("", "", selectedDate.ifEmpty { todayIsoDate() }); onNavigationLockChange(true)
+                    saveError = false
+                    editing = PersonalReminder("", "", newCalendarEventDate(month, selectedDate, todayIsoDate()))
+                    onNavigationLockChange(true)
                 }) { Text(ui.s(Res.string.new_reminder)) }
                 if (selectedDate.isNotEmpty()) {
                     Text(ui.s(Res.string.reminders_on, dateLabel(ui, selectedDate)), style = MaterialTheme.typography.titleMedium)
@@ -134,7 +140,7 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
 }
 
 @Composable
-private fun PersonalReminderForm(initial: PersonalReminder, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (PersonalReminder) -> Unit) {
+private fun PersonalReminderForm(initial: PersonalReminder, busy: Boolean, saveError: Boolean, calendarMonth: String, onCancel: () -> Unit, onSave: (PersonalReminder) -> Unit) {
     val ui = LocalUiCopy.current
     var title by retain(initial) { mutableStateOf(initial.title) }
     var date by retain(initial) { mutableStateOf(initial.date) }
@@ -146,7 +152,7 @@ private fun PersonalReminderForm(initial: PersonalReminder, busy: Boolean, saveE
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_reminder) else ui.s(Res.string.edit_reminder))
         PastelTextField(title, { title = it }, label = { Text(ui.s(Res.string.title)) }, modifier = Modifier.fillMaxWidth(), enabled = !busy,
             isError = title.length > 512 || (invalid && title.isBlank()), supportingText = { Text("${title.length}/512") })
-        DateField(ui.s(Res.string.date), date, enabled = !busy) { date = it }
+        DateField(ui.s(Res.string.date), date, enabled = !busy, initialMonth = calendarMonth) { date = it }
         TimeField(time, enabled = !busy) { time = it }
         TextButton(enabled = !busy && time.isNotEmpty(), onClick = { time = "" }) { Text(ui.s(Res.string.all_day_remove_time)) }
         Text(ui.s(Res.string.type), style = MaterialTheme.typography.labelLarge)
@@ -154,7 +160,10 @@ private fun PersonalReminderForm(initial: PersonalReminder, busy: Boolean, saveE
             ReminderKind.entries.forEach { option -> FilterChip(kind == option, { kind = option }, enabled = !busy, label = { Text(option.label(ui)) }) }
         }
         FilterChip(done, { done = !done }, enabled = !busy, label = { Text(ui.s(Res.string.completed_2)) })
-        if (invalid) Text(ui.s(Res.string.enter_a_title_of_up_to_512_characters), color = MaterialTheme.colorScheme.error)
+        if (invalid && (title.isBlank() || title.length > 512)) {
+            Text(ui.s(Res.string.enter_a_title_of_up_to_512_characters), color = MaterialTheme.colorScheme.error)
+        }
+        if (invalid && isoToUtcMillis(date) == null) Text(ui.s(Res.string.select_a_date), color = MaterialTheme.colorScheme.error)
         if (saveError) Text(ui.s(Res.string.we_couldn_t_save_the_reminder_your_changes), color = MaterialTheme.colorScheme.error)
         GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
             invalid = title.isBlank() || title.length > 512 || isoToUtcMillis(date) == null

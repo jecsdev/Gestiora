@@ -23,6 +23,10 @@ import androidx.compose.ui.unit.dp
 private const val DAY_MILLIS = 86_400_000L
 private val months = listOf(Res.string.january, Res.string.february, Res.string.march, Res.string.april, Res.string.may, Res.string.june, Res.string.july, Res.string.august, Res.string.september, Res.string.october, Res.string.november, Res.string.december)
 
+internal fun newCalendarEventDate(month: String, selectedDate: String, today: String): String =
+    selectedDate.takeIf { it.take(7) == month }
+        ?: today.takeIf { it.take(7) == month }.orEmpty()
+
 internal fun shiftCalendarMonth(month: String, offset: Int): String? {
     if (month.length != 7 || isoToUtcMillis("$month-01") == null) return null
     val index = (month.substring(0, 4).toInt() - 1) * 12L + month.substring(5, 7).toInt() - 1 + offset

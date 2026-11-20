@@ -35,6 +35,7 @@ internal fun DateField(
     maxDate: String? = null,
     clearable: Boolean = false,
     enabled: Boolean = true,
+    initialMonth: String? = null,
     onValueChange: (String) -> Unit,
 ) {
     val ui = LocalUiCopy.current
@@ -53,7 +54,9 @@ internal fun DateField(
     if (open) {
         val maximum = isoToUtcMillis(maxDate)
         val selected = isoToUtcMillis(value)?.takeIf { maximum == null || it <= maximum }
-        val years = listOfNotNull(value.take(4).toIntOrNull(), maxDate?.take(4)?.toIntOrNull(), todayIsoDate().take(4).toIntOrNull())
+        val displayedMonth = selected ?: initialMonth?.let { isoToUtcMillis("$it-01") }
+        val years = listOfNotNull(value.take(4).toIntOrNull(), maxDate?.take(4)?.toIntOrNull(),
+            initialMonth?.take(4)?.toIntOrNull(), todayIsoDate().take(4).toIntOrNull())
             .filter { it in 1..9999 }
         val yearRange = minOf(1900, years.minOrNull() ?: 1900)..maxOf(2100, years.maxOrNull() ?: 2100)
         val selectableDates = remember(maximum) {
@@ -63,6 +66,7 @@ internal fun DateField(
         }
         val state = rememberDatePickerState(
             initialSelectedDateMillis = selected,
+            initialDisplayedMonthMillis = displayedMonth,
             yearRange = yearRange,
             selectableDates = selectableDates,
         )

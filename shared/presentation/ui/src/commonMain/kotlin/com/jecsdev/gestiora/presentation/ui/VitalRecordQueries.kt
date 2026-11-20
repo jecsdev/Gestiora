@@ -61,7 +61,8 @@ internal fun VitalType.label(ui: UiCopy) = when (this) {
     VitalType.CUSTOM -> ui.s(Res.string.custom_measurement)
 }
 
-internal fun vitalRecordValue(record: VitalRecord, ui: UiCopy? = null): String = when (record.type) {
+internal fun vitalRecordValue(record: VitalRecord, ui: UiCopy? = null, weightUnit: WeightUnit = WeightUnit.KILOGRAMS): String = when (record.type) {
+    VitalType.WEIGHT -> weightDisplay(record.value, weightUnit, ui)
     VitalType.ULTRASOUND, VitalType.SYMPTOM -> record.text.orEmpty()
     VitalType.BLOOD_PRESSURE -> "${record.value?.let(::formatVitalNumber) ?: "—"}/${record.value2?.let(::formatVitalNumber) ?: "—"} mmHg"
     else -> {

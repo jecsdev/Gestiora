@@ -98,7 +98,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
 
     if (editing != null) {
         RecordFormSheet(busy = busy, onDismissRequest = { confirmDiscard = true }) {
-            AppointmentForm(editing!!, busy, operationError, onCancel = { confirmDiscard = true }) { appointment ->
+            AppointmentForm(editing!!, busy, operationError, displayedMonth, onCancel = { confirmDiscard = true }) { appointment ->
                 busy = true
                 scope.launch {
                     try {
@@ -139,7 +139,10 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
                     today = today,
                     markedDates = appointments!!.map { it.date }.toSet(),
                     enabled = !busy,
-                    onMonthChange = { displayedMonth = it },
+                    onMonthChange = {
+                        displayedMonth = it
+                        selectedDate = ""
+                    },
                     onDateSelect = { selectedDate = it; displayedMonth = it.take(7) },
                 )
                 if (selectedDate.isNotEmpty()) {
@@ -151,7 +154,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
                 GradientButton(onClick = {
                     operationError = false
                     onNavigationLockChange(true)
-                    editing = Appointment("", selectedDate.ifEmpty { todayIsoDate() }, "09:00", "", "", "", "", AppointmentStatus.SCHEDULED)
+                    editing = Appointment("", newCalendarEventDate(displayedMonth, selectedDate, today), "09:00", "", "", "", "", AppointmentStatus.SCHEDULED)
                 }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(ui.s(Res.string.new_appointment)) }
                 val visibleAppointments = appointments!!.filter { selectedDate.isEmpty() || it.date == selectedDate }
                 if (visibleAppointments.isEmpty()) {
@@ -205,7 +208,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
 }
 
 @Composable
-private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (Appointment) -> Unit) {
+private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Boolean, calendarMonth: String, onCancel: () -> Unit, onSave: (Appointment) -> Unit) {
     val ui = LocalUiCopy.current
     var date by retain(initial) { mutableStateOf(initial.date) }
     var time by retain(initial) { mutableStateOf(initial.time) }
@@ -219,7 +222,7 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
     var invalid by retain(initial) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_appointment) else ui.s(Res.string.edit_appointment))
-        DateField(ui.s(Res.string.date), date, enabled = !busy) { date = it }
+        DateField(ui.s(Res.string.date), date, enabled = !busy, initialMonth = calendarMonth) { date = it }
         TimeField(time, enabled = !busy) { time = it }
         AppointmentTextField(ui.s(Res.string.doctor), doctor, 512, !busy, true) { doctor = it }
         AppointmentTextField(ui.s(Res.string.specialty), specialty, 512, !busy, true) { specialty = it }
