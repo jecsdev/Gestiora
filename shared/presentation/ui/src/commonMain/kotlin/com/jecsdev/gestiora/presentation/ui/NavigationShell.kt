@@ -64,6 +64,7 @@ internal fun NavigationShell(
     onDestinationChange: (AppDestination) -> Unit,
     onEdit: () -> Unit,
     preferences: @Composable () -> Unit,
+    exportBackup: (@Composable () -> Unit)? = null,
 ) {
     val ui = LocalUiCopy.current
     var navigationLocked by retain { mutableStateOf(false) }
@@ -123,7 +124,7 @@ internal fun NavigationShell(
                     AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
                     AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
                     AppDestination.Baby -> BabyScreen(profile, viewModel, catalogTransition, showBabyContent) { catalogOpen = it }
-                    AppDestination.Profile -> ProfileScreen(profile, onEdit, preferences)
+                    AppDestination.Profile -> ProfileScreen(profile, onEdit, preferences, exportBackup)
                 }
             }
     }
@@ -142,7 +143,12 @@ private fun UnavailableScreen(title: String, message: String) {
 }
 
 @Composable
-private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit, preferences: @Composable () -> Unit) {
+private fun ProfileScreen(
+    profile: PregnancyProfile,
+    onEdit: () -> Unit,
+    preferences: @Composable () -> Unit,
+    exportBackup: (@Composable () -> Unit)?,
+) {
     val ui = LocalUiCopy.current
     Column(
         Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -197,6 +203,7 @@ private fun ProfileScreen(profile: PregnancyProfile, onEdit: () -> Unit, prefere
         }
         GradientButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) { Text(ui.s(Res.string.edit_my_profile_and_dates)) }
         preferences()
+        exportBackup?.invoke()
     }
 }
 

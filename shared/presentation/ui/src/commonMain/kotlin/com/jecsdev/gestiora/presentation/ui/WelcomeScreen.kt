@@ -35,7 +35,7 @@ import gestiora.shared.presentation.ui.generated.resources.fetus_week_36
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-internal fun WelcomeScreen(onStart: () -> Unit) {
+internal fun WelcomeScreen(onStart: () -> Unit, restoreBackup: (@Composable () -> Unit)? = null) {
     val ui = LocalUiCopy.current
     BoxWithConstraints(
         Modifier.fillMaxSize().safeDrawingPadding(),
@@ -89,6 +89,7 @@ internal fun WelcomeScreen(onStart: () -> Unit) {
                 GradientButton(onClick = onStart, modifier = Modifier.padding(top = 24.dp).fillMaxWidth().heightIn(min = 52.dp)) {
                     Text(ui.s(Res.string.get_started))
                 }
+                restoreBackup?.invoke()
                 Text(
                     ui.s(Res.string.you_can_start_without_creating_an_account),
                     modifier = Modifier.padding(top = 16.dp),

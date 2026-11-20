@@ -19,6 +19,9 @@ dependencies {
     implementation(project(":shared:data:datasources"))
     implementation(project(":shared:data:datasources-core"))
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.foundation)
+    implementation(libs.bouncycastle.provider)
     testImplementation(libs.junit)
 
     implementation(libs.androidx.activity.compose)
@@ -44,6 +47,15 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("production") { dimension = "distribution" }
+        create("internal") {
+            dimension = "distribution"
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -60,5 +72,12 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+}
+
+androidComponents {
+    beforeVariants { variant ->
+        val isInternal = variant.productFlavors.any { it == ("distribution" to "internal") }
+        variant.enable = if (isInternal) variant.buildType == "debug" else variant.buildType == "release"
     }
 }

@@ -22,6 +22,27 @@ class ClinicalDatabaseDeviceTest {
     private inline fun <T> ClinicalDatabase.useDatabase(block: (ClinicalDatabase) -> T): T =
         try { block(this) } finally { close() }
 
+    @Test fun backupRestoreRollsBackAndCannotRunAgainAfterProfileClear() = runBlocking<Unit> {
+        val file = File(context.cacheDir, "clinical-backup-${UUID.randomUUID()}.db")
+        val profile = ProtectedPayload(ProtectedClinicalStorage.PROFILE, byteArrayOf(1))
+        try {
+            open(file).useDatabase { db ->
+                val dao = db.payloads()
+                assertTrue(dao.canRestoreBackup())
+                assertFails { dao.restoreBackup(listOf(profile, profile)) }
+                assertTrue(dao.canRestoreBackup())
+                assertTrue(dao.restoreBackup(listOf(profile)))
+                assertFalse(dao.restoreBackup(listOf(profile)))
+                dao.clearClinicalProfile()
+                assertEquals(0, dao.count())
+                assertFalse(dao.canRestoreBackup())
+            }
+            open(file).useDatabase { db -> assertFalse(db.payloads().canRestoreBackup()) }
+        } finally {
+            context.deleteDatabase(file.absolutePath)
+        }
+    }
+
     @Test fun sqliteRollsBackWholeImportAndReopensWithMarker() = runBlocking<Unit> {
         val file = File(context.cacheDir, "clinical-test-${UUID.randomUUID()}.db")
         try {

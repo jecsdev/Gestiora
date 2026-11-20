@@ -1,0 +1,14 @@
+<resources>
+    <string name="backup_restore">Importar copia cifrada</string>
+    <string name="backup_export">Exportar copia cifrada</string>
+    <string name="backup_password">Contraseña de la copia</string>
+    <string name="backup_password_confirm">Confirmar contraseña</string>
+    <string name="backup_password_help">Usa una frase larga (al menos 15 caracteres). Guárdala en un lugar seguro. La necesitarás para restaurar esta copia.</string>
+    <string name="backup_choose_destination">Elegir dónde guardar</string>
+    <string name="backup_saved">Copia cifrada guardada.</string>
+    <string name="backup_operation_failed">No se pudo guardar o abrir la copia. Inténtalo de nuevo.</string>
+    <string name="backup_unsupported_version">Esta copia usa una versión de formato incompatible.</string>
+    <string name="backup_auth_failed">La contraseña es incorrecta o la copia fue modificada.</string>
+    <string name="backup_invalid">No se pudo restaurar esta copia. Revisa el archivo e inténtalo de nuevo.</string>
+    <string name="backup_restore_blocked">Solo puedes restaurar una copia antes de configurar esta instalación.</string>
+</resources>

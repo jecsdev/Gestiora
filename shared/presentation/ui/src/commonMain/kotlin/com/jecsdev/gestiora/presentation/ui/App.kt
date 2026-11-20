@@ -32,12 +32,21 @@ import org.koin.compose.KoinIsolatedContext
 import org.koin.compose.koinInject
 import org.koin.core.module.Module
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
+
+class BackupControls(
+    val canRestore: suspend () -> Boolean,
+    val restored: Boolean,
+    val restoreAction: @Composable () -> Unit,
+    val exportAction: @Composable () -> Unit,
+)
 
 @Composable
 fun App(
     platformModules: List<Module> = emptyList(),
     applicationGraph: org.koin.core.KoinApplication? = null,
     notificationControls: NotificationControls = NotificationControls(),
+    backupControls: BackupControls? = null,
 ) {
     val application = applicationGraph ?: retain { RetainedAppGraph(CoreDependencyInjection.modules + platformModules) }.application
     KoinIsolatedContext(context = application) {
@@ -45,7 +54,7 @@ fun App(
         CompositionLocalProvider(LocalSaveableStateRegistry provides null, LocalNotificationControls provides notificationControls) {
             UiCopyProvider {
                 MotionPreferences {
-                    ThemeRoot(koinInject()) { preferences -> ProfileRoot(koinInject(), preferences) }
+                    ThemeRoot(koinInject()) { preferences -> ProfileRoot(koinInject(), preferences, backupControls) }
                 }
             }
         }
@@ -53,7 +62,7 @@ fun App(
 }
 
 @Composable
-private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable () -> Unit) {
+private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable () -> Unit, backup: BackupControls?) {
     val ui = LocalUiCopy.current
     var loadAttempt by retain { mutableIntStateOf(0) }
     var state by retain { mutableStateOf<ProfileLoad>(ProfileLoad.Loading) }
@@ -62,11 +71,29 @@ private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable ()
     var destination by retain { mutableStateOf(AppDestination.Home) }
     var saving by retain { mutableStateOf(false) }
     var saveFailed by retain { mutableStateOf(false) }
+    var canRestore by retain { mutableStateOf(false) }
 
     val operations = retainedOperationScope()
     LaunchedEffect(loadAttempt) {
         // Recreating a Ready/Empty root must not remove the retained form subtree.
         if (state == ProfileLoad.Loading) state = viewModel.load()
+    }
+    LaunchedEffect(state is ProfileLoad.Empty, backup != null) {
+        canRestore = if (state == ProfileLoad.Empty && backup != null) {
+            try {
+                backup.canRestore()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                false
+            }
+        } else false
+    }
+    LaunchedEffect(backup?.restored) {
+        if (backup?.restored == true && state == ProfileLoad.Empty) {
+            state = ProfileLoad.Loading
+            state = viewModel.load()
+        }
     }
     fun save(profile: PregnancyProfile) {
         if (saving) return
@@ -94,9 +121,12 @@ private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable ()
             saving = saving,
             saveFailed = saveFailed,
             onSave = ::save,
+            restoreBackup = backup?.restoreAction?.takeIf { canRestore },
+            supportsBackup = backup != null,
         )
         is ProfileLoad.Ready -> {
-            NavigationShell(current.profile, viewModel, destination, onDestinationChange = { destination = it }, onEdit = { editing = true }, preferences = preferences)
+            NavigationShell(current.profile, viewModel, destination, onDestinationChange = { destination = it },
+                onEdit = { editing = true }, preferences = preferences, exportBackup = backup?.exportAction)
             if (editing) {
                 RecordFormSheet(busy = saving, onDismissRequest = { requestEditCancel = true }) {
                     OnboardingScreen(
@@ -108,6 +138,7 @@ private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable ()
                         onCancel = { editing = false; saveFailed = false; requestEditCancel = false },
                         cancelRequested = requestEditCancel,
                         onCancelRequestHandled = { requestEditCancel = false },
+                        supportsBackup = backup != null,
                     )
                 }
             }

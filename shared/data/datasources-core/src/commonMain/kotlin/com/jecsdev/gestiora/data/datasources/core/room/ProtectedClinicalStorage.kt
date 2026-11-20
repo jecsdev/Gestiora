@@ -22,6 +22,33 @@ class ProtectedClinicalStorage(
     private val cleanupLegacy: (verifiedStores: Set<String>) -> Unit = {},
 ) {
     private val mutex = Mutex()
+    private val stores = listOf(PROFILE, REMINDERS) + COLLECTIONS
+
+    suspend fun canRestoreBackup(): Boolean = mutex.withLock {
+        ensureImported()
+        ensureCollectionsImported()
+        dao.canRestoreBackup()
+    }
+
+    suspend fun backupSnapshot(): Map<String, String> = mutex.withLock {
+        ensureImported()
+        ensureCollectionsImported()
+        dao.snapshot(stores).associate { row ->
+            val payload = cipher.decrypt(row.store, row.ciphertext)
+            validate(row.store, payload)
+            row.store to payload
+        }.also { check(PROFILE in it) }
+    }
+
+    suspend fun restoreBackup(payloads: Map<String, String>): Boolean = mutex.withLock {
+        ensureImported()
+        ensureCollectionsImported()
+        if (!dao.canRestoreBackup()) return@withLock false
+        require(PROFILE in payloads && stores.containsAll(payloads.keys))
+        payloads.forEach(::validate)
+        val rows = payloads.map { (store, payload) -> ProtectedPayload(store, cipher.encrypt(store, payload)) }
+        dao.restoreBackup(rows)
+    }
 
     /** Import both groups, then authenticate/validate EVERY destination before source removal.
      * The durable markers make an interrupted cleanup retryable without reimporting stale files.
@@ -30,7 +57,7 @@ class ProtectedClinicalStorage(
         ensureImported()
         ensureCollectionsImported()
         val verified = mutableSetOf<String>()
-        (COLLECTIONS + PROFILE + REMINDERS).forEach { store ->
+        stores.forEach { store ->
             dao.read(store)?.let {
                 validate(store, cipher.decrypt(store, it.ciphertext))
                 verified.add(store)
@@ -53,12 +80,12 @@ class ProtectedClinicalStorage(
         validate(store, payload)
         // Authenticate existing content even for direct storage clients before replacing it.
         dao.read(store)?.let { validate(store, cipher.decrypt(store, it.ciphertext)) }
-        dao.write(ProtectedPayload(store, cipher.encrypt(store, payload)))
+        dao.writeClinicalData(ProtectedPayload(store, cipher.encrypt(store, payload)))
     }
 
     suspend fun clearProfile() = mutex.withLock {
         ensureImported()
-        dao.delete(PROFILE)
+        dao.clearClinicalProfile()
         // Keep the import marker: clearing must not resurrect the preserved source file.
         // The shared key also protects reminders and must not be deleted here.
     }
@@ -103,6 +130,7 @@ class ProtectedClinicalStorage(
         const val REMINDERS = "personal_reminders"
         const val IMPORT_ID = "profile-and-reminders-v1"
         const val COLLECTIONS_IMPORT_ID = "clinical-collections-v1"
+        const val CLINICAL_DATA_USED = "clinical-data-used-v1"
         val COLLECTIONS: Set<String> = setOf(
             "appointments", "consultations", "vital_records", "medical_conditions",
             "vaccine_records", "exam_records", "prenatal_notes",
