@@ -14,6 +14,7 @@ kotlin {
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
         compilerOptions { jvmTarget = JvmTarget.JVM_11 }
+        withHostTest { }
     }
 
     sourceSets {
@@ -23,8 +24,13 @@ kotlin {
             implementation(project(":shared:data:datasources"))
             implementation(project(":shared:domain:models"))
             implementation(project(":shared:domain:repository"))
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.koin.core)
         }
-        commonTest.dependencies { implementation(libs.kotlin.test) }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.core)
+        }
     }
 }
 

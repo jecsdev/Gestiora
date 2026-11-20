@@ -17,6 +17,7 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
         compilerOptions { jvmTarget = JvmTarget.JVM_11 }
         androidResources { enable = true }
+        withHostTest { }
     }
 
     sourceSets {
@@ -28,6 +29,7 @@ kotlin {
             implementation(project(":shared:presentation:viewmodels"))
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
+            implementation(libs.compose.animation)
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
@@ -36,6 +38,7 @@ kotlin {
         }
         commonTest.dependencies { implementation(libs.kotlin.test) }
         androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
         }

@@ -12,8 +12,17 @@ kotlin {
 }
 dependencies {
     implementation(project(":shared:presentation:ui"))
+    implementation(project(":shared:core:di"))
+    implementation(project(":shared:core:common"))
+    implementation(project(":shared:domain:models"))
+    implementation(project(":shared:domain:repository"))
+    implementation(project(":shared:data:datasources"))
+    implementation(project(":shared:data:datasources-core"))
+    implementation(libs.kotlinx.coroutines.core)
+    testImplementation(libs.junit)
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.koin.core)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)

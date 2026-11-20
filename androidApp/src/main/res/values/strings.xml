@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Gestiora</string>
+    <string name="notification_channel">Scheduled reminders</string>
+    <string name="notification_appointment">You have an appointment reminder. Open Gestiora to view it.</string>
+    <string name="notification_exam">You have an examination reminder. Open Gestiora to view it.</string>
 </resources>

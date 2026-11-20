@@ -1,0 +1,5 @@
+<resources>
+    <string name="notification_channel">Avisos programados</string>
+    <string name="notification_appointment">Tienes un aviso de cita. Abre Gestiora para consultarlo.</string>
+    <string name="notification_exam">Tienes un aviso de examen. Abre Gestiora para consultarlo.</string>
+</resources>
