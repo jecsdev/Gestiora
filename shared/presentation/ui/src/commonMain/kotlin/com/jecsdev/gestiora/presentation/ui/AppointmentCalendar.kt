@@ -51,7 +51,7 @@ internal fun calendarMonthDays(month: String): List<String?> {
 }
 
 @Composable
-internal fun AppointmentCalendar(
+internal fun MonthCalendar(
     month: String,
     selectedDate: String,
     today: String,
@@ -60,19 +60,31 @@ internal fun AppointmentCalendar(
     onMonthChange: (String) -> Unit,
     onDateSelect: (String) -> Unit,
     markedDescription: String? = null,
+    yearRange: IntRange = 1..9999,
+    maxDate: String? = null,
+    onChooseYear: (() -> Unit)? = null,
 ) {
     val ui = LocalUiCopy.current
     val markedLabel = markedDescription ?: ui.s(Res.string.has_appointments)
-    val previous = shiftCalendarMonth(month, -1)
-    val next = shiftCalendarMonth(month, 1)
+    val previous = shiftCalendarMonth(month, -1)?.takeIf { it.take(4).toInt() in yearRange }
+    val next = shiftCalendarMonth(month, 1)?.takeIf { it.take(4).toInt() in yearRange }
     val days = calendarMonthDays(month)
+    val monthTitle = ui.s(Res.string.calendar_month_title, ui.s(months[month.substring(5, 7).toInt() - 1]), month.substring(0, 4))
     Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surface, shadowElevation = 3.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))) {
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = { previous?.let(onMonthChange) }, enabled = enabled && previous != null, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.previous_month) }) { Text("‹") }
-                Text(ui.s(Res.string.calendar_month_title, ui.s(months[month.substring(5, 7).toInt() - 1]), month.substring(0, 4)), style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                if (onChooseYear == null) {
+                    Text(monthTitle, style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                } else {
+                    TextButton(onClick = onChooseYear, modifier = Modifier.weight(1f), enabled = enabled,
+                        contentPadding = PaddingValues(horizontal = 4.dp)) {
+                        Text("$monthTitle ▾", style = MaterialTheme.typography.titleMedium,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
                 TextButton(onClick = { next?.let(onMonthChange) }, enabled = enabled && next != null, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.next_month) }) { Text("›") }
             }
             Row(Modifier.fillMaxWidth()) {
@@ -88,6 +100,7 @@ internal fun AppointmentCalendar(
                     week.forEach { date ->
                         val isSelected = date != null && date == selectedDate
                         val marked = date != null && date in markedDates
+                        val selectable = date != null && date.take(4).toInt() in yearRange && (maxDate == null || date <= maxDate)
                         val background = when {
                             isSelected -> MaterialTheme.colorScheme.primary
                             date != null && date == today -> MaterialTheme.colorScheme.secondaryContainer
@@ -95,7 +108,8 @@ internal fun AppointmentCalendar(
                         }
                         val foreground = when {
                             isSelected -> MaterialTheme.colorScheme.onPrimary
-                            date != null && !date.startsWith(month) -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                            !selectable -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            !date.startsWith(month) -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
                         Box(Modifier.weight(1f).heightIn(min = 48.dp).padding(2.dp)
@@ -103,7 +117,7 @@ internal fun AppointmentCalendar(
                             .then(if (date == null) Modifier else Modifier.semantics {
                                 contentDescription = ui.s(Res.string.calendar_day_accessibility, dateLabel(ui, date, expanded = true), if (date == today) ", " + ui.s(Res.string.today) else "", if (marked) ", $markedLabel" else "")
                                 selected = isSelected
-                            }.clickable(enabled = enabled, role = Role.Button) { onDateSelect(date) }),
+                            }.clickable(enabled = enabled && selectable, role = Role.Button) { onDateSelect(date) }),
                             contentAlignment = Alignment.Center) {
                             if (date != null) {
                                 Text(date.substring(8).toInt().toString(), color = foreground, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clearAndSetSemantics { })

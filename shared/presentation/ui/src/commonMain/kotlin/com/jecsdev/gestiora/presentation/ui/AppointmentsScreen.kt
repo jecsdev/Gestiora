@@ -133,7 +133,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
             }
             appointments == null -> CircularProgressIndicator()
             else -> {
-                AppointmentCalendar(
+                MonthCalendar(
                     month = displayedMonth,
                     selectedDate = selectedDate,
                     today = today,

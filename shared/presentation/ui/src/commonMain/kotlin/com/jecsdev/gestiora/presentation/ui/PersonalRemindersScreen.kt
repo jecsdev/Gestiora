@@ -86,7 +86,7 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
             }
             records == null -> CircularProgressIndicator()
             else -> {
-                AppointmentCalendar(month, selectedDate, todayIsoDate(), records!!.map { it.date }.toSet(), !busy,
+                MonthCalendar(month, selectedDate, todayIsoDate(), records!!.map { it.date }.toSet(), !busy,
                     onMonthChange = {
                         month = it
                         selectedDate = ""

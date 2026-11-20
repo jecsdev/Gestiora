@@ -2,32 +2,40 @@ package com.jecsdev.gestiora.presentation.ui
 
 import gestiora.shared.presentation.ui.generated.resources.*
 
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.unit.dp
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 
-/** Stores calendar days as ISO strings; picker milliseconds are always UTC midnight. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Stores calendar days as ISO strings. */
 @Composable
 internal fun DateField(
     label: String,
@@ -52,35 +60,103 @@ internal fun DateField(
         }
     }
     if (open) {
-        val maximum = isoToUtcMillis(maxDate)
-        val selected = isoToUtcMillis(value)?.takeIf { maximum == null || it <= maximum }
-        val displayedMonth = selected ?: initialMonth?.let { isoToUtcMillis("$it-01") }
-        val years = listOfNotNull(value.take(4).toIntOrNull(), maxDate?.take(4)?.toIntOrNull(),
-            initialMonth?.take(4)?.toIntOrNull(), todayIsoDate().take(4).toIntOrNull())
-            .filter { it in 1..9999 }
-        val yearRange = minOf(1900, years.minOrNull() ?: 1900)..maxOf(2100, years.maxOrNull() ?: 2100)
-        val selectableDates = remember(maximum) {
-            object : SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean = maximum == null || utcTimeMillis <= maximum
-            }
-        }
-        val state = rememberDatePickerState(
-            initialSelectedDateMillis = selected,
-            initialDisplayedMonthMillis = displayedMonth,
-            yearRange = yearRange,
-            selectableDates = selectableDates,
-        )
-        DatePickerDialog(
-            onDismissRequest = { open = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    state.selectedDateMillis?.let { onValueChange(utcMillisToIso(it)) }
-                    open = false
-                }, enabled = state.selectedDateMillis != null) { Text(ui.s(Res.string.ok)) }
+        DateSelectionDialog(
+            value = value,
+            maxDate = maxDate,
+            initialMonth = initialMonth,
+            onDismiss = { open = false },
+            onConfirm = {
+                onValueChange(it)
+                open = false
             },
-            dismissButton = { TextButton(onClick = { open = false }) { Text(ui.s(Res.string.cancel)) } },
+        )
+    }
+}
+
+@Composable
+private fun DateSelectionDialog(
+    value: String,
+    maxDate: String?,
+    initialMonth: String?,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    val ui = LocalUiCopy.current
+    val today = todayIsoDate()
+    val maximum = maxDate?.takeIf { isoToUtcMillis(it) != null }
+    val startingDate = value.takeIf { isoToUtcMillis(it) != null && (maximum == null || it <= maximum) }
+    val startingMonth = startingDate?.take(7)
+        ?: initialMonth?.takeIf { isoToUtcMillis("$it-01") != null }
+        ?: today.take(7)
+    val years = listOfNotNull(startingMonth.take(4).toIntOrNull(), maximum?.take(4)?.toIntOrNull(), today.take(4).toIntOrNull())
+    val yearRange = minOf(1900, years.min())..maxOf(2100, years.max())
+    var selectedDate by remember { mutableStateOf(startingDate.orEmpty()) }
+    var month by remember { mutableStateOf(startingMonth) }
+    var choosingYear by remember { mutableStateOf(false) }
+    val colors = MaterialTheme.colorScheme
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+                .widthIn(max = 420.dp).fillMaxWidth(),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = lerp(colors.surface, colors.primaryContainer, 0.24f),
+            contentColor = colors.onSurface,
+            border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.65f)),
         ) {
-            DatePicker(state = state, title = { Text(ui.s(Res.string.select_a_date)) }, showModeToggle = false)
+            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.padding(start = 10.dp, top = 6.dp, end = 10.dp)) {
+                    EditorialHeader(ui.s(Res.string.select_a_date), compact = true)
+                }
+                Box(Modifier.weight(1f, fill = false).fillMaxWidth()) {
+                    if (choosingYear) {
+                        val currentYear = month.take(4).toInt()
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp),
+                            state = rememberLazyListState(initialFirstVisibleItemIndex = (currentYear - yearRange.first - 2).coerceAtLeast(0)),
+                        ) {
+                            items(yearRange.last - yearRange.first + 1) { index ->
+                                val year = yearRange.first + index
+                                TextButton(onClick = {
+                                    month = year.toString().padStart(4, '0') + month.drop(4)
+                                    choosingYear = false
+                                }, modifier = Modifier.fillMaxWidth()) {
+                                    Text(year.toString())
+                                }
+                            }
+                        }
+                    } else {
+                        Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 3.dp)) {
+                            MonthCalendar(
+                                month = month,
+                                selectedDate = selectedDate,
+                                today = today,
+                                markedDates = emptySet(),
+                                enabled = true,
+                                onMonthChange = { month = it },
+                                onDateSelect = { selectedDate = it; month = it.take(7) },
+                                yearRange = yearRange,
+                                maxDate = maximum,
+                                onChooseYear = { choosingYear = true },
+                            )
+                        }
+                    }
+                }
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (choosingYear) {
+                        TextButton(onClick = { choosingYear = false }) { Text(ui.s(Res.string.back)) }
+                    } else {
+                        TextButton(onClick = onDismiss) { Text(ui.s(Res.string.cancel)) }
+                        GradientButton(
+                            onClick = { onConfirm(selectedDate) },
+                            enabled = selectedDate.isNotEmpty() && (maximum == null || selectedDate <= maximum),
+                        ) { Text(ui.s(Res.string.ok)) }
+                    }
+                }
+            }
         }
     }
 }
