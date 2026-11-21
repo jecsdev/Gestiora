@@ -611,5 +611,11 @@
     <string name="weight_input_kg">Peso (kg)</string>
     <string name="weight_input_lb">Peso (lb)</string>
     <string name="weight_input_range">Introduce un valor equivalente a 0–400 kg.</string>
-    <string name="backup_available_in_profile">Puedes guardar una copia cifrada desde Perfil para llevar tus registros a otro dispositivo.</string>
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_data_and_privacy">Datos y privacidad</string>
+    <string name="settings_local_storage">Gestiora guarda tus registros del embarazo en este dispositivo.</string>
+    <string name="settings_restore_onboarding">Para recuperar tus registros en otro dispositivo, elige «Importar copia cifrada» durante la configuración inicial.</string>
+    <string name="settings_premium_title">Gestiora Premium</string>
+    <string name="settings_premium_preview">Estamos preparando un historial prenatal avanzado, informes PDF para tus consultas y una experiencia sin anuncios.</string>
+    <string name="backup_available_in_settings">Puedes guardar una copia cifrada desde Ajustes para llevar tus registros a otro dispositivo.</string>
 </resources>

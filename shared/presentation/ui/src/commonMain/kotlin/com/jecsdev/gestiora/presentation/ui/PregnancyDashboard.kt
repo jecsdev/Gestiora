@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
@@ -57,35 +58,72 @@ internal fun upcomingAppointments(appointments: List<Appointment>, today: String
         .toList()
 
 @Composable
-fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, appointmentViewModel: AppointmentViewModel, onProfile: () -> Unit, onBaby: () -> Unit, followUpContent: @Composable () -> Unit = {}, onCalendar: (String?) -> Unit) {
-    val ui = LocalUiCopy.current
+fun PregnancyDashboard(
+    profile: PregnancyProfile,
+    viewModel: ProfileViewModel,
+    appointmentViewModel: AppointmentViewModel,
+    onProfile: () -> Unit,
+    onBaby: () -> Unit,
+    onSettings: () -> Unit,
+    followUpContent: @Composable () -> Unit = {},
+    onCalendar: (String?) -> Unit,
+) {
     val today = todayIsoDate()
     val age = viewModel.preview(profile.dating, today)
-    var appointments by remember(appointmentViewModel) { mutableStateOf<List<Appointment>?>(null) }
-    var loadError by remember(appointmentViewModel) { mutableStateOf(false) }
+    var appointments by remember(appointmentViewModel) { mutableStateOf<Result<List<Appointment>>?>(null) }
     var loadAttempt by remember(appointmentViewModel) { mutableStateOf(0) }
     LaunchedEffect(appointmentViewModel, loadAttempt) {
-        loadError = false
         appointments = null
-        val result = appointmentViewModel.load()
-        appointments = result.getOrNull()?.let { upcomingAppointments(it, today) }
-        loadError = result.isFailure
+        appointments = appointmentViewModel.load().map { upcomingAppointments(it, today) }
     }
+    PregnancyDashboardContent(
+        motherName = profile.motherName,
+        age = age,
+        appointments = appointments,
+        onRetry = { loadAttempt++ },
+        onProfile = onProfile,
+        onBaby = onBaby,
+        onSettings = onSettings,
+        followUpContent = followUpContent,
+        onCalendar = onCalendar,
+    )
+}
+
+@Composable
+private fun PregnancyDashboardContent(
+    motherName: String?,
+    age: PregnancyAge?,
+    appointments: Result<List<Appointment>>?,
+    onRetry: () -> Unit,
+    onProfile: () -> Unit,
+    onBaby: () -> Unit,
+    onSettings: () -> Unit,
+    followUpContent: @Composable () -> Unit,
+    onCalendar: (String?) -> Unit,
+) {
+    val ui = LocalUiCopy.current
     Column(
         Modifier.fillMaxSize().safeDrawingPadding()
             .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(ui.s(Res.string.brand), style = MaterialTheme.typography.labelMedium, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
-            Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(50)) {
-                IconButton(onClick = onProfile, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.open_my_profile) }) {
-                    DestinationIcon(AppDestination.Profile)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(ui.s(Res.string.brand), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape) {
+                    IconButton(onClick = onProfile, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.open_my_profile) }) {
+                        DestinationIcon(AppDestination.Profile)
+                    }
+                }
+                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape) {
+                    IconButton(onClick = onSettings, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.settings_title) }) {
+                        SettingsIcon()
+                    }
                 }
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(if (profile.motherName.isNullOrBlank()) ui.s(Res.string.hello) else ui.s(Res.string.hello_2, profile.motherName), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if (motherName.isNullOrBlank()) ui.s(Res.string.hello) else ui.s(Res.string.hello_2, motherName), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(ui.s(Res.string.your_pregnancy), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
         }
         PastelHero {
@@ -103,18 +141,19 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
                 }
         }
         EditorialSection(ui.s(Res.string.upcoming_appointments), ui.s(Res.string.view_calendar), onAction = { onCalendar(null) }) {
+            val upcoming = appointments?.getOrNull().orEmpty()
             when {
-                loadError -> {
+                appointments?.isFailure == true -> {
                     Text(ui.s(Res.string.we_couldn_t_read_your_appointments_your_data), color = MaterialTheme.colorScheme.error)
-                    OutlinedButton(onClick = { loadAttempt++ }) { Text(ui.s(Res.string.retry)) }
+                    OutlinedButton(onClick = onRetry) { Text(ui.s(Res.string.retry)) }
                 }
                 appointments == null -> CircularProgressIndicator()
-                appointments!!.isEmpty() -> {
+                upcoming.isEmpty() -> {
                     EditorialRecordCard {
                         Text(ui.s(Res.string.no_upcoming_appointments_add_your_next_prenatal_check), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                else -> appointments!!.forEach { appointment ->
+                else -> upcoming.forEach { appointment ->
                     AppointmentPreview(appointment, onClick = { onCalendar(appointment.date) })
                 }
             }
@@ -134,6 +173,35 @@ fun PregnancyDashboard(profile: PregnancyProfile, viewModel: ProfileViewModel, a
         followUpContent()
         HomeQuestions()
         Text(ui.s(Res.string.educational_information_gestiora_does_not_diagnose_always_consult), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Preview(name = "Home · upcoming appointment", widthDp = 384, heightDp = 850, locale = "en")
+@Composable
+private fun PregnancyDashboardPreview() {
+    PreviewContent {
+        PregnancyDashboardContent(
+            motherName = previewProfile.motherName,
+            age = PregnancyAge(112, 16, 0, 2, "2027-04-03", 168, 0.4),
+            appointments = Result.success(listOf(
+                Appointment(
+                    id = "preview-appointment",
+                    date = "2026-10-22",
+                    time = "09:30",
+                    doctor = "Dr. Rivera",
+                    specialty = "Obstetrics",
+                    clinic = "Example Clinic",
+                    reason = "Prenatal checkup",
+                    status = AppointmentStatus.SCHEDULED,
+                ),
+            )),
+            onRetry = {},
+            onProfile = {},
+            onBaby = {},
+            onSettings = {},
+            followUpContent = {},
+            onCalendar = {},
+        )
     }
 }
 

@@ -133,18 +133,20 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
             }
             appointments == null -> CircularProgressIndicator()
             else -> {
-                MonthCalendar(
-                    month = displayedMonth,
-                    selectedDate = selectedDate,
-                    today = today,
-                    markedDates = appointments!!.map { it.date }.toSet(),
-                    enabled = !busy,
-                    onMonthChange = {
-                        displayedMonth = it
-                        selectedDate = ""
-                    },
-                    onDateSelect = { selectedDate = it; displayedMonth = it.take(7) },
-                )
+                CalendarCard {
+                    MonthCalendar(
+                        month = displayedMonth,
+                        selectedDate = selectedDate,
+                        today = today,
+                        markedDates = appointments!!.map { it.date }.toSet(),
+                        enabled = !busy,
+                        onMonthChange = {
+                            displayedMonth = it
+                            selectedDate = ""
+                        },
+                        onDateSelect = { selectedDate = it; displayedMonth = it.take(7) },
+                    )
+                }
                 if (selectedDate.isNotEmpty()) {
                     Text(ui.s(Res.string.appointments_on, dateLabel(ui, selectedDate)), style = MaterialTheme.typography.titleMedium)
                     TextButton(onClick = { selectedDate = "" }, enabled = !busy) { Text(ui.s(Res.string.view_all_appointments)) }

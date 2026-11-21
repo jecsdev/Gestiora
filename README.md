@@ -21,7 +21,7 @@ Shared UI strings now use Spanish, English and French Compose resources. FAQ and
 
 ## Android local v1 checkpoint
 
-Local appointment/examination notifications and verified legacy file/key cleanup are implemented. Android exports encrypted clinical backups from Profile and restores them during first-run onboarding. See [LOCAL_REMINDERS.md](docs/LOCAL_REMINDERS.md), [ROOM_PERSISTENCE.md](docs/ROOM_PERSISTENCE.md) and the current migration checkpoint. Login, AI and Supabase/CMS are deferred to phase 2. The small educational catalog ships offline and receives corrections through app updates; see [LOCAL_CONTENT_POLICY.md](docs/LOCAL_CONTENT_POLICY.md). Reset, appointment associations, demo and device/iOS validation remain open.
+Local appointment/examination notifications and verified legacy file/key cleanup are implemented. Android exports encrypted clinical backups from Settings and restores them during first-run onboarding. See [LOCAL_REMINDERS.md](docs/LOCAL_REMINDERS.md), [ROOM_PERSISTENCE.md](docs/ROOM_PERSISTENCE.md) and the current migration checkpoint. Login, AI and Supabase/CMS are deferred to phase 2. The small educational catalog ships offline and receives corrections through app updates; see [LOCAL_CONTENT_POLICY.md](docs/LOCAL_CONTENT_POLICY.md). Reset, appointment associations, demo and device/iOS validation remain open.
 
 ## Build
 

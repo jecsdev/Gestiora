@@ -74,7 +74,7 @@ internal fun ThemeRoot(
 internal expect fun SystemAppearance(dark: Boolean, followSystem: Boolean)
 
 @Composable
-private fun ThemePreferences(
+internal fun ThemePreferences(
     mode: ThemeMode,
     busy: Boolean,
     readFailed: Boolean,

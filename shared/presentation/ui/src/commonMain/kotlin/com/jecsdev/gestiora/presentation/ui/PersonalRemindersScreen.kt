@@ -86,12 +86,14 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
             }
             records == null -> CircularProgressIndicator()
             else -> {
-                MonthCalendar(month, selectedDate, todayIsoDate(), records!!.map { it.date }.toSet(), !busy,
-                    onMonthChange = {
-                        month = it
-                        selectedDate = ""
-                    },
-                    onDateSelect = { selectedDate = it; month = it.take(7) }, markedDescription = ui.s(Res.string.has_reminders))
+                CalendarCard {
+                    MonthCalendar(month, selectedDate, todayIsoDate(), records!!.map { it.date }.toSet(), !busy,
+                        onMonthChange = {
+                            month = it
+                            selectedDate = ""
+                        },
+                        onDateSelect = { selectedDate = it; month = it.take(7) }, markedDescription = ui.s(Res.string.has_reminders))
+                }
                 GradientButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = {
                     saveError = false
                     editing = PersonalReminder("", "", newCalendarEventDate(month, selectedDate, todayIsoDate()))

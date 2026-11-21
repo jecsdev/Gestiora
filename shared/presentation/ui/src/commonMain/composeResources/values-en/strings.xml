@@ -611,5 +611,11 @@
     <string name="weight_input_kg">Weight (kg)</string>
     <string name="weight_input_lb">Weight (lb)</string>
     <string name="weight_input_range">Enter a value equivalent to 0–400 kg.</string>
-    <string name="backup_available_in_profile">You can save an encrypted backup from Profile to move your records to another device.</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_data_and_privacy">Data and privacy</string>
+    <string name="settings_local_storage">Gestiora stores your pregnancy records on this device.</string>
+    <string name="settings_restore_onboarding">To restore your records on another device, select “Import encrypted backup” during initial setup.</string>
+    <string name="settings_premium_title">Gestiora Premium</string>
+    <string name="settings_premium_preview">Planned features include advanced prenatal records, PDF reports for appointments, and an ad-free experience.</string>
+    <string name="backup_available_in_settings">You can save an encrypted backup from Settings to move your records to another device.</string>
 </resources>

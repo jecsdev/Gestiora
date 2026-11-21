@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
@@ -87,13 +89,8 @@ internal fun BabyScreen(
     showBabyContent: Boolean,
     onCatalogOpenChange: (Boolean) -> Unit,
 ) {
-    val ui = LocalUiCopy.current
     val actualWeek = viewModel.preview(profile.dating, todayIsoDate())?.weeks
-    val nearestWeek = actualWeek?.coerceIn(4, 40)
     var chosen by retain(profile.dating) { mutableStateOf<Int?>(null) }
-    val week = chosen ?: nearestWeek ?: 4
-    val stage = babyStage(week)
-    val referenceWeek = babyReferenceWeek(week)
     val scroll = rememberScrollState()
     val reducedMotion = LocalReducedMotion.current
     val direction = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
@@ -108,19 +105,36 @@ internal fun BabyScreen(
         EducationalCatalogScreen(koinInject<EducationViewModel>()) { onCatalogOpenChange(false) }
     }
     if (!showBabyContent) return
+    BabyScreenContent(profile.babyName, actualWeek, chosen, scroll, { chosen = it }) { onCatalogOpenChange(true) }
+}
+
+@Composable
+private fun BabyScreenContent(
+    babyName: String?,
+    actualWeek: Int?,
+    chosenWeek: Int?,
+    scroll: ScrollState,
+    onWeekChange: (Int?) -> Unit,
+    onCatalogOpen: () -> Unit,
+) {
+    val ui = LocalUiCopy.current
+    val nearestWeek = actualWeek?.coerceIn(4, 40)
+    val week = chosenWeek ?: nearestWeek ?: 4
+    val stage = babyStage(week)
+    val referenceWeek = babyReferenceWeek(week)
     Column(
         Modifier.fillMaxSize().safeDrawingPadding()
             .verticalScroll(scroll).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        EditorialHeader(profile.babyName?.takeIf { it.isNotBlank() } ?: ui.s(Res.string.my_baby), eyebrow = ui.s(Res.string.each_week_a_little_miracle))
+        EditorialHeader(babyName?.takeIf { it.isNotBlank() } ?: ui.s(Res.string.my_baby), eyebrow = ui.s(Res.string.each_week_a_little_miracle))
         if (actualWeek == null) Text(ui.s(Res.string.check_your_profile_dates_to_find_out_your), style = MaterialTheme.typography.bodySmall)
         if (actualWeek != null && actualWeek !in 4..40) Text(ui.s(Res.string.your_current_week_is_the_explorer_covers_weeks, actualWeek), style = MaterialTheme.typography.bodySmall)
         PastelHero {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     WeekNavigationButton(
-                        onClick = { chosen = week - 1 },
+                        onClick = { onWeekChange(week - 1) },
                         enabled = week > 4,
                         description = ui.s(Res.string.previous_week),
                         pointsRight = false,
@@ -130,7 +144,7 @@ internal fun BabyScreen(
                         Text(ui.s(Res.string.week, week), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
                     }
                     WeekNavigationButton(
-                        onClick = { chosen = week + 1 },
+                        onClick = { onWeekChange(week + 1) },
                         enabled = week < 40,
                         description = ui.s(Res.string.next_week),
                         pointsRight = true,
@@ -141,12 +155,12 @@ internal fun BabyScreen(
                     BabyIllustration(week, Modifier.fillMaxWidth().heightIn(max = 280.dp))
                 }
                 Text(ui.s(Res.string.illustrative_reference_stage_week_does_not_represent_exact, referenceWeek), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
-                Slider(value = week.toFloat(), onValueChange = { chosen = it.roundToInt().coerceIn(4, 40) }, valueRange = 4f..40f, steps = 35, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.pregnancy_week) })
+                Slider(value = week.toFloat(), onValueChange = { onWeekChange(it.roundToInt().coerceIn(4, 40)) }, valueRange = 4f..40f, steps = 35, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.pregnancy_week) })
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(ui.s(Res.string.week_4), style = MaterialTheme.typography.labelSmall)
                     Text(ui.s(Res.string.week_40), style = MaterialTheme.typography.labelSmall)
                 }
-                if (nearestWeek != null && week != nearestWeek) TextButton(onClick = { chosen = null }) {
+                if (nearestWeek != null && week != nearestWeek) TextButton(onClick = { onWeekChange(null) }) {
                     Text(if (actualWeek == nearestWeek) ui.s(Res.string.back_to_my_week, actualWeek) else ui.s(Res.string.back_to_week, nearestWeek))
                 }
             }
@@ -167,11 +181,26 @@ internal fun BabyScreen(
                 androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
             }
         }
-        OutlinedButton(onClick = { onCatalogOpenChange(true) }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = onCatalogOpen, modifier = Modifier.fillMaxWidth()) {
             Text(ui.s(Res.string.catalog_open))
         }
         BabyQuestionsSection(week)
         Text(ui.s(Res.string.every_pregnancy_is_different_this_information_is_educational), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Preview(name = "My baby · exploring week 17", widthDp = 384, heightDp = 850, locale = "en")
+@Composable
+private fun BabyScreenPreview() {
+    PreviewContent(dark = true) {
+        BabyScreenContent(
+            babyName = previewProfile.babyName,
+            actualWeek = 16,
+            chosenWeek = 17,
+            scroll = rememberScrollState(),
+            onWeekChange = {},
+            onCatalogOpen = {},
+        )
     }
 }
 

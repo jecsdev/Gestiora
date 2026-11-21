@@ -611,5 +611,11 @@
     <string name="weight_input_kg">Poids (kg)</string>
     <string name="weight_input_lb">Poids (lb)</string>
     <string name="weight_input_range">Saisissez une valeur équivalente à 0–400 kg.</string>
-    <string name="backup_available_in_profile">Vous pouvez enregistrer une sauvegarde chiffrée depuis Profil pour transférer vos données vers un autre appareil.</string>
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_data_and_privacy">Données et confidentialité</string>
+    <string name="settings_local_storage">Gestiora conserve vos données de grossesse sur cet appareil.</string>
+    <string name="settings_restore_onboarding">Pour récupérer vos données sur un autre appareil, sélectionnez « Importer une sauvegarde chiffrée » lors de la configuration initiale.</string>
+    <string name="settings_premium_title">Gestiora Premium</string>
+    <string name="settings_premium_preview">Parmi les fonctionnalités prévues figurent un dossier prénatal avancé, des rapports PDF pour vos consultations et une expérience sans publicité.</string>
+    <string name="backup_available_in_settings">Vous pouvez enregistrer une sauvegarde chiffrée depuis les paramètres pour transférer vos données vers un autre appareil.</string>
 </resources>

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import gestiora.shared.presentation.ui.generated.resources.Res
@@ -104,5 +106,18 @@ internal fun WelcomeScreen(onStart: () -> Unit, restoreBackup: (@Composable () -
                 )
             }
         }
+    }
+}
+
+@Preview(name = "Welcome · encrypted backup", widthDp = 384, heightDp = 850, locale = "en")
+@Composable
+private fun WelcomeScreenPreview() {
+    PreviewContent {
+        WelcomeScreen(
+            onStart = {},
+            restoreBackup = {
+                TextButton(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("Import encrypted backup") }
+            },
+        )
     }
 }
