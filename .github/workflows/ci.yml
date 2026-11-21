@@ -95,6 +95,8 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphonesimulator --show-sdk-version
           chmod +x gradlew
+      - name: Bootstrap the Gradle wrapper
+        run: ./gradlew --version
       - name: Link the Kotlin iOS Simulator framework
         id: ios-framework
         run: |
