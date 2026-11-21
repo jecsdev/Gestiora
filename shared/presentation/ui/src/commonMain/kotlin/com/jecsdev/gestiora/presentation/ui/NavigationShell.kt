@@ -59,7 +59,7 @@ internal enum class AppDestination(val label: StringResource) {
     Home(Res.string.home), Calendar(Res.string.calendar), Records(Res.string.records), Baby(Res.string.my_baby), Profile(Res.string.profile)
 }
 
-private enum class SettingsRoute { Settings, Premium, Plans }
+private enum class DetailRoute { Settings, Premium, Plans, PlansFromRecords, History, HistoryFromRecords }
 
 @Composable
 internal fun NavigationShell(
@@ -70,22 +70,35 @@ internal fun NavigationShell(
     onEdit: () -> Unit,
     preferences: @Composable () -> Unit,
     exportBackup: (@Composable () -> Unit)? = null,
+    prenatalHistoryPreview: Boolean = false,
 ) {
     val ui = LocalUiCopy.current
     var navigationLocked by retain { mutableStateOf(false) }
     var calendarDate by retain { mutableStateOf<String?>(null) }
     var notesStatus by retain { mutableStateOf<NoteTaskStatus?>(null) }
     var openConditions by retain { mutableStateOf(false) }
-    var settingsRoute by retain { mutableStateOf<SettingsRoute?>(null) }
-    val settingsScroll = remember(settingsRoute != null) { ScrollState(0) }
+    var detailRoute by retain { mutableStateOf<DetailRoute?>(null) }
+    val recordSection = key(destination) {
+        retain {
+            mutableStateOf(
+                when {
+                    notesStatus != null -> RecordSection.NOTES
+                    openConditions -> RecordSection.CONDITIONS
+                    else -> RecordSection.HEALTH
+                }
+            )
+        }
+    }
+    val recordSectionsScroll = key(destination) { retain { ScrollState(0) } }
+    val settingsScroll = remember(detailRoute != null) { ScrollState(0) }
     val premiumScroll = remember(
-        settingsRoute == SettingsRoute.Premium || settingsRoute == SettingsRoute.Plans,
+        detailRoute == DetailRoute.Premium || detailRoute == DetailRoute.Plans || detailRoute == DetailRoute.History,
     ) { ScrollState(0) }
-    fun backFromSettings() {
-        settingsRoute = when (settingsRoute) {
-            SettingsRoute.Plans -> SettingsRoute.Premium
-            SettingsRoute.Premium -> SettingsRoute.Settings
-            SettingsRoute.Settings, null -> null
+    fun closeDetail() {
+        detailRoute = when (detailRoute) {
+            DetailRoute.Plans, DetailRoute.History -> DetailRoute.Premium
+            DetailRoute.Premium -> DetailRoute.Settings
+            DetailRoute.Settings, DetailRoute.PlansFromRecords, DetailRoute.HistoryFromRecords, null -> null
         }
     }
     var catalogOpen by retain { mutableStateOf(false) }
@@ -95,7 +108,7 @@ internal fun NavigationShell(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (settingsRoute != null || (destination == AppDestination.Baby && !showBabyContent)) return@Scaffold
+            if (detailRoute != null || (destination == AppDestination.Baby && !showBabyContent)) return@Scaffold
             Surface(modifier = Modifier.padding(horizontal = 10.dp).navigationBarsPadding().padding(bottom = 6.dp),
                 color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(30.dp), shadowElevation = 3.dp) {
                 NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
@@ -120,25 +133,27 @@ internal fun NavigationShell(
             }
         },
     ) { padding ->
-        key(destination, settingsRoute) {
+        key(destination, detailRoute) {
             Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).screenEntrance(12.dp)) {
-                AppointmentBackHandler(enabled = settingsRoute != null, onBack = ::backFromSettings)
-                when (settingsRoute) {
-                    SettingsRoute.Settings -> SettingsScreen(
-                        preferences, exportBackup, onBack = ::backFromSettings,
-                        onPremium = { settingsRoute = SettingsRoute.Premium }, scrollState = settingsScroll,
+                AppointmentBackHandler(enabled = detailRoute != null, onBack = ::closeDetail)
+                when (detailRoute) {
+                    DetailRoute.Settings -> SettingsScreen(
+                        preferences, exportBackup, onBack = ::closeDetail,
+                        onPremium = { detailRoute = DetailRoute.Premium }, scrollState = settingsScroll,
                     )
-                    SettingsRoute.Premium -> PremiumScreen(
-                        onBack = ::backFromSettings, onPlans = { settingsRoute = SettingsRoute.Plans },
+                    DetailRoute.Premium -> PremiumScreen(
+                        onBack = ::closeDetail, onPlans = { detailRoute = DetailRoute.Plans },
                         scrollState = premiumScroll,
+                        onHistory = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.History }) else null,
                     )
-                    SettingsRoute.Plans -> PremiumPlansScreen(onBack = ::backFromSettings)
+                    DetailRoute.Plans, DetailRoute.PlansFromRecords -> PremiumPlansScreen(onBack = ::closeDetail)
+                    DetailRoute.History, DetailRoute.HistoryFromRecords -> PrenatalHistoryRoute(onBack = ::closeDetail)
                     null -> when (destination) {
                         AppDestination.Home -> PregnancyDashboard(
                             profile, viewModel, koinInject<AppointmentViewModel>(),
                             onProfile = { onDestinationChange(AppDestination.Profile) },
                             onBaby = { onDestinationChange(AppDestination.Baby) },
-                            onSettings = { settingsRoute = SettingsRoute.Settings },
+                            onSettings = { detailRoute = DetailRoute.Settings },
                             followUpContent = {
                                 PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
                                     openConditions = false
@@ -156,7 +171,15 @@ internal fun NavigationShell(
                             onDestinationChange(AppDestination.Calendar)
                         }
                         AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
-                        AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
+                        AppDestination.Records -> RecordsScreen(
+                            initialNotesStatus = notesStatus,
+                            selected = recordSection.value,
+                            sectionsScroll = recordSectionsScroll,
+                            onSectionChange = { recordSection.value = it },
+                            onPremiumPlans = { detailRoute = DetailRoute.PlansFromRecords },
+                            onHistory = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.HistoryFromRecords }) else null,
+                            onNavigationLockChange = { navigationLocked = it },
+                        )
                         AppDestination.Baby -> BabyScreen(profile, viewModel, catalogTransition, showBabyContent) { catalogOpen = it }
                         AppDestination.Profile -> ProfileScreen(profile, onEdit)
                     }

@@ -48,6 +48,7 @@ fun App(
     notificationControls: NotificationControls = NotificationControls(),
     backupControls: BackupControls? = null,
     nativeAd: NativeAdContent? = null,
+    prenatalHistoryPreview: Boolean = false,
 ) {
     val application = applicationGraph ?: retain { RetainedAppGraph(CoreDependencyInjection.modules + platformModules) }.application
     KoinIsolatedContext(context = application) {
@@ -59,7 +60,9 @@ fun App(
         ) {
             UiCopyProvider {
                 MotionPreferences {
-                    ThemeRoot(koinInject()) { preferences -> ProfileRoot(koinInject(), preferences, backupControls) }
+                    ThemeRoot(koinInject()) { preferences ->
+                        ProfileRoot(koinInject(), preferences, backupControls, prenatalHistoryPreview)
+                    }
                 }
             }
         }
@@ -67,7 +70,12 @@ fun App(
 }
 
 @Composable
-private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable () -> Unit, backup: BackupControls?) {
+private fun ProfileRoot(
+    viewModel: ProfileViewModel,
+    preferences: @Composable () -> Unit,
+    backup: BackupControls?,
+    prenatalHistoryPreview: Boolean,
+) {
     val ui = LocalUiCopy.current
     var loadAttempt by retain { mutableIntStateOf(0) }
     var state by retain { mutableStateOf<ProfileLoad>(ProfileLoad.Loading) }
@@ -131,7 +139,8 @@ private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable ()
         )
         is ProfileLoad.Ready -> {
             NavigationShell(current.profile, viewModel, destination, onDestinationChange = { destination = it },
-                onEdit = { editing = true }, preferences = preferences, exportBackup = backup?.exportAction)
+                onEdit = { editing = true }, preferences = preferences, exportBackup = backup?.exportAction,
+                prenatalHistoryPreview = prenatalHistoryPreview)
             if (editing) {
                 RecordFormSheet(busy = saving, onDismissRequest = { requestEditCancel = true }) {
                     OnboardingScreen(

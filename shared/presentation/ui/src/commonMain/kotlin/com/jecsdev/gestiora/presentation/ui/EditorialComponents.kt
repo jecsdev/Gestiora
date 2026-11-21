@@ -39,9 +39,9 @@ import gestiora.shared.presentation.ui.generated.resources.Res
 import gestiora.shared.presentation.ui.generated.resources.back
 
 @Composable
-internal fun ScreenBackButton(onBack: () -> Unit) {
+internal fun ScreenBackButton(onBack: () -> Unit, enabled: Boolean = true) {
     val ui = LocalUiCopy.current
-    TextButton(onClick = onBack) {
+    TextButton(onClick = onBack, enabled = enabled) {
         val arrowColor = LocalContentColor.current
         Canvas(Modifier.size(20.dp)) {
             val middle = size.height / 2

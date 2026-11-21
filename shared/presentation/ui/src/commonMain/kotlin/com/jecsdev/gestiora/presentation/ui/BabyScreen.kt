@@ -35,7 +35,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,7 +61,6 @@ import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
 import com.jecsdev.gestiora.presentation.viewmodels.EducationViewModel
 import org.koin.compose.koinInject
-import kotlin.math.roundToInt
 
 internal data class BabyStage(val from: Int, val size: StringResource, val text: StringResource, val milestones: List<StringResource>)
 
@@ -155,7 +153,13 @@ private fun BabyScreenContent(
                     BabyIllustration(week, Modifier.fillMaxWidth().heightIn(max = 280.dp))
                 }
                 Text(ui.s(Res.string.illustrative_reference_stage_week_does_not_represent_exact, referenceWeek), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
-                Slider(value = week.toFloat(), onValueChange = { onWeekChange(it.roundToInt().coerceIn(4, 40)) }, valueRange = 4f..40f, steps = 35, modifier = Modifier.semantics { contentDescription = ui.s(Res.string.pregnancy_week) })
+                PastelStepSlider(
+                    value = week,
+                    range = 4..40,
+                    label = ui.s(Res.string.pregnancy_week),
+                    valueLabel = ui.s(Res.string.week, week),
+                    onValueChange = { onWeekChange(it) },
+                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(ui.s(Res.string.week_4), style = MaterialTheme.typography.labelSmall)
                     Text(ui.s(Res.string.week_40), style = MaterialTheme.typography.labelSmall)

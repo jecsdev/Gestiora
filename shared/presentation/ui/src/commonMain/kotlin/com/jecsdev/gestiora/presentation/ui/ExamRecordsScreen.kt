@@ -15,7 +15,12 @@ import com.jecsdev.gestiora.presentation.viewmodels.ExamRecordViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockChange: (Boolean) -> Unit) {
+internal fun ExamRecordsScreen(
+    viewModel: ExamRecordViewModel,
+    onNavigationLockChange: (Boolean) -> Unit,
+    onPremiumPlans: () -> Unit,
+    onHistory: (() -> Unit)?,
+) {
     val ui = LocalUiCopy.current
     val scope = retainedOperationScope()
     var exams by retain { mutableStateOf<List<ExamRecord>?>(null) }
@@ -83,15 +88,7 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             EditorialStatus(exam.status.label(ui))
                             Text(exam.name, style = MaterialTheme.typography.titleMedium)
-                            Text(exam.kind.label(ui), style = MaterialTheme.typography.labelMedium)
-                            ExamRecordDetail(ui.s(Res.string.reference_date), (exam.completed ?: exam.scheduled ?: exam.requested)?.let { dateLabel(ui, it) } ?: ui.s(Res.string.no_date_recorded))
-                            exam.requested?.let { ExamRecordDetail(ui.s(Res.string.request_date), dateLabel(ui, it)) }
-                            exam.scheduled?.let { ExamRecordDetail(ui.s(Res.string.scheduled_date), dateLabel(ui, it)) }
-                            exam.completed?.let { ExamRecordDetail(ui.s(Res.string.recorded_completion_date), dateLabel(ui, it)) }
-                            exam.physician?.let { ExamRecordDetail(ui.s(Res.string.requesting_doctor), it) }
-                            exam.results?.let { ExamRecordDetail(ui.s(Res.string.results_summary), it) }
-                            exam.notes?.let { ExamRecordDetail(ui.s(Res.string.medical_observations), it) }
-                            exam.attachment?.let { ExamRecordDetail(ui.s(Res.string.document_or_image_reference), it) }
+                            ExamRecordDetails(exam)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = exam; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
                                 TextButton(enabled = !busy, onClick = { deleting = exam; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }
@@ -100,6 +97,9 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
                     }
                 }
                 if (operationError) Text(ui.s(Res.string.we_couldn_t_delete_the_examination_try_again), color = MaterialTheme.colorScheme.error)
+                if (!busy && editing == null && deleting == null) {
+                    PremiumRecordsBanner(onPlans = onPremiumPlans, onHistory = onHistory)
+                }
             }
         }
     }
@@ -126,6 +126,21 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
 
 
 
+
+@Composable
+internal fun ExamRecordDetails(exam: ExamRecord) {
+    val ui = LocalUiCopy.current
+    Text(exam.kind.label(ui), style = MaterialTheme.typography.labelMedium)
+    val referenceDate = exam.completed ?: exam.scheduled ?: exam.requested
+    ExamRecordDetail(ui.s(Res.string.reference_date), referenceDate?.let { dateLabel(ui, it) } ?: ui.s(Res.string.no_date_recorded))
+    exam.requested?.let { ExamRecordDetail(ui.s(Res.string.request_date), dateLabel(ui, it)) }
+    exam.scheduled?.let { ExamRecordDetail(ui.s(Res.string.scheduled_date), dateLabel(ui, it)) }
+    exam.completed?.let { ExamRecordDetail(ui.s(Res.string.recorded_completion_date), dateLabel(ui, it)) }
+    exam.physician?.let { ExamRecordDetail(ui.s(Res.string.requesting_doctor), it) }
+    exam.results?.let { ExamRecordDetail(ui.s(Res.string.results_summary), it) }
+    exam.notes?.let { ExamRecordDetail(ui.s(Res.string.medical_observations), it) }
+    exam.attachment?.let { ExamRecordDetail(ui.s(Res.string.document_or_image_reference), it) }
+}
 
 @Composable
 private fun ExamRecordDetail(label: String, value: String) {

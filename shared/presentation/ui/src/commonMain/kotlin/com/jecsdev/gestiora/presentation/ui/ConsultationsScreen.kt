@@ -83,14 +83,7 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(consultation.doctor ?: ui.s(Res.string.prenatal_consultation), style = MaterialTheme.typography.titleMedium)
                             Text(dateLabel(ui, consultation.date), style = MaterialTheme.typography.labelLarge)
-                            consultation.gestationalAge?.let { ConsultationDetail(ui.s(Res.string.recorded_gestational_age), it) }
-                            consultation.observations?.let { ConsultationDetail(ui.s(Res.string.observations), it) }
-                            consultation.instructions?.let { ConsultationDetail(ui.s(Res.string.instructions), it) }
-                            consultation.medications?.let { ConsultationDetail(ui.s(Res.string.medications), it) }
-                            consultation.exams?.let { ConsultationDetail(ui.s(Res.string.examinations), it) }
-                            consultation.followUp?.let { ConsultationDetail(ui.s(Res.string.follow_up), it) }
-                            consultation.nextDate?.let { ConsultationDetail(ui.s(Res.string.next_appointment), dateLabel(ui, it)) }
-                            consultation.attachments?.let { ConsultationDetail(ui.s(Res.string.attachments_reference), it) }
+                            ConsultationRecordDetails(consultation)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = consultation; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
                                 TextButton(enabled = !busy, onClick = { deleting = consultation; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }
@@ -123,6 +116,19 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
     }
 }
 
+
+@Composable
+internal fun ConsultationRecordDetails(consultation: Consultation) {
+    val ui = LocalUiCopy.current
+    consultation.gestationalAge?.let { ConsultationDetail(ui.s(Res.string.recorded_gestational_age), it) }
+    consultation.observations?.let { ConsultationDetail(ui.s(Res.string.observations), it) }
+    consultation.instructions?.let { ConsultationDetail(ui.s(Res.string.instructions), it) }
+    consultation.medications?.let { ConsultationDetail(ui.s(Res.string.medications), it) }
+    consultation.exams?.let { ConsultationDetail(ui.s(Res.string.examinations), it) }
+    consultation.followUp?.let { ConsultationDetail(ui.s(Res.string.follow_up), it) }
+    consultation.nextDate?.let { ConsultationDetail(ui.s(Res.string.next_appointment), dateLabel(ui, it)) }
+    consultation.attachments?.let { ConsultationDetail(ui.s(Res.string.attachments_reference), it) }
+}
 
 @Composable
 private fun ConsultationDetail(label: String, value: String) {

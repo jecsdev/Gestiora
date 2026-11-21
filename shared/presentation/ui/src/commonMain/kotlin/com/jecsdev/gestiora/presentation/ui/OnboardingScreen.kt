@@ -143,7 +143,7 @@ fun OnboardingScreen(
         Text(ui.s(Res.string.brand), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextButton(onClick = ::back, enabled = !saving) { Text(ui.s(Res.string.back)) }
+            ScreenBackButton(onBack = ::back, enabled = !saving)
             Column(Modifier.weight(1f)) {
                 Text(ui.s(Res.string.your_setup_of_3, step), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp).semantics {
