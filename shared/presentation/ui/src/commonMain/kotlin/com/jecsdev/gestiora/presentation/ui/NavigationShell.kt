@@ -32,6 +32,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.ScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +59,8 @@ internal enum class AppDestination(val label: StringResource) {
     Home(Res.string.home), Calendar(Res.string.calendar), Records(Res.string.records), Baby(Res.string.my_baby), Profile(Res.string.profile)
 }
 
+private enum class SettingsRoute { Settings, Premium, Plans }
+
 @Composable
 internal fun NavigationShell(
     profile: PregnancyProfile,
@@ -72,7 +76,18 @@ internal fun NavigationShell(
     var calendarDate by retain { mutableStateOf<String?>(null) }
     var notesStatus by retain { mutableStateOf<NoteTaskStatus?>(null) }
     var openConditions by retain { mutableStateOf(false) }
-    var settingsOpen by retain { mutableStateOf(false) }
+    var settingsRoute by retain { mutableStateOf<SettingsRoute?>(null) }
+    val settingsScroll = remember(settingsRoute != null) { ScrollState(0) }
+    val premiumScroll = remember(
+        settingsRoute == SettingsRoute.Premium || settingsRoute == SettingsRoute.Plans,
+    ) { ScrollState(0) }
+    fun backFromSettings() {
+        settingsRoute = when (settingsRoute) {
+            SettingsRoute.Plans -> SettingsRoute.Premium
+            SettingsRoute.Premium -> SettingsRoute.Settings
+            SettingsRoute.Settings, null -> null
+        }
+    }
     var catalogOpen by retain { mutableStateOf(false) }
     val catalogTransition = updateTransition(catalogOpen, label = "Learning library")
     val showBabyContent = !catalogTransition.currentState && !catalogTransition.targetState && !catalogTransition.isRunning
@@ -80,7 +95,7 @@ internal fun NavigationShell(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (settingsOpen || (destination == AppDestination.Baby && !showBabyContent)) return@Scaffold
+            if (settingsRoute != null || (destination == AppDestination.Baby && !showBabyContent)) return@Scaffold
             Surface(modifier = Modifier.padding(horizontal = 10.dp).navigationBarsPadding().padding(bottom = 6.dp),
                 color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(30.dp), shadowElevation = 3.dp) {
                 NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
@@ -105,31 +120,46 @@ internal fun NavigationShell(
             }
         },
     ) { padding ->
-        key(destination, settingsOpen) {
+        key(destination, settingsRoute) {
             Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).screenEntrance(12.dp)) {
-                if (settingsOpen) {
-                    AppointmentBackHandler(enabled = true, onBack = { settingsOpen = false })
-                    SettingsScreen(preferences, exportBackup, onBack = { settingsOpen = false })
-                } else when (destination) {
-                    AppDestination.Home -> PregnancyDashboard(profile, viewModel, koinInject<AppointmentViewModel>(), onProfile = { onDestinationChange(AppDestination.Profile) }, onBaby = { onDestinationChange(AppDestination.Baby) }, onSettings = { settingsOpen = true }, followUpContent = {
-                        PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
-                            openConditions = false
-                            notesStatus = NoteTaskStatus.PENDING
-                            onDestinationChange(AppDestination.Records)
+                AppointmentBackHandler(enabled = settingsRoute != null, onBack = ::backFromSettings)
+                when (settingsRoute) {
+                    SettingsRoute.Settings -> SettingsScreen(
+                        preferences, exportBackup, onBack = ::backFromSettings,
+                        onPremium = { settingsRoute = SettingsRoute.Premium }, scrollState = settingsScroll,
+                    )
+                    SettingsRoute.Premium -> PremiumScreen(
+                        onBack = ::backFromSettings, onPlans = { settingsRoute = SettingsRoute.Plans },
+                        scrollState = premiumScroll,
+                    )
+                    SettingsRoute.Plans -> PremiumPlansScreen(onBack = ::backFromSettings)
+                    null -> when (destination) {
+                        AppDestination.Home -> PregnancyDashboard(
+                            profile, viewModel, koinInject<AppointmentViewModel>(),
+                            onProfile = { onDestinationChange(AppDestination.Profile) },
+                            onBaby = { onDestinationChange(AppDestination.Baby) },
+                            onSettings = { settingsRoute = SettingsRoute.Settings },
+                            followUpContent = {
+                                PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
+                                    openConditions = false
+                                    notesStatus = NoteTaskStatus.PENDING
+                                    onDestinationChange(AppDestination.Records)
+                                }
+                                MedicalFollowUpSection(koinInject<MedicalConditionViewModel>()) {
+                                    notesStatus = null
+                                    openConditions = true
+                                    onDestinationChange(AppDestination.Records)
+                                }
+                            },
+                        ) { date ->
+                            calendarDate = date
+                            onDestinationChange(AppDestination.Calendar)
                         }
-                        MedicalFollowUpSection(koinInject<MedicalConditionViewModel>()) {
-                            notesStatus = null
-                            openConditions = true
-                            onDestinationChange(AppDestination.Records)
-                        }
-                    }) { date ->
-                        calendarDate = date
-                        onDestinationChange(AppDestination.Calendar)
+                        AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
+                        AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
+                        AppDestination.Baby -> BabyScreen(profile, viewModel, catalogTransition, showBabyContent) { catalogOpen = it }
+                        AppDestination.Profile -> ProfileScreen(profile, onEdit)
                     }
-                    AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
-                    AppDestination.Records -> RecordsScreen(notesStatus, openConditions) { navigationLocked = it }
-                    AppDestination.Baby -> BabyScreen(profile, viewModel, catalogTransition, showBabyContent) { catalogOpen = it }
-                    AppDestination.Profile -> ProfileScreen(profile, onEdit)
                 }
             }
         }

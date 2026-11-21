@@ -173,6 +173,7 @@ private fun PregnancyDashboardContent(
         followUpContent()
         HomeQuestions()
         Text(ui.s(Res.string.educational_information_gestiora_does_not_diagnose_always_consult), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LocalNativeAd.current?.invoke(NativeAdPlacement.HomeFooter)
     }
 }
 

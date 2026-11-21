@@ -47,11 +47,16 @@ fun App(
     applicationGraph: org.koin.core.KoinApplication? = null,
     notificationControls: NotificationControls = NotificationControls(),
     backupControls: BackupControls? = null,
+    nativeAd: NativeAdContent? = null,
 ) {
     val application = applicationGraph ?: retain { RetainedAppGraph(CoreDependencyInjection.modules + platformModules) }.application
     KoinIsolatedContext(context = application) {
         // Material controls also use rememberSaveable internally. Medical drafts stay in RAM.
-        CompositionLocalProvider(LocalSaveableStateRegistry provides null, LocalNotificationControls provides notificationControls) {
+        CompositionLocalProvider(
+            LocalSaveableStateRegistry provides null,
+            LocalNotificationControls provides notificationControls,
+            LocalNativeAd provides nativeAd,
+        ) {
             UiCopyProvider {
                 MotionPreferences {
                     ThemeRoot(koinInject()) { preferences -> ProfileRoot(koinInject(), preferences, backupControls) }

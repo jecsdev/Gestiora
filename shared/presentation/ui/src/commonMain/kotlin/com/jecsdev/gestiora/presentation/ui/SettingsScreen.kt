@@ -1,6 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -33,10 +35,12 @@ internal fun SettingsScreen(
     preferences: @Composable () -> Unit,
     exportBackup: (@Composable () -> Unit)?,
     onBack: () -> Unit,
+    onPremium: () -> Unit,
+    scrollState: ScrollState = rememberScrollState(),
 ) {
     val ui = LocalUiCopy.current
     Column(
-        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(scrollState).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -57,8 +61,10 @@ internal fun SettingsScreen(
         EditorialSection(ui.s(Res.string.settings_premium_title)) {
             EditorialRecordCard {
                 Text(ui.s(Res.string.settings_premium_preview), style = MaterialTheme.typography.bodyMedium)
+                TextButton(onClick = onPremium) { Text(ui.s(Res.string.premium_view_benefits)) }
             }
         }
+        LocalNativeAd.current?.invoke(NativeAdPlacement.SettingsFooter)
     }
 }
 
@@ -74,6 +80,7 @@ private fun SettingsScreenPreview() {
                 OutlinedButton(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("Export encrypted backup") }
             },
             onBack = {},
+            onPremium = {},
         )
     }
 }

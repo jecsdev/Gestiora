@@ -1,0 +1,5 @@
+<resources>
+    <string name="sample_native_ad_label">Annonce · Exemple</string>
+    <string name="sample_native_ad_headline">Écoutez vos podcasts</string>
+    <string name="sample_native_ad_action">En savoir plus</string>
+</resources>
