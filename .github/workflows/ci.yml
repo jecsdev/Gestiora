@@ -101,8 +101,17 @@ jobs:
         id: ios-framework
         run: |
           mkdir -p "$RUNNER_TEMP/gestiora-ios"
-          ./gradlew --console=plain :shared:presentation:ui:linkDebugFrameworkIosSimulatorArm64 \
-            2>&1 | tee "$RUNNER_TEMP/gestiora-ios/kotlin-native.log"
+          log="$RUNNER_TEMP/gestiora-ios/kotlin-native.log"
+          if ! ./gradlew --console=plain :shared:presentation:ui:linkDebugFrameworkIosSimulatorArm64 \
+            2>&1 | tee "$log"; then
+            awk '/^e: / {
+              gsub(/%/, "%25")
+              sub(/\r$/, "")
+              print "::error title=Kotlin/Native::" $0
+              if (++errors == 8) exit
+            }' "$log"
+            exit 1
+          fi
           tar -czf "$RUNNER_TEMP/gestiora-ios/Shared-iosSimulatorArm64.tar.gz" \
             -C shared/presentation/ui/build/bin/iosSimulatorArm64/debugFramework Shared.framework
       - name: Build the iOS app without signing
