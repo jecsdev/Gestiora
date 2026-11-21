@@ -1,0 +1,135 @@
+name: Gestiora CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  android:
+    name: Android build and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Build Android variants and run host tests
+        id: android-build
+        run: |
+          chmod +x gradlew
+          ./gradlew --console=plain \
+            :androidApp:assembleInternalDebug \
+            :androidApp:bundleProductionRelease \
+            :androidApp:testInternalDebugUnitTest \
+            testAndroidHostTest
+      - name: Enable KVM for the Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' |
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run Android instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          script: ./gradlew --console=plain :shared:data:datasources-core:connectedAndroidDeviceTest
+      - name: Upload Android builds
+        if: ${{ !cancelled() && steps.android-build.outcome == 'success' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-builds
+          path: |
+            androidApp/build/outputs/apk/internal/debug/*.apk
+            androidApp/build/outputs/bundle/productionRelease/*.aab
+          if-no-files-found: error
+          retention-days: 3
+      - name: Upload Android test reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-test-reports
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
+            **/build/reports/androidTests/
+            **/build/outputs/androidTest-results/
+          retention-days: 7
+
+  ios:
+    name: iOS Simulator build
+    runs-on: macos-26
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.4.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Verify the Xcode and Apple Silicon toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-version
+          chmod +x gradlew
+      - name: Link the Kotlin iOS Simulator framework
+        id: ios-framework
+        run: |
+          mkdir -p "$RUNNER_TEMP/gestiora-ios"
+          ./gradlew --console=plain :shared:presentation:ui:linkDebugFrameworkIosSimulatorArm64 \
+            2>&1 | tee "$RUNNER_TEMP/gestiora-ios/kotlin-native.log"
+          tar -czf "$RUNNER_TEMP/gestiora-ios/Shared-iosSimulatorArm64.tar.gz" \
+            -C shared/presentation/ui/build/bin/iosSimulatorArm64/debugFramework Shared.framework
+      - name: Build the iOS app without signing
+        run: |
+          xcodebuild \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/gestiora-ios-derived" \
+            -resultBundlePath "$RUNNER_TEMP/gestiora-ios/Build.xcresult" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee "$RUNNER_TEMP/gestiora-ios/xcodebuild.log"
+          tar -czf "$RUNNER_TEMP/gestiora-ios/Gestiora-iosSimulatorArm64.tar.gz" \
+            -C "$RUNNER_TEMP/gestiora-ios-derived/Build/Products/Debug-iphonesimulator" Gestiora.app
+      - name: Upload iOS simulator builds
+        if: ${{ !cancelled() && steps.ios-framework.outcome == 'success' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-simulator-builds
+          path: ${{ runner.temp }}/gestiora-ios/*.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+      - name: Upload iOS diagnostics
+        if: ${{ !cancelled() && steps.ios-framework.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-build-diagnostics
+          path: |
+            ${{ runner.temp }}/gestiora-ios/*.log
+            ${{ runner.temp }}/gestiora-ios/Build.xcresult/
+          retention-days: 7

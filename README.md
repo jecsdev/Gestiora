@@ -29,3 +29,5 @@ Local appointment/examination notifications and verified legacy file/key cleanup
 - Android production: in Android Studio, use **Build → Generate Signed Bundle / APK** with the `productionRelease` variant and your release key. `./gradlew :androidApp:bundleProductionRelease` also builds an unsigned bundle for local R8 checks.
 - Common Android host tests: `./gradlew :shared:core:common:testAndroidHostTest`
 - iOS: open `iosApp` in Xcode on macOS and run the app there.
+
+See [Continuous integration](docs/CI.md) for Android tests, unsigned iOS Simulator builds, manual runs, and CI artifacts.
