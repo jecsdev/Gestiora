@@ -45,7 +45,7 @@ class ProtectedClinicalStorage(
         ensureCollectionsImported()
         if (!dao.canRestoreBackup()) return@withLock false
         require(PROFILE in payloads && stores.containsAll(payloads.keys))
-        payloads.forEach(::validate)
+        payloads.forEach { (store, payload) -> validate(store, payload) }
         val rows = payloads.map { (store, payload) -> ProtectedPayload(store, cipher.encrypt(store, payload)) }
         dao.restoreBackup(rows)
     }
