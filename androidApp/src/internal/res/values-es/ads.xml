@@ -1,5 +1,4 @@
 <resources>
-    <string name="sample_native_ad_label">Anuncio · Ejemplo</string>
-    <string name="sample_native_ad_headline">Escucha tus podcasts</string>
-    <string name="sample_native_ad_action">Ver más</string>
+    <string name="native_ad_label">Anuncio</string>
+    <string name="ad_privacy_options">Opciones de privacidad publicitaria</string>
 </resources>

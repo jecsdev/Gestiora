@@ -29,31 +29,28 @@ internal fun ExamRecordsScreen(
     var busy by retain { mutableStateOf(false) }
     var editing by retain { mutableStateOf<ExamRecord?>(null) }
     var deleting by retain { mutableStateOf<ExamRecord?>(null) }
-    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         exams = result.getOrNull()
         loadError = result.isFailure
     }
     LaunchedEffect(viewModel) { reload() }
-    AppointmentBackHandler(busy || editing != null || deleting != null) {
+    AppointmentBackHandler(busy || deleting != null) {
         when {
             busy -> Unit
-            discard -> discard = false
             deleting != null -> { deleting = null; onNavigationLockChange(false) }
-            editing != null -> discard = true
         }
     }
-    if (discard) AlertDialog(
-        onDismissRequest = { discard = false },
-        title = { Text(ui.s(Res.string.discard_changes)) },
-        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
-    )
     if (editing != null) {
-        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
-            ExamRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { exam ->
+        RecordEditorSheet(
+            busy = busy,
+            onClose = {
+                editing = null
+                operationError = false
+                onNavigationLockChange(false)
+            },
+        ) { onCancel, onTextChanges ->
+            ExamRecordForm(editing!!, busy, operationError, onCancel = onCancel, onTextChanges = onTextChanges) { exam ->
                 busy = true
                 scope.launch {
                     try {
@@ -149,7 +146,7 @@ private fun ExamRecordDetail(label: String, value: String) {
 }
 
 @Composable
-private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (ExamRecord) -> Unit) {
+private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onTextChanges: (Boolean) -> Unit, onSave: (ExamRecord) -> Unit) {
     val ui = LocalUiCopy.current
     var name by retain(initial) { mutableStateOf(initial.name) }
     var kind by retain(initial) { mutableStateOf(initial.kind) }
@@ -164,6 +161,15 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
     var reminder by retain(initial) { mutableStateOf(initial.reminder) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var kindMenu by retain(initial) { mutableStateOf(false) }
+    SideEffect {
+        onTextChanges(
+            name.hasTextChangedFrom(initial.name) ||
+                physician.hasTextChangedFrom(initial.physician) ||
+                results.hasTextChangedFrom(initial.results) ||
+                notes.hasTextChangedFrom(initial.notes) ||
+                attachment.hasTextChangedFrom(initial.attachment),
+        )
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_examination) else ui.s(Res.string.edit_examination))
         ExamRecordTextField(ui.s(Res.string.examination_name), name, 512, busy, invalid && name.isBlank()) { name = it }

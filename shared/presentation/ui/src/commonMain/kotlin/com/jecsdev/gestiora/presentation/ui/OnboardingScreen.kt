@@ -76,9 +76,20 @@ fun OnboardingScreen(
     var referenceDays by retain(initialProfile) { mutableStateOf(initialProfile?.dating?.referenceDays?.toString() ?: "0") }
     var error by retain { mutableStateOf<org.jetbrains.compose.resources.StringResource?>(null) }
     var discardOpen by retain(initialProfile) { mutableStateOf(false) }
+
+    fun requestProfileClose() {
+        val original = initialProfile ?: return
+        if (saving) return
+        val hasTextChanges = motherName.hasTextChangedFrom(original.motherName) ||
+            babyName.hasTextChangedFrom(original.babyName) ||
+            referenceWeeks.hasTextChangedFrom(original.dating.referenceWeeks?.toString()) ||
+            referenceDays.hasTextChangedFrom(original.dating.referenceDays?.toString() ?: "0")
+        if (hasTextChanges) discardOpen = true else onCancel()
+    }
+
     LaunchedEffect(cancelRequested) {
         if (cancelRequested) {
-            if (!saving && initialProfile != null) discardOpen = true
+            requestProfileClose()
             onCancelRequestHandled()
         }
     }
@@ -88,7 +99,7 @@ fun OnboardingScreen(
             OnboardingBackAction.BLOCK, OnboardingBackAction.SYSTEM -> Unit
             OnboardingBackAction.DISMISS_DISCARD -> discardOpen = false
             OnboardingBackAction.PREVIOUS_STEP -> { step--; error = null }
-            OnboardingBackAction.CONFIRM_DISCARD -> discardOpen = true
+            OnboardingBackAction.CONFIRM_DISCARD -> requestProfileClose()
         }
     }
     AppointmentBackHandler(saving || step > 0 || initialProfile != null || discardOpen, ::back)

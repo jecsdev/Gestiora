@@ -81,3 +81,8 @@ androidComponents {
         variant.enable = if (isInternal) variant.buildType == "debug" else variant.buildType == "release"
     }
 }
+
+dependencies {
+    add("internalImplementation", libs.google.mobile.ads)
+    add("internalImplementation", libs.google.ump)
+}

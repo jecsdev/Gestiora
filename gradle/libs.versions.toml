@@ -20,9 +20,13 @@ room = "2.8.5"
 sqlite = "2.6.2"
 ksp = "2.3.14"
 bouncycastle = "1.87"
+google-mobile-ads = "25.5.0"
+google-ump = "4.0.0"
 
 [libraries]
 bouncycastle-provider = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+google-mobile-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "google-mobile-ads" }
+google-ump = { module = "com.google.android.ump:user-messaging-platform", version.ref = "google-ump" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
