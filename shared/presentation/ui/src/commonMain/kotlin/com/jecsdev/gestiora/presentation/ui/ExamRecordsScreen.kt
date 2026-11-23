@@ -86,6 +86,7 @@ internal fun ExamRecordsScreen(
                             EditorialStatus(exam.status.label(ui))
                             Text(exam.name, style = MaterialTheme.typography.titleMedium)
                             ExamRecordDetails(exam)
+                            ClinicalAttachmentActions(ClinicalAttachmentKind.Exam, exam.id, !busy)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = exam; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
                                 TextButton(enabled = !busy, onClick = { deleting = exam; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }

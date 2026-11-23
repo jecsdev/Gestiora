@@ -81,6 +81,7 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
                             Text(consultation.doctor ?: ui.s(Res.string.prenatal_consultation), style = MaterialTheme.typography.titleMedium)
                             Text(dateLabel(ui, consultation.date), style = MaterialTheme.typography.labelLarge)
                             ConsultationRecordDetails(consultation)
+                            ClinicalAttachmentActions(ClinicalAttachmentKind.Consultation, consultation.id, !busy)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = consultation; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
                                 TextButton(enabled = !busy, onClick = { deleting = consultation; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.jecsdev.gestiora.backup.rememberBackupControls
+import com.jecsdev.gestiora.attachments.rememberClinicalAttachments
 import com.jecsdev.gestiora.presentation.ui.App
 import com.jecsdev.gestiora.presentation.ui.NotificationControls
 import com.jecsdev.gestiora.reminders.AndroidReminderScheduler
@@ -55,7 +56,8 @@ class MainActivity : ComponentActivity() {
                         } else startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
                     }
                 },
-            ), nativeAd = rememberNativeAdContent(this), prenatalHistoryPreview = prenatalHistoryPreview)
+            ), nativeAd = rememberNativeAdContent(this), prenatalHistoryPreview = premiumFeaturePreview,
+                clinicalAttachment = rememberClinicalAttachments(app, allowImport = premiumFeaturePreview))
         }
     }
 }

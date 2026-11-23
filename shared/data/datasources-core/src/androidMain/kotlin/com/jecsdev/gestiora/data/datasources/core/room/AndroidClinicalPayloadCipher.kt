@@ -15,7 +15,7 @@ internal class AndroidClinicalPayloadCipher(
 ) : ClinicalPayloadCipher {
     private val lock = Any()
 
-    override fun encrypt(store: String, payload: String): ByteArray = synchronized(lock) {
+    override fun encryptBytes(store: String, payload: ByteArray): ByteArray = synchronized(lock) {
         val key = existingKey() ?: run {
             check(!hasCiphertext()) { "Clinical database key unavailable" }
             val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
@@ -32,10 +32,10 @@ internal class AndroidClinicalPayloadCipher(
         cipher.init(Cipher.ENCRYPT_MODE, key)
         cipher.updateAAD(HEADER + store.encodeToByteArray())
         check(cipher.iv.size == IV_SIZE)
-        HEADER + cipher.iv + cipher.doFinal(payload.encodeToByteArray())
+        HEADER + cipher.iv + cipher.doFinal(payload)
     }
 
-    override fun decrypt(store: String, ciphertext: ByteArray): String = synchronized(lock) {
+    override fun decryptBytes(store: String, ciphertext: ByteArray): ByteArray = synchronized(lock) {
         require(ciphertext.size >= HEADER.size + IV_SIZE + 16 && ciphertext.take(HEADER.size).toByteArray().contentEquals(HEADER)) {
             "Unsupported or damaged clinical database envelope"
         }
@@ -43,7 +43,7 @@ internal class AndroidClinicalPayloadCipher(
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, ciphertext.copyOfRange(HEADER.size, HEADER.size + IV_SIZE)))
         cipher.updateAAD(HEADER + store.encodeToByteArray())
-        cipher.doFinal(ciphertext.copyOfRange(HEADER.size + IV_SIZE, ciphertext.size)).decodeToString(throwOnInvalidSequence = true)
+        cipher.doFinal(ciphertext, HEADER.size + IV_SIZE, ciphertext.size - HEADER.size - IV_SIZE)
     }
 
     private fun existingKey(): SecretKey? =

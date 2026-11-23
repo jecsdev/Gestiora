@@ -150,18 +150,23 @@ private class BackupFlow(private val app: GestioraApplication) : RetainObserver 
             try {
                 if (exporting) {
                     encryptedFile = withContext(Dispatchers.IO) {
-                        BackupFile.encrypt(storage.backupSnapshot(), password)
+                        val snapshot = storage.backupSnapshot()
+                        try { BackupFile.encrypt(snapshot, password) } finally { snapshot.clearAttachments() }
                     }
                     state = BackupStep.ChooseDestination
                 } else {
                     val uri = checkNotNull(source)
                     val applied = withContext(Dispatchers.IO) {
                         if (!storage.canRestoreBackup()) return@withContext false
-                        val payloads = checkNotNull(resolver.openInputStream(uri)).use {
+                        val backup = checkNotNull(resolver.openInputStream(uri)).use {
                             BackupFile.decrypt(it, password)
                         }
-                        ensureActive()
-                        storage.restoreBackup(payloads)
+                        try {
+                            ensureActive()
+                            storage.restoreBackup(backup)
+                        } finally {
+                            backup.clearAttachments()
+                        }
                     }
                     if (applied) {
                         dismiss()

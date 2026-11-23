@@ -17,7 +17,7 @@ class ProtectedClinicalStorageTest {
             ProtectedClinicalStorage.COLLECTIONS.associateWith { store -> { "$store:example" } },
         )
         val snapshot = original.backupSnapshot()
-        assertEquals(9, snapshot.size)
+        assertEquals(9, snapshot.payloads.size)
 
         val target = Fixture()
         target.profile.raw = null
@@ -28,11 +28,11 @@ class ProtectedClinicalStorageTest {
         )
         assertTrue(restored.canRestoreBackup())
         assertFailsWith<IllegalArgumentException> {
-            restored.restoreBackup(snapshot + ("appointments" to "invalid"))
+            restored.restoreBackup(ClinicalBackup(snapshot.payloads + ("appointments" to "invalid")))
         }
         assertTrue(restored.canRestoreBackup())
         assertTrue(restored.restoreBackup(snapshot))
-        assertEquals(snapshot, restored.backupSnapshot())
+        assertEquals(snapshot.payloads, restored.backupSnapshot().payloads)
         assertFalse(restored.restoreBackup(snapshot))
         assertFalse(original.restoreBackup(snapshot))
     }
@@ -97,15 +97,20 @@ class ProtectedClinicalStorageTest {
         override fun validateCollection(store: String, payload: String) { require(payload.startsWith("$store:")) }
         override fun validateProfile(payload: String) { require(payload.startsWith("profile:")) }
         override fun validatePersonalReminders(payload: String) { require(payload.startsWith("reminders:")) }
+        override fun attachmentOwnerIds(store: String, payload: String) =
+            payload.substringAfter(':').split(',').filter { it.isNotEmpty() }.toSet()
     }
     // Test double only; actual AES/Keystore and SQLite transaction tests live in androidDeviceTest.
     private class Cipher : ClinicalPayloadCipher {
         var failEncrypt = false
-        override fun encrypt(store: String, payload: String): ByteArray { check(!failEncrypt); return "$store|$payload".encodeToByteArray() }
-        override fun decrypt(store: String, ciphertext: ByteArray): String {
-            val raw = ciphertext.decodeToString()
-            check(raw.startsWith("$store|"))
-            return raw.substringAfter('|')
+        override fun encryptBytes(store: String, payload: ByteArray): ByteArray {
+            check(!failEncrypt)
+            return "$store|".encodeToByteArray() + payload
+        }
+        override fun decryptBytes(store: String, ciphertext: ByteArray): ByteArray {
+            val prefix = "$store|".encodeToByteArray()
+            check(ciphertext.size >= prefix.size && prefix.indices.all { ciphertext[it] == prefix[it] })
+            return ciphertext.copyOfRange(prefix.size, ciphertext.size)
         }
     }
     private class Dao : ProtectedPayloadDao() {
@@ -122,6 +127,9 @@ class ProtectedClinicalStorageTest {
         override suspend fun markImported(marker: LegacyImport) { markers.add(marker.id); this.marker = true }
         override suspend fun write(payload: ProtectedPayload) { check(!failWrite); rows[payload.store] = payload }
         override suspend fun delete(store: String) { rows.remove(store) }
+        override suspend fun attachmentSizes() = rows.values.filter { it.store.startsWith("attachment:") }
+            .map { AttachmentRowSize(it.store, it.ciphertext.size) }
+        override suspend fun deleteAttachments(stores: List<String>) { stores.forEach { rows.remove(it) } }
         override suspend fun importOnce(id: String, payloads: List<ProtectedPayload>) {
             check(!failImport)
             if (marker) return
@@ -136,6 +144,30 @@ class ProtectedClinicalStorageTest {
         val cipher = Cipher()
     }
     private fun Fixture.storage() = ProtectedClinicalStorage(dao, cipher, profile, reminders, validator)
+
+    @Test fun attachmentsRestoreOnlyWithAnOwnerAndFollowRecordDeletion() = runBlocking {
+        val emptyCollections = ProtectedClinicalStorage.COLLECTIONS.associateWith { { null as String? } }
+        fun Fixture.open() = ProtectedClinicalStorage(dao, cipher, profile, reminders, validator, emptyCollections)
+        val source = Fixture().open()
+        val target = Fixture().apply { profile.raw = null; reminders.raw = null }.open()
+        val kind = AttachmentCollection.Exam
+        val file = ClinicalAttachment("écographie.pdf", "%PDF-example".encodeToByteArray())
+        source.write(kind.store, "exam_records:exam-1")
+        assertFailsWith<IllegalArgumentException> { source.writeAttachment(kind, "missing", file) }
+        source.writeAttachment(kind, "exam-1", file)
+        val backup = source.backupSnapshot()
+
+        val orphaned = ClinicalBackup(backup.payloads - kind.store, backup.attachments)
+        assertFailsWith<IllegalArgumentException> { target.restoreBackup(orphaned) }
+        assertTrue(target.canRestoreBackup())
+        assertTrue(target.restoreBackup(backup))
+        val restored = assertNotNull(target.readAttachment(kind, "exam-1"))
+        assertEquals(file.name, restored.name)
+        assertContentEquals(file.bytes, restored.bytes)
+        target.write(kind.store, "exam_records:")
+        assertNull(target.readAttachment(kind, "exam-1"))
+        assertTrue(target.backupSnapshot().attachments.isEmpty())
+    }
 
     @Test fun secondGroupPreservesFirstGroupAndNeverResurrectsLegacyCollections() = runBlocking {
         val f = Fixture()

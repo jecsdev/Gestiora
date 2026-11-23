@@ -3,4 +3,20 @@
     <string name="notification_channel">Scheduled reminders</string>
     <string name="notification_appointment">You have an appointment reminder. Open Gestiora to view it.</string>
     <string name="notification_exam">You have an examination reminder. Open Gestiora to view it.</string>
+    <string name="attachment_name">Attachment · %1$s</string>
+    <string name="attachment_add">Attach PDF or image</string>
+    <string name="attachment_replace">Replace attachment</string>
+    <string name="attachment_save_copy">Save a copy</string>
+    <string name="attachment_remove">Remove attachment</string>
+    <string name="attachment_replace_warning">The current file will be replaced only after the new one is saved.</string>
+    <string name="attachment_copy_warning">The copy is unencrypted. Choose a destination you trust.</string>
+    <string name="attachment_remove_warning">This removes the stored attachment from Gestiora.</string>
+    <string name="attachment_working">Working…</string>
+    <string name="attachment_failed">Couldn’t complete the attachment operation. Try again.</string>
+    <string name="attachment_invalid">Use a PDF, JPEG or PNG up to 4 MB.</string>
+    <string name="attachment_storage_limit">The attachment storage limit has been reached (64 files or 16 MB total).</string>
+    <string name="attachment_added">Attachment saved.</string>
+    <string name="attachment_copy_saved">Copy saved.</string>
+    <string name="attachment_removed">Attachment removed.</string>
+    <string name="attachment_read_failed">Couldn’t read the stored attachment.</string>
 </resources>

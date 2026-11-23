@@ -2,4 +2,20 @@
     <string name="notification_channel">Avisos programados</string>
     <string name="notification_appointment">Tienes un aviso de cita. Abre Gestiora para consultarlo.</string>
     <string name="notification_exam">Tienes un aviso de examen. Abre Gestiora para consultarlo.</string>
+    <string name="attachment_name">Adjunto · %1$s</string>
+    <string name="attachment_add">Adjuntar PDF o imagen</string>
+    <string name="attachment_replace">Reemplazar adjunto</string>
+    <string name="attachment_save_copy">Guardar una copia</string>
+    <string name="attachment_remove">Quitar adjunto</string>
+    <string name="attachment_replace_warning">El archivo actual se reemplazará cuando se guarde el nuevo.</string>
+    <string name="attachment_copy_warning">La copia se guarda sin cifrar. Elige un destino de confianza.</string>
+    <string name="attachment_remove_warning">Se quitará de Gestiora el archivo adjunto.</string>
+    <string name="attachment_working">Procesando…</string>
+    <string name="attachment_failed">No se pudo completar la operación con el adjunto. Inténtalo de nuevo.</string>
+    <string name="attachment_invalid">Usa un PDF, JPEG o PNG de hasta 4 MB.</string>
+    <string name="attachment_storage_limit">Se alcanzó el límite de almacenamiento de adjuntos (64 archivos o 16 MB en total).</string>
+    <string name="attachment_added">Adjunto guardado.</string>
+    <string name="attachment_copy_saved">Copia guardada.</string>
+    <string name="attachment_removed">Adjunto eliminado.</string>
+    <string name="attachment_read_failed">No se pudo leer el adjunto guardado.</string>
 </resources>

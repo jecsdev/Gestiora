@@ -50,6 +50,7 @@ fun App(
     nativeAd: NativeAdContent? = null,
     prenatalHistoryPreview: Boolean = false,
     premiumActive: Boolean = false,
+    clinicalAttachment: ClinicalAttachmentContent? = null,
 ) {
     val application = applicationGraph ?: retain { RetainedAppGraph(CoreDependencyInjection.modules + platformModules) }.application
     KoinIsolatedContext(context = application) {
@@ -58,6 +59,7 @@ fun App(
             LocalSaveableStateRegistry provides null,
             LocalNotificationControls provides notificationControls,
             LocalNativeAd provides nativeAd.takeUnless { premiumActive },
+            LocalClinicalAttachment provides clinicalAttachment,
         ) {
             UiCopyProvider {
                 MotionPreferences {

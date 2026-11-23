@@ -1,3 +1,3 @@
 package com.jecsdev.gestiora
 
-internal const val prenatalHistoryPreview = true
+internal const val premiumFeaturePreview = true
