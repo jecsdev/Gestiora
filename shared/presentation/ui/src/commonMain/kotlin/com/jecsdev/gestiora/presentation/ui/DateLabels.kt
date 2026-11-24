@@ -5,6 +5,9 @@ import gestiora.shared.presentation.ui.generated.resources.*
 private val shortMonths = listOf(Res.string.month_short_1, Res.string.month_short_2, Res.string.month_short_3, Res.string.month_short_4, Res.string.month_short_5, Res.string.month_short_6, Res.string.month_short_7, Res.string.month_short_8, Res.string.month_short_9, Res.string.month_short_10, Res.string.month_short_11, Res.string.month_short_12)
 private val fullMonths = listOf(Res.string.date_month_1, Res.string.date_month_2, Res.string.date_month_3, Res.string.date_month_4, Res.string.date_month_5, Res.string.date_month_6, Res.string.date_month_7, Res.string.date_month_8, Res.string.date_month_9, Res.string.date_month_10, Res.string.date_month_11, Res.string.date_month_12)
 
+internal fun monthLabel(ui: UiCopy, month: String): String =
+    ui.s(Res.string.premium_month_label, ui.s(fullMonths[month.substring(5).toInt() - 1]), month.take(4))
+
 /** Presentation only. Storage and calendar arithmetic keep ISO civil dates. */
 internal fun dateLabel(ui: UiCopy, value: String?, expanded: Boolean = false): String {
     if (value.isNullOrEmpty()) return "—"

@@ -51,6 +51,7 @@ fun App(
     prenatalHistoryPreview: Boolean = false,
     premiumActive: Boolean = false,
     clinicalAttachment: ClinicalAttachmentContent? = null,
+    prenatalReport: PrenatalReportControls? = null,
 ) {
     val application = applicationGraph ?: retain { RetainedAppGraph(CoreDependencyInjection.modules + platformModules) }.application
     KoinIsolatedContext(context = application) {
@@ -60,11 +61,12 @@ fun App(
             LocalNotificationControls provides notificationControls,
             LocalNativeAd provides nativeAd.takeUnless { premiumActive },
             LocalClinicalAttachment provides clinicalAttachment,
+            LocalPrenatalReport provides prenatalReport,
         ) {
             UiCopyProvider {
                 MotionPreferences {
                     ThemeRoot(koinInject()) { preferences ->
-                        ProfileRoot(koinInject(), preferences, backupControls, prenatalHistoryPreview)
+                        ProfileRoot(koinInject(), preferences, backupControls, prenatalHistoryPreview || premiumActive)
                     }
                 }
             }

@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -84,6 +85,8 @@ internal fun PremiumScreen(
     onPlans: () -> Unit,
     scrollState: ScrollState = rememberScrollState(),
     onHistory: (() -> Unit)? = null,
+    onStatistics: (() -> Unit)? = null,
+    onReport: (() -> Unit)? = null,
 ) {
     val ui = LocalUiCopy.current
     var expanded by retain { mutableStateOf<PremiumBenefit?>(PremiumBenefit.History) }
@@ -109,7 +112,12 @@ internal fun PremiumScreen(
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     PremiumBenefit.entries.forEach { benefit ->
                         if (benefit != PremiumBenefit.History) HorizontalDivider()
-                        PremiumBenefitRow(benefit, expanded == benefit) {
+                        val action = when (benefit) {
+                            PremiumBenefit.Reports -> onReport
+                            PremiumBenefit.Statistics -> onStatistics
+                            else -> null
+                        }
+                        PremiumBenefitRow(benefit, expanded == benefit, action) {
                             expanded = if (expanded == benefit) null else benefit
                         }
                     }
@@ -130,7 +138,7 @@ internal fun PremiumScreen(
 }
 
 @Composable
-private fun PremiumBenefitRow(benefit: PremiumBenefit, expanded: Boolean, onClick: () -> Unit) {
+private fun PremiumBenefitRow(benefit: PremiumBenefit, expanded: Boolean, action: (() -> Unit)?, onClick: () -> Unit) {
     val ui = LocalUiCopy.current
     val color = MaterialTheme.colorScheme.primary
     val duration = if (LocalReducedMotion.current) 0 else 220
@@ -165,13 +173,14 @@ private fun PremiumBenefitRow(benefit: PremiumBenefit, expanded: Boolean, onClic
         enter = fadeIn(tween(duration)) + expandVertically(tween(duration), expandFrom = Alignment.Top),
         exit = fadeOut(tween(duration)) + shrinkVertically(tween(duration), shrinkTowards = Alignment.Top),
     ) {
-        Text(
-            ui.s(benefit.detail),
-            modifier = (if (expanded) Modifier else Modifier.clearAndSetSemantics {})
+        Column(
+            (if (expanded) Modifier else Modifier.clearAndSetSemantics {})
                 .padding(start = 56.dp, end = 8.dp, bottom = 14.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        ) {
+            Text(ui.s(benefit.detail), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            action?.let { TextButton(onClick = it) { Text(ui.s(Res.string.premium_open_feature)) } }
+        }
     }
 }
 

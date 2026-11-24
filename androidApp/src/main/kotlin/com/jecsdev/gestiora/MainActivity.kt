@@ -20,6 +20,7 @@ import com.jecsdev.gestiora.attachments.rememberClinicalAttachments
 import com.jecsdev.gestiora.presentation.ui.App
 import com.jecsdev.gestiora.presentation.ui.NotificationControls
 import com.jecsdev.gestiora.reminders.AndroidReminderScheduler
+import com.jecsdev.gestiora.report.rememberPrenatalReport
 
 class MainActivity : ComponentActivity() {
     private var resumed by mutableIntStateOf(0)
@@ -57,7 +58,8 @@ class MainActivity : ComponentActivity() {
                     }
                 },
             ), nativeAd = rememberNativeAdContent(this), prenatalHistoryPreview = premiumFeaturePreview,
-                clinicalAttachment = rememberClinicalAttachments(app, allowImport = premiumFeaturePreview))
+                clinicalAttachment = rememberClinicalAttachments(app, allowImport = premiumFeaturePreview),
+                prenatalReport = rememberPrenatalReport(app))
         }
     }
 }

@@ -59,7 +59,7 @@ internal enum class AppDestination(val label: StringResource) {
     Home(Res.string.home), Calendar(Res.string.calendar), Records(Res.string.records), Baby(Res.string.my_baby), Profile(Res.string.profile)
 }
 
-private enum class DetailRoute { Settings, Premium, Plans, PlansFromRecords, History, HistoryFromRecords }
+private enum class DetailRoute { Settings, Premium, Plans, PlansFromRecords, History, HistoryFromRecords, Statistics, Report }
 
 @Composable
 internal fun NavigationShell(
@@ -92,11 +92,11 @@ internal fun NavigationShell(
     val recordSectionsScroll = key(destination) { retain { ScrollState(0) } }
     val settingsScroll = remember(detailRoute != null) { ScrollState(0) }
     val premiumScroll = remember(
-        detailRoute == DetailRoute.Premium || detailRoute == DetailRoute.Plans || detailRoute == DetailRoute.History,
+        detailRoute in setOf(DetailRoute.Premium, DetailRoute.Plans, DetailRoute.History, DetailRoute.Statistics, DetailRoute.Report),
     ) { ScrollState(0) }
     fun closeDetail() {
         detailRoute = when (detailRoute) {
-            DetailRoute.Plans, DetailRoute.History -> DetailRoute.Premium
+            DetailRoute.Plans, DetailRoute.History, DetailRoute.Statistics, DetailRoute.Report -> DetailRoute.Premium
             DetailRoute.Premium -> DetailRoute.Settings
             DetailRoute.Settings, DetailRoute.PlansFromRecords, DetailRoute.HistoryFromRecords, null -> null
         }
@@ -145,9 +145,15 @@ internal fun NavigationShell(
                         onBack = ::closeDetail, onPlans = { detailRoute = DetailRoute.Plans },
                         scrollState = premiumScroll,
                         onHistory = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.History }) else null,
+                        onStatistics = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.Statistics }) else null,
+                        onReport = if (prenatalHistoryPreview && LocalPrenatalReport.current != null) {
+                            { detailRoute = DetailRoute.Report }
+                        } else null,
                     )
                     DetailRoute.Plans, DetailRoute.PlansFromRecords -> PremiumPlansScreen(onBack = ::closeDetail)
                     DetailRoute.History, DetailRoute.HistoryFromRecords -> PrenatalHistoryRoute(onBack = ::closeDetail)
+                    DetailRoute.Statistics -> PrenatalStatisticsRoute(onBack = ::closeDetail)
+                    DetailRoute.Report -> PrenatalReportRoute(profile, onBack = ::closeDetail)
                     null -> when (destination) {
                         AppDestination.Home -> PregnancyDashboard(
                             profile, viewModel, koinInject<AppointmentViewModel>(),

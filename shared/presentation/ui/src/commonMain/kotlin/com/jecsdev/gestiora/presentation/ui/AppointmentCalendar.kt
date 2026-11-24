@@ -183,7 +183,7 @@ internal fun MonthCalendar(
 }
 
 @Composable
-private fun MonthNavigationButton(description: String, enabled: Boolean, pointsRight: Boolean, onClick: () -> Unit) {
+internal fun MonthNavigationButton(description: String, enabled: Boolean, pointsRight: Boolean, onClick: () -> Unit) {
     FilledTonalIconButton(
         onClick = onClick,
         enabled = enabled,
