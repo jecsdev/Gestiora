@@ -4,12 +4,15 @@ import android.Manifest
 import android.app.*
 import android.content.*
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.os.Build
 import com.jecsdev.gestiora.GestioraApplication
 import com.jecsdev.gestiora.MainActivity
 import com.jecsdev.gestiora.R
 import com.jecsdev.gestiora.domain.models.Appointment
 import com.jecsdev.gestiora.domain.models.ExamRecord
+import com.jecsdev.gestiora.domain.models.PersonalReminder
 import java.util.TimeZone
 
 internal class AndroidReminderScheduler(private val context: Context) {
@@ -20,10 +23,15 @@ internal class AndroidReminderScheduler(private val context: Context) {
         Intent(context, ReminderReceiver::class.java).setAction(ACTION_DUE),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-    fun reconcile(appointments: List<Appointment>, exams: List<ExamRecord>, deliverDue: Boolean) {
-        createChannel(context)
+    fun reconcile(
+        appointments: List<Appointment>,
+        exams: List<ExamRecord>,
+        personalReminders: List<PersonalReminder>,
+        deliverDue: Boolean,
+    ) {
+        val channel = createChannel(context)
         val now = System.currentTimeMillis()
-        val plan = reminderPlan(appointments, exams, TimeZone.getDefault())
+        val plan = reminderPlan(appointments, exams, TimeZone.getDefault(), personalReminders)
         val tokens = plan.map { it.token }.toSet()
         val delivered = state.getStringSet("delivered", emptySet()).orEmpty().intersect(tokens).toMutableSet()
         val armed = state.getStringSet("armed", emptySet()).orEmpty()
@@ -34,10 +42,19 @@ internal class AndroidReminderScheduler(private val context: Context) {
                 val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-                val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, CHANNEL) else Notification.Builder(context)
+                val builder = if (Build.VERSION.SDK_INT >= 26) {
+                    Notification.Builder(context, channel)
+                } else {
+                    Notification.Builder(context).setDefaults(Notification.DEFAULT_SOUND or Notification.DEFAULT_VIBRATE)
+                }
+                val body = when (item.kind) {
+                    "appointment" -> R.string.notification_appointment
+                    "exam" -> R.string.notification_exam
+                    else -> R.string.notification_personal
+                }
                 val notification = builder.setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(context.getString(R.string.app_name))
-                    .setContentText(context.getString(if (item.kind == "exam") R.string.notification_exam else R.string.notification_appointment))
+                    .setContentText(context.getString(body))
                     .setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
                     .setVisibility(Notification.VISIBILITY_PRIVATE).setCategory(Notification.CATEGORY_REMINDER).build()
                 notifications.notify(item.token, 0, notification)
@@ -58,18 +75,51 @@ internal class AndroidReminderScheduler(private val context: Context) {
     private fun schedule(at: Long) { alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarm()) }
 
     companion object {
-        const val CHANNEL = "scheduled_reminders_v1"
+        private const val LEGACY_CHANNEL = "scheduled_reminders_v1"
+        private const val CHANNEL = "scheduled_reminders_v2"
         const val ACTION_DUE = "com.jecsdev.gestiora.REMINDER_DUE"
-        fun createChannel(context: Context) {
-            if (Build.VERSION.SDK_INT >= 26) context.getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(NotificationChannel(CHANNEL, context.getString(R.string.notification_channel), NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    lockscreenVisibility = Notification.VISIBILITY_PRIVATE
-                })
+
+        fun createChannel(context: Context): String {
+            if (Build.VERSION.SDK_INT < 26) return CHANNEL
+            val manager = context.getSystemService(NotificationManager::class.java)
+            val selected = channelId(context)
+            val sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            manager.createNotificationChannel(NotificationChannel(
+                selected, context.getString(R.string.notification_channel), NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+                enableVibration(true)
+                setSound(sound, AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build())
+            })
+            // Keep already-posted alerts visible until they are dismissed.
+            if (selected == CHANNEL && manager.getNotificationChannel(LEGACY_CHANNEL) != null &&
+                manager.activeNotifications.none { it.notification.channelId == LEGACY_CHANNEL }) {
+                manager.deleteNotificationChannel(LEGACY_CHANNEL)
+            }
+            return selected
+        }
+
+        fun channelId(context: Context): String {
+            if (Build.VERSION.SDK_INT < 26) return CHANNEL
+            val manager = context.getSystemService(NotificationManager::class.java)
+            val legacy = manager.getNotificationChannel(LEGACY_CHANNEL) ?: return CHANNEL
+            val defaultSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val customized = legacy.importance != NotificationManager.IMPORTANCE_DEFAULT ||
+                legacy.sound != defaultSound || legacy.shouldVibrate() || !legacy.canShowBadge() ||
+                (Build.VERSION.SDK_INT >= 29 && legacy.hasUserSetImportance()) ||
+                (Build.VERSION.SDK_INT >= 30 && legacy.hasUserSetSound())
+            // Channel behavior is immutable after registration. Upgrade only the old defaults.
+            return if (customized) LEGACY_CHANNEL else CHANNEL
+        }
+        fun appNotificationsEnabled(context: Context): Boolean {
+            if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false
+            return context.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
         }
         fun notificationsEnabled(context: Context): Boolean {
-            if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false
             val manager = context.getSystemService(NotificationManager::class.java)
-            return manager.areNotificationsEnabled() && (Build.VERSION.SDK_INT < 26 || manager.getNotificationChannel(CHANNEL)?.importance != NotificationManager.IMPORTANCE_NONE)
+            return appNotificationsEnabled(context) &&
+                (Build.VERSION.SDK_INT < 26 ||
+                    manager.getNotificationChannel(channelId(context))?.importance != NotificationManager.IMPORTANCE_NONE)
         }
     }
 }

@@ -12,7 +12,7 @@ class BackupFileTest {
     @Test fun roundTripPreservesAllStorePayloadsAndNeverReusesHeader() {
         val stores = listOf(
             "profile", "personal_reminders", "appointments", "consultations", "vital_records",
-            "medical_conditions", "vaccine_records", "exam_records", "prenatal_notes",
+            "medical_conditions", "vaccine_records", "exam_records", "prenatal_notes", "pregnancy_journal",
         )
         val payloads = stores.associateWith { "Lucía — rendez-vous 🌿\n$it" }
         val password = "una frase segura con acento 🍃".toCharArray()

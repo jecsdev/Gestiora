@@ -1,14 +1,40 @@
 package com.jecsdev.gestiora.data.datasources.core.room
 
+import com.jecsdev.gestiora.data.datasources.PREGNANCY_JOURNAL_STORE
+
 enum class AttachmentCollection(val store: String) {
     Consultation("consultations"),
-    Exam("exam_records");
+    Exam("exam_records"),
+    Journal(PREGNANCY_JOURNAL_STORE);
+
+    internal fun requireAllowed(attachment: ClinicalAttachment) {
+        require(this != Journal || attachment.mimeType.startsWith("image/"))
+    }
 
     internal val prefix get() = "attachment:$store:"
+    private val imagePrefix get() = "attachment:images:$store:"
 
-    internal fun key(id: String): String {
+    internal fun key(id: String, imageSlot: Int? = null): String {
         require(id.isNotBlank() && id.length <= 128)
-        return prefix + id
+        if (imageSlot == null) return prefix + id
+        require(this != Journal && imageSlot in 1..MAX_IMAGES_PER_RECORD)
+        return "$imagePrefix$id:$imageSlot"
+    }
+
+    internal fun ownerId(key: String): String? = when {
+        key.startsWith(imagePrefix) && this != Journal -> {
+            val suffix = key.removePrefix(imagePrefix)
+            val id = suffix.substringBeforeLast(':', "")
+            val slot = suffix.substringAfterLast(':').toIntOrNull()
+            id.takeIf { it.isNotBlank() && it.length <= 128 && slot != null &&
+                slot in 1..MAX_IMAGES_PER_RECORD && key(it, slot) == key }
+        }
+        key.startsWith(prefix) -> key.removePrefix(prefix)
+        else -> null
+    }
+
+    companion object {
+        const val MAX_IMAGES_PER_RECORD = 8
     }
 }
 

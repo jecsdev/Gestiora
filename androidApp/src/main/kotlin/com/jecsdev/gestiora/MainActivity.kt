@@ -21,6 +21,10 @@ import com.jecsdev.gestiora.presentation.ui.App
 import com.jecsdev.gestiora.presentation.ui.NotificationControls
 import com.jecsdev.gestiora.reminders.AndroidReminderScheduler
 import com.jecsdev.gestiora.report.rememberPrenatalReport
+import com.jecsdev.gestiora.data.repository.ProtectedPregnancyJournal
+import com.jecsdev.gestiora.presentation.ui.PregnancyJournalControls
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private var resumed by mutableIntStateOf(0)
@@ -43,6 +47,14 @@ class MainActivity : ComponentActivity() {
                 app.refreshReminders()
             }
             val enabled = remember(resumed) { AndroidReminderScheduler.notificationsEnabled(this) }
+            val journal = remember(app) {
+                val repository = app.graph.koin.get<ProtectedPregnancyJournal>()
+                PregnancyJournalControls(
+                    load = { withContext(Dispatchers.IO) { repository.list() } },
+                    save = { entry -> withContext(Dispatchers.IO) { repository.save(entry) } },
+                    delete = { id -> withContext(Dispatchers.IO) { repository.delete(id) } },
+                )
+            }
             App(applicationGraph = app.graph, backupControls = rememberBackupControls(app), notificationControls = NotificationControls(
                 supported = true,
                 enabled = enabled,
@@ -54,12 +66,21 @@ class MainActivity : ComponentActivity() {
                         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED && !preferences.getBoolean("requested", false)) {
                             preferences.edit().putBoolean("requested", true).apply()
                             permission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+                        } else {
+                            val settings = if (Build.VERSION.SDK_INT >= 26 && AndroidReminderScheduler.appNotificationsEnabled(this)) {
+                                Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                                    .putExtra(Settings.EXTRA_CHANNEL_ID, AndroidReminderScheduler.channelId(this))
+                            } else {
+                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            }
+                            startActivity(settings.putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+                        }
                     }
                 },
             ), nativeAd = rememberNativeAdContent(this), prenatalHistoryPreview = premiumFeaturePreview,
                 clinicalAttachment = rememberClinicalAttachments(app, allowImport = premiumFeaturePreview),
-                prenatalReport = rememberPrenatalReport(app))
+                prenatalReport = rememberPrenatalReport(app),
+                pregnancyJournal = journal)
         }
     }
 }

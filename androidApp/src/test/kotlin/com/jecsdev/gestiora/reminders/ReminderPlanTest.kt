@@ -59,4 +59,21 @@ class ReminderPlanTest {
         assertNotEquals(base.token, reminderPlan(listOf(appointment().copy(time = "12:00")), emptyList(), utc).single().token)
         assertEquals(64, base.token.length)
     }
+
+    @Test fun personalRemindersUseCivilTimesAndExcludeCompletedEntries() {
+        val medication = PersonalReminder("a", "Private title", "2028-02-29", "09:30", ReminderKind.MEDICATION)
+        val allDay = medication.copy(id = "all-day", time = null)
+        val done = medication.copy(id = "done", done = true)
+        val plan = reminderPlan(listOf(appointment()), emptyList(), utc, listOf(medication, allDay, done))
+        val personal = plan.filter { it.kind == "personal" }
+        assertEquals(listOf("all-day", "a"), personal.map { it.id })
+        assertEquals(millis(utc, 2028, 2, 29, 9), personal[0].dueAt)
+        assertEquals(millis(utc, 2028, 2, 29, 9, 30), personal[1].dueAt)
+        assertEquals(millis(utc, 2028, 3, 1, 0), personal[1].expiresAt)
+        val base = personal[1]
+        val sameTime = medication.copy(title = "Updated", kind = ReminderKind.EXAM)
+        assertEquals(base.token, reminderPlan(emptyList(), emptyList(), utc, listOf(sameTime)).single().token)
+        val rescheduled = medication.copy(time = "10:30")
+        assertNotEquals(base.token, reminderPlan(emptyList(), emptyList(), utc, listOf(rescheduled)).single().token)
+    }
 }

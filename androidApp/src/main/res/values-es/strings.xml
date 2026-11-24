@@ -18,4 +18,12 @@
     <string name="attachment_copy_saved">Copia guardada.</string>
     <string name="attachment_removed">Adjunto eliminado.</string>
     <string name="attachment_read_failed">No se pudo leer el adjunto guardado.</string>
+    <string name="attachment_add_image">Añadir imagen</string>
+    <string name="attachment_view_image">Ver imagen</string>
+    <string name="attachment_invalid_image">Usa un archivo JPEG o PNG de hasta 4 MB.</string>
+    <string name="attachment_close_image">Cerrar</string>
+    <string name="attachment_images">Imágenes</string>
+    <string name="attachment_add_document">Agregar PDF</string>
+    <string name="attachment_images_limit">Hasta %1$d imágenes por registro.</string>
+    <string name="notification_personal">Tienes un recordatorio. Abre Gestiora para consultarlo.</string>
 </resources>

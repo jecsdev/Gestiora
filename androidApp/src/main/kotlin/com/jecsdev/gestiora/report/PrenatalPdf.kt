@@ -1,9 +1,11 @@
 package com.jecsdev.gestiora.report
 
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Picture
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.text.StaticLayout
@@ -13,12 +15,20 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.nativeCanvas
 import com.jecsdev.gestiora.presentation.ui.PrenatalChart
+import com.jecsdev.gestiora.presentation.ui.PrenatalReportAttachment
 import com.jecsdev.gestiora.presentation.ui.PrenatalReportBlock
 import com.jecsdev.gestiora.presentation.ui.PrenatalReportDocument
 import com.jecsdev.gestiora.presentation.ui.PrenatalReportPage
 import java.io.OutputStream
+import kotlin.math.ceil
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.coroutineContext
 
-internal fun writePrenatalPdf(report: PrenatalReportDocument, output: OutputStream) {
+internal suspend fun writePrenatalPdf(
+    report: PrenatalReportDocument,
+    output: OutputStream,
+    loadImage: suspend (PrenatalReportAttachment) -> Bitmap,
+) {
     val pdf = PdfDocument()
     try {
         var page: PdfDocument.Page? = null
@@ -29,6 +39,7 @@ internal fun writePrenatalPdf(report: PrenatalReportDocument, output: OutputStre
                     .also { page = it }.canvas
             },
             finishPage = { pdf.finishPage(checkNotNull(page)) },
+            loadImage = loadImage,
         )
         pdf.writeTo(output)
     } finally {
@@ -36,7 +47,10 @@ internal fun writePrenatalPdf(report: PrenatalReportDocument, output: OutputStre
     }
 }
 
-internal fun previewPrenatalReport(report: PrenatalReportDocument): List<PrenatalReportPage> = buildList {
+internal suspend fun previewPrenatalReport(
+    report: PrenatalReportDocument,
+    loadImage: suspend (PrenatalReportAttachment) -> Bitmap,
+): List<PrenatalReportPage> = buildList {
     var picture = Picture()
     val description = StringBuilder()
     renderPrenatalReport(
@@ -56,21 +70,25 @@ internal fun previewPrenatalReport(report: PrenatalReportDocument): List<Prenata
             })
         },
         appendPageText = { description.appendLine(it) },
+        loadImage = loadImage,
     )
 }
 
-private fun renderPrenatalReport(
+private suspend fun renderPrenatalReport(
     report: PrenatalReportDocument,
     startPage: (Int) -> Canvas,
     finishPage: () -> Unit,
     appendPageText: ((CharSequence) -> Unit)? = null,
+    loadImage: suspend (PrenatalReportAttachment) -> Bitmap,
 ) {
     val layout = PrenatalPdfLayout(report, startPage, finishPage, appendPageText)
     try {
         report.blocks.forEach { block ->
+            coroutineContext.ensureActive()
             when (block) {
                 is PrenatalReportBlock.Text -> layout.text(block)
                 is PrenatalReportBlock.Chart -> layout.chart(block.plot)
+                is PrenatalReportBlock.Image -> layout.image(block.caption, loadImage(block.attachment))
             }
         }
     } finally {
@@ -135,6 +153,36 @@ private class PrenatalPdfLayout(
             line = end
         }
         y += if (block.level > 0) 9 else 12
+    }
+
+    fun image(caption: String, bitmap: Bitmap) {
+        val contentWidth = WIDTH - 2 * MARGIN
+        val captionPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = body
+            textSize = report.size.toFloat()
+            typeface = Typeface.create(report.font.androidFamily, Typeface.NORMAL)
+        }
+        val captionLayout = StaticLayout.Builder.obtain(caption, 0, caption.length, captionPaint, contentWidth)
+            .setMaxLines(4)
+            .setEllipsize(android.text.TextUtils.TruncateAt.END)
+            .build()
+        val scale = minOf(contentWidth.toFloat() / bitmap.width, 390f / bitmap.height)
+        val width = bitmap.width * scale
+        val height = bitmap.height * scale
+        val gap = 8
+        val spacing = 16
+        val blockHeight = captionLayout.height + gap + ceil(height).toInt() + spacing
+        val canvas = pageFor(blockHeight)
+        canvas.save()
+        canvas.translate(MARGIN.toFloat(), y.toFloat())
+        captionLayout.draw(canvas)
+        canvas.restore()
+        val top = y + captionLayout.height + gap
+        val left = (WIDTH - width) / 2
+        canvas.drawBitmap(bitmap, null, RectF(left, top.toFloat(), left + width, top + height),
+            Paint(Paint.FILTER_BITMAP_FLAG))
+        appendPageText?.invoke(caption)
+        y += blockHeight
     }
 
     fun chart(chart: PrenatalChart) {

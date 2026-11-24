@@ -18,6 +18,7 @@ dependencies {
     implementation(project(":shared:domain:repository"))
     implementation(project(":shared:data:datasources"))
     implementation(project(":shared:data:datasources-core"))
+    implementation(project(":shared:data:repository"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.compose.material3)
     implementation(libs.compose.foundation)

@@ -15,7 +15,7 @@ import com.jecsdev.gestiora.domain.models.*
 import com.jecsdev.gestiora.presentation.viewmodels.PrenatalNoteViewModel
 import kotlinx.coroutines.launch
 
-private fun NoteCategory.label(ui: UiCopy) = when (this) {
+internal fun NoteCategory.label(ui: UiCopy) = when (this) {
     NoteCategory.MEDICAL_INSTRUCTIONS -> ui.s(Res.string.medical_instructions)
     NoteCategory.DOCTOR_QUESTIONS -> ui.s(Res.string.questions_for_the_doctor)
     NoteCategory.MEDICATIONS -> ui.s(Res.string.medications)
@@ -23,7 +23,7 @@ private fun NoteCategory.label(ui: UiCopy) = when (this) {
     NoteCategory.SYMPTOMS -> ui.s(Res.string.symptoms)
     NoteCategory.GENERAL -> ui.s(Res.string.general_notes)
 }
-private fun NoteTaskStatus.label(ui: UiCopy) = when (this) {
+internal fun NoteTaskStatus.label(ui: UiCopy) = when (this) {
     NoteTaskStatus.NONE -> ui.s(Res.string.no_task)
     NoteTaskStatus.PENDING -> ui.s(Res.string.pending)
     NoteTaskStatus.COMPLETED -> ui.s(Res.string.completed)

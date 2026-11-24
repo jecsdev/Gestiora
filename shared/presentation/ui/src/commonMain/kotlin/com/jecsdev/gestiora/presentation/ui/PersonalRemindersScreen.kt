@@ -21,6 +21,7 @@ private fun ReminderKind.label(ui: UiCopy) = when (this) {
     ReminderKind.VACCINE -> ui.s(Res.string.vaccine)
     ReminderKind.FOLLOW_UP -> ui.s(Res.string.follow_up)
     ReminderKind.PERSONAL -> ui.s(Res.string.personal)
+    ReminderKind.MEDICATION -> ui.s(Res.string.reminder_medication)
 }
 
 @Composable
@@ -73,7 +74,7 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
         }
     }
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        EditorialHeader(ui.s(Res.string.reminders), ui.s(Res.string.organize_your_tasks_on_this_device_reminders_appear))
+        EditorialHeader(ui.s(Res.string.reminders), ui.s(Res.string.reminders_intro))
         when {
             loadError -> {
                 Text(ui.s(Res.string.we_couldn_t_read_your_reminders_your_data), color = MaterialTheme.colorScheme.error)
@@ -97,6 +98,12 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
                     editing = PersonalReminder("", "", newCalendarEventDate(month, selectedDate, todayIsoDate()))
                     onNavigationLockChange(true)
                 }) { Text(ui.s(Res.string.new_reminder)) }
+                CalendarCard {
+                    ReminderNotificationSettings()
+                    if (LocalNotificationControls.current.supported) {
+                        Text(ui.s(Res.string.reminder_all_day_notification_time), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
                 if (selectedDate.isNotEmpty()) {
                     Text(ui.s(Res.string.reminders_on, dateLabel(ui, selectedDate)), style = MaterialTheme.typography.titleMedium)
                     TextButton(enabled = !busy, onClick = { selectedDate = "" }) { Text(ui.s(Res.string.view_all_reminders)) }
@@ -108,7 +115,7 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
                     EditorialRecordCard {
                         EditorialStatus(if (record.done) ui.s(Res.string.completed_2) else record.kind.label(ui))
                         Text(record.title, style = MaterialTheme.typography.titleMedium)
-                        Text(ui.s(Res.string.reminder_date_time, dateLabel(ui, record.date), record.time ?: ui.s(Res.string.all_day)), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(ui.s(Res.string.reminder_date_time, dateLabel(ui, record.date), reminderTimeLabel(ui, record.time)), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(enabled = !busy, onClick = { saveError = false; editing = record; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
                             TextButton(enabled = !busy, onClick = { deleting = record; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }
@@ -158,7 +165,7 @@ private fun PersonalReminderForm(initial: PersonalReminder, busy: Boolean, saveE
         PastelTextField(title, { title = it }, label = { Text(ui.s(Res.string.title)) }, modifier = Modifier.fillMaxWidth(), enabled = !busy,
             isError = title.length > 512 || (invalid && title.isBlank()), supportingText = { Text("${title.length}/512") })
         DateField(ui.s(Res.string.date), date, enabled = !busy, initialMonth = calendarMonth) { date = it }
-        TimeField(time, enabled = !busy) { time = it }
+        TimeField(time, enabled = !busy, use12HourClock = true) { time = it }
         TextButton(enabled = !busy && time.isNotEmpty(), onClick = { time = "" }) { Text(ui.s(Res.string.all_day_remove_time)) }
         Text(ui.s(Res.string.type), style = MaterialTheme.typography.labelLarge)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

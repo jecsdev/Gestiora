@@ -169,6 +169,70 @@ class ProtectedClinicalStorageTest {
         assertTrue(target.backupSnapshot().attachments.isEmpty())
     }
 
+    @Test fun journalPhotosArePrivateToTheirEntryAndRoundTripThroughBackup() = runBlocking {
+        val emptyCollections = ProtectedClinicalStorage.COLLECTIONS.associateWith { { null as String? } }
+        fun Fixture.open() = ProtectedClinicalStorage(dao, cipher, profile, reminders, validator, emptyCollections)
+        val source = Fixture().open()
+        val target = Fixture().apply { profile.raw = null; reminders.raw = null }.open()
+        val journal = AttachmentCollection.Journal
+        val photo = ClinicalAttachment("moment.jpg", byteArrayOf(-1, -40, -1, 0))
+        val document = ClinicalAttachment("notes.pdf", "%PDF-example".encodeToByteArray())
+        source.write(journal.store, "${journal.store}:entry")
+        source.write(AttachmentCollection.Exam.store, "exam_records:entry")
+        assertFailsWith<IllegalArgumentException> { source.writeAttachment(journal, "entry", document) }
+        source.writeAttachment(journal, "entry", photo)
+        source.writeAttachment(AttachmentCollection.Exam, "entry", document)
+
+        val backup = source.backupSnapshot()
+        try {
+            val invalid = ClinicalBackup(backup.payloads, backup.attachments + (journal.key("entry") to document.encode()))
+            assertFailsWith<IllegalArgumentException> { target.restoreBackup(invalid) }
+            assertTrue(target.restoreBackup(backup))
+            assertContentEquals(photo.bytes, assertNotNull(target.readAttachment(journal, "entry")).bytes)
+            target.write(journal.store, "${journal.store}:")
+            assertNull(target.readAttachment(journal, "entry"))
+            assertContentEquals(document.bytes, assertNotNull(target.readAttachment(AttachmentCollection.Exam, "entry")).bytes)
+        } finally {
+            backup.clearAttachments()
+        }
+    }
+
+    @Test fun prenatalImagesAndLegacyAttachmentsHaveIndependentLifecycles() = runBlocking {
+        val emptyCollections = ProtectedClinicalStorage.COLLECTIONS.associateWith { { null as String? } }
+        fun Fixture.open() = ProtectedClinicalStorage(dao, cipher, profile, reminders, validator, emptyCollections)
+        val source = Fixture().open()
+        val target = Fixture().apply { profile.raw = null; reminders.raw = null }.open()
+        val kind = AttachmentCollection.Exam
+        val id = "exam-1"
+        val file = ClinicalAttachment("report.pdf", "%PDF-example".encodeToByteArray())
+        val photo = ClinicalAttachment("ultrasound.jpg", byteArrayOf(-1, -40, -1, 0))
+        source.write(kind.store, "exam_records:$id")
+        source.writeAttachment(kind, id, file)
+        source.writeAttachment(kind, id, photo, imageSlot = 1)
+        source.writeAttachment(kind, id, photo, imageSlot = 3)
+        assertFailsWith<IllegalArgumentException> { source.writeAttachment(kind, id, file, imageSlot = 2) }
+        assertFailsWith<IllegalArgumentException> { source.writeAttachment(kind, id, photo, imageSlot = 9) }
+        assertFailsWith<IllegalArgumentException> { source.writeAttachment(kind, "missing", photo, imageSlot = 1) }
+        assertEquals(listOf(1, 3), source.imageSlots(kind, id))
+
+        val backup = source.backupSnapshot()
+        try {
+            val invalid = ClinicalBackup(backup.payloads, backup.attachments + (kind.key(id, 2) to file.encode()))
+            assertFailsWith<IllegalArgumentException> { target.restoreBackup(invalid) }
+            assertTrue(target.restoreBackup(backup))
+            assertEquals(listOf(1, 3), target.imageSlots(kind, id))
+            assertContentEquals(photo.bytes, assertNotNull(target.readAttachment(kind, id, 3)).bytes)
+            target.deleteAttachment(kind, id, 1)
+            assertEquals(listOf(3), target.imageSlots(kind, id))
+            assertContentEquals(file.bytes, assertNotNull(target.readAttachment(kind, id)).bytes)
+            target.write(kind.store, "exam_records:")
+            assertTrue(target.imageSlots(kind, id).isEmpty())
+            assertNull(target.readAttachment(kind, id))
+        } finally {
+            backup.clearAttachments()
+        }
+    }
+
     @Test fun secondGroupPreservesFirstGroupAndNeverResurrectsLegacyCollections() = runBlocking {
         val f = Fixture()
         val first = f.storage()

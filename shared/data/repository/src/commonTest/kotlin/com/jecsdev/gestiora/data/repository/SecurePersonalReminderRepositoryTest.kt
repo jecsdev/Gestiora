@@ -1,5 +1,6 @@
 package com.jecsdev.gestiora.data.repository
 
+import com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier
 import com.jecsdev.gestiora.data.datasources.SecurePersonalRemindersStore
 import com.jecsdev.gestiora.domain.models.PersonalReminder
 import com.jecsdev.gestiora.domain.models.ReminderKind
@@ -21,13 +22,30 @@ class SecurePersonalReminderRepositoryTest {
         assertEquals(emptyList(), repo.list())
         (0 until 25).map { async { repo.add(record(it.toString())) } }.awaitAll()
         ReminderKind.entries.forEach { repo.add(record(it.name).copy(kind = it, time = null, done = true)) }
-        assertEquals(30, repo.list().size)
+        assertEquals(25 + ReminderKind.entries.size, repo.list().size)
         assertEquals(repo.list(), SecurePersonalReminderRepository(store).list())
         val changed = record("0").copy(time = null, done = true)
         repo.update(changed)
         assertEquals(changed, SecurePersonalReminderRepository(store).list().first())
         repo.delete("0")
-        assertEquals(29, repo.list().size)
+        assertEquals(24 + ReminderKind.entries.size, repo.list().size)
+    }
+
+    @Test fun schedulingIsRequestedOnlyAfterDurableChanges() = runBlocking {
+        val store = Store()
+        val notifications = mutableListOf<List<PersonalReminder>>()
+        val repo = SecurePersonalReminderRepository(store, ScheduleChangeNotifier {
+            notifications += store.payload?.let(PersonalReminderCodec::decode).orEmpty()
+            error("Scheduler unavailable")
+        })
+        val medication = record("med").copy(kind = ReminderKind.MEDICATION)
+        repo.add(medication)
+        repo.update(medication.copy(done = true))
+        store.failWrite = true
+        assertFailsWith<IllegalStateException> { repo.delete(medication.id) }
+        store.failWrite = false
+        repo.delete(medication.id)
+        assertEquals(listOf(listOf(medication), listOf(medication.copy(done = true)), emptyList()), notifications)
     }
 
     @Test fun validationAndIoFailureNeverOverwriteExistingPayload() = runBlocking {

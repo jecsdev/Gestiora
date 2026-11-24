@@ -1,6 +1,7 @@
 package com.jecsdev.gestiora.data.repository
 
 import com.jecsdev.gestiora.data.datasources.SecurePersonalRemindersStore
+import com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier
 import com.jecsdev.gestiora.domain.models.PersonalReminder
 import com.jecsdev.gestiora.domain.repository.PersonalReminderRepository
 import kotlinx.coroutines.Dispatchers
@@ -9,7 +10,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** Each read-modify-write is one serialized operation; storage failures are never treated as empty. */
-class SecurePersonalReminderRepository(private val store: SecurePersonalRemindersStore) : PersonalReminderRepository {
+class SecurePersonalReminderRepository(
+    private val store: SecurePersonalRemindersStore,
+    private val scheduleChanges: ScheduleChangeNotifier = ScheduleChangeNotifier {},
+) : PersonalReminderRepository {
     private val mutex = Mutex()
 
     override suspend fun list(): List<PersonalReminder> = mutex.withLock {
@@ -37,6 +41,8 @@ class SecurePersonalReminderRepository(private val store: SecurePersonalReminder
         withContext(Dispatchers.Default) {
             val current = readAll()
             store.write(PersonalReminderCodec.encode(change(current)))
+            runCatching { scheduleChanges.requestReconcile() }
+            Unit
         }
     }
 

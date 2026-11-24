@@ -19,4 +19,12 @@
     <string name="attachment_copy_saved">Copy saved.</string>
     <string name="attachment_removed">Attachment removed.</string>
     <string name="attachment_read_failed">Couldn’t read the stored attachment.</string>
+    <string name="attachment_add_image">Add image</string>
+    <string name="attachment_view_image">View image</string>
+    <string name="attachment_invalid_image">Use a JPEG or PNG up to 4 MB.</string>
+    <string name="attachment_close_image">Close</string>
+    <string name="attachment_images">Images</string>
+    <string name="attachment_add_document">Add PDF</string>
+    <string name="attachment_images_limit">Up to %1$d images per record.</string>
+    <string name="notification_personal">You have a reminder. Open Gestiora to see it.</string>
 </resources>

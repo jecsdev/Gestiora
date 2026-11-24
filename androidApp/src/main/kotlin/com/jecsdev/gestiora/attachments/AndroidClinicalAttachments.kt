@@ -1,24 +1,40 @@
 package com.jecsdev.gestiora.attachments
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
+import android.os.Build
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.retain.RetainObserver
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.GestioraApplication
@@ -36,6 +52,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
+import java.io.ByteArrayInputStream
 
 @Composable
 internal fun rememberClinicalAttachments(app: GestioraApplication, allowImport: Boolean): ClinicalAttachmentContent {
@@ -43,20 +61,95 @@ internal fun rememberClinicalAttachments(app: GestioraApplication, allowImport: 
     // Register once above the navigation and the shared RAM-only saveable-state boundary.
     val open = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument(), flow::importFile)
     val create = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream"), flow::exportFile)
-    return { kind, id, enabled ->
+    return { kind, id, enabled, showImages ->
         val collection = when (kind) {
             ClinicalAttachmentKind.Consultation -> AttachmentCollection.Consultation
             ClinicalAttachmentKind.Exam -> AttachmentCollection.Exam
+            ClinicalAttachmentKind.Journal -> AttachmentCollection.Journal
         }
-        AttachmentActions(flow, AttachmentTarget(collection, id), enabled, allowImport,
-            open = { open.launch(arrayOf("application/pdf", "image/jpeg", "image/png")) },
-            create = { create.launch(it) })
+        val target = AttachmentTarget(collection, id)
+        AttachmentActions(flow, target, enabled, allowImport,
+            open = {
+                val types = when {
+                    target.imageOnly -> imageTypes
+                    showImages -> arrayOf("application/pdf")
+                    else -> arrayOf("application/pdf", *imageTypes)
+                }
+                open.launch(types)
+            },
+            create = { create.launch(it) },
+            documentOnly = showImages,
+        )
+        if (showImages) {
+            ImageAttachments(flow, target, enabled, allowImport) { open.launch(imageTypes) }
+        }
     }
 }
 
-private data class AttachmentTarget(val collection: AttachmentCollection, val id: String)
+private val imageTypes = arrayOf("image/jpeg", "image/png")
+
+private data class AttachmentTarget(val collection: AttachmentCollection, val id: String, val imageSlot: Int? = null) {
+    val imageOnly get() = imageSlot != null || collection == AttachmentCollection.Journal
+}
 private data class AttachmentInfo(val name: String, val mimeType: String)
 private enum class AttachmentAction { Import, Export, Delete }
+
+@Composable
+private fun ImageAttachments(
+    flow: AttachmentFlow,
+    target: AttachmentTarget,
+    enabled: Boolean,
+    allowImport: Boolean,
+    open: () -> Unit,
+) {
+    val change = flow.imageResults[target]
+    val slots by produceState<Pair<AttachmentResult?, Result<List<Int>>>?>(null, target, change) {
+        val result = try {
+            Result.success(flow.imageSlots(target))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            Result.failure(failure)
+        }
+        value = change to result
+    }
+    val occupied = slots?.second?.getOrNull()
+    HorizontalDivider()
+    Text(stringResource(R.string.attachment_images), style = MaterialTheme.typography.titleSmall)
+    occupied.orEmpty().forEach { slot ->
+        key(slot) {
+            Column {
+                AttachmentActions(
+                    flow, target.copy(imageSlot = slot), enabled, allowImport,
+                    open = open, create = {}, showFeedback = false,
+                )
+            }
+        }
+    }
+    if (allowImport && occupied != null && slots?.first == change) {
+        val free = (1..AttachmentCollection.MAX_IMAGES_PER_RECORD).firstOrNull { it !in occupied }
+        if (free != null) {
+            TextButton(enabled = enabled && flow.active == null, onClick = {
+                flow.choose(target.copy(imageSlot = free), AttachmentAction.Import, open)
+            }) {
+                Text(stringResource(R.string.attachment_add_image))
+            }
+        } else {
+            Text(stringResource(R.string.attachment_images_limit, AttachmentCollection.MAX_IMAGES_PER_RECORD),
+                style = MaterialTheme.typography.bodySmall)
+        }
+    }
+    val message = when {
+        flow.active?.let { it.imageSlot != null && it.copy(imageSlot = null) == target } == true ->
+            R.string.attachment_working
+        slots?.second?.isFailure == true -> R.string.attachment_read_failed
+        else -> change?.message
+    }
+    message?.let {
+        val label = if (it == R.string.attachment_invalid) R.string.attachment_invalid_image else it
+        Text(stringResource(label), style = MaterialTheme.typography.bodySmall)
+    }
+}
 
 @Composable
 private fun AttachmentActions(
@@ -66,11 +159,14 @@ private fun AttachmentActions(
     allowImport: Boolean,
     open: () -> Unit,
     create: (String) -> Unit,
+    documentOnly: Boolean = false,
+    showFeedback: Boolean = true,
 ) {
     var info by retain(target) { mutableStateOf<AttachmentInfo?>(null) }
     var loaded by retain(target) { mutableStateOf(false) }
     var readFailed by retain(target) { mutableStateOf(false) }
     var confirm by retain(target) { mutableStateOf<AttachmentAction?>(null) }
+    var showImage by retain(target) { mutableStateOf(false) }
     val result = flow.results[target]
     LaunchedEffect(target, result) {
         loaded = false
@@ -89,17 +185,29 @@ private fun AttachmentActions(
     val existing = info
     val available = enabled && flow.active == null && loaded
     if (existing != null) Text(stringResource(R.string.attachment_name, existing.name))
-    if (existing != null || (allowImport && loaded)) {
+    if (existing != null || (allowImport && loaded && target.imageSlot == null)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (allowImport) TextButton(enabled = available, onClick = {
                 if (existing == null) flow.choose(target, AttachmentAction.Import, open)
                 else confirm = AttachmentAction.Import
             }) {
-                Text(stringResource(if (existing == null) R.string.attachment_add else R.string.attachment_replace))
+                Text(stringResource(when {
+                    existing != null -> R.string.attachment_replace
+                    target.imageOnly -> R.string.attachment_add_image
+                    documentOnly -> R.string.attachment_add_document
+                    else -> R.string.attachment_add
+                }))
             }
             if (existing != null) {
-                TextButton(enabled = available, onClick = { confirm = AttachmentAction.Export }) {
-                    Text(stringResource(R.string.attachment_save_copy))
+                if (existing.mimeType.startsWith("image/")) {
+                    TextButton(enabled = available, onClick = { showImage = true }) {
+                        Text(stringResource(R.string.attachment_view_image))
+                    }
+                }
+                if (!target.imageOnly) {
+                    TextButton(enabled = available, onClick = { confirm = AttachmentAction.Export }) {
+                        Text(stringResource(R.string.attachment_save_copy))
+                    }
                 }
                 TextButton(enabled = available, onClick = { confirm = AttachmentAction.Delete }) {
                     Text(stringResource(R.string.attachment_remove))
@@ -112,7 +220,13 @@ private fun AttachmentActions(
         readFailed -> R.string.attachment_read_failed
         else -> result?.message
     }
-    message?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
+    message?.takeIf { showFeedback || readFailed }?.let {
+        val label = if (target.imageOnly && it == R.string.attachment_invalid) R.string.attachment_invalid_image else it
+        Text(stringResource(label), style = MaterialTheme.typography.bodySmall)
+    }
+    if (showImage && existing != null) {
+        AttachmentImageDialog(existing.name, { flow.readImage(target) }, onClose = { showImage = false })
+    }
     val action = confirm
     if (action != null && existing != null) {
         val (title, body) = when (action) {
@@ -148,6 +262,35 @@ private fun AttachmentActions(
     }
 }
 
+@Composable
+private fun AttachmentImageDialog(name: String, load: suspend () -> Bitmap, onClose: () -> Unit) {
+    val image by produceState<Result<Bitmap>?>(null, name) {
+        value = try {
+            Result.success(load())
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            Result.failure(failure)
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(stringResource(R.string.attachment_view_image)) },
+        text = {
+            val bitmap = image?.getOrNull()
+            when {
+                image == null -> CircularProgressIndicator()
+                bitmap == null -> Text(stringResource(R.string.attachment_read_failed))
+                else -> Image(
+                    bitmap.asImageBitmap(), contentDescription = name,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.attachment_close_image)) } },
+    )
+}
+
 private class AttachmentResult(val message: Int?)
 
 private class AttachmentFlow(private val app: GestioraApplication) : RetainObserver {
@@ -158,10 +301,25 @@ private class AttachmentFlow(private val app: GestioraApplication) : RetainObser
     var active by mutableStateOf<AttachmentTarget?>(null)
         private set
     val results = mutableStateMapOf<AttachmentTarget, AttachmentResult>()
+    val imageResults = mutableStateMapOf<AttachmentTarget, AttachmentResult>()
+
+    suspend fun imageSlots(target: AttachmentTarget): List<Int> = withContext(Dispatchers.IO) {
+        storage.imageSlots(target.collection, target.id)
+    }
 
     suspend fun readInfo(target: AttachmentTarget): AttachmentInfo? = withContext(Dispatchers.IO) {
-        storage.readAttachment(target.collection, target.id)?.let {
+        storage.readAttachment(target.collection, target.id, target.imageSlot)?.let {
             try { AttachmentInfo(it.name, it.mimeType) } finally { it.bytes.fill(0) }
+        }
+    }
+
+    suspend fun readImage(target: AttachmentTarget): Bitmap = withContext(Dispatchers.IO) {
+        val attachment = checkNotNull(storage.readAttachment(target.collection, target.id, target.imageSlot))
+        try {
+            require(attachment.mimeType.startsWith("image/"))
+            decodePreview(attachment.bytes)
+        } finally {
+            attachment.bytes.fill(0)
         }
     }
 
@@ -185,7 +343,16 @@ private class AttachmentFlow(private val app: GestioraApplication) : RetainObser
             .joinToString("").trim().ifBlank { "Gestiora" }
         val bytes = readBounded(source)
         try {
-            storage.writeAttachment(target.collection, target.id, ClinicalAttachment(name, bytes))
+            val attachment = ClinicalAttachment(name, bytes)
+            if (target.imageOnly) {
+                require(attachment.mimeType.startsWith("image/"))
+                try {
+                    decodePreview(bytes).recycle()
+                } catch (failure: Exception) {
+                    throw IllegalArgumentException("Image cannot be decoded", failure)
+                }
+            }
+            storage.writeAttachment(target.collection, target.id, attachment, target.imageSlot)
         } finally {
             bytes.fill(0)
         }
@@ -208,7 +375,7 @@ private class AttachmentFlow(private val app: GestioraApplication) : RetainObser
     fun remove(target: AttachmentTarget) {
         if (active != null) return
         active = target
-        work(target, AttachmentAction.Delete) { storage.deleteAttachment(target.collection, target.id) }
+        work(target, AttachmentAction.Delete) { storage.deleteAttachment(target.collection, target.id, target.imageSlot) }
     }
 
     private fun receive(uri: Uri?, action: AttachmentAction, block: suspend (AttachmentTarget, Uri) -> Unit) {
@@ -242,7 +409,9 @@ private class AttachmentFlow(private val app: GestioraApplication) : RetainObser
     }
 
     private fun finish(target: AttachmentTarget, message: Int?) {
-        results[target] = AttachmentResult(message)
+        val result = AttachmentResult(message)
+        results[target] = result
+        if (target.imageSlot != null) imageResults[target.copy(imageSlot = null)] = result
         active = null
     }
 
@@ -269,4 +438,54 @@ private class AttachmentFlow(private val app: GestioraApplication) : RetainObser
     override fun onExitedComposition() = Unit
     override fun onRetired() = scope.cancel()
     override fun onUnused() = scope.cancel()
+}
+
+internal fun decodePreview(bytes: ByteArray, maxSide: Int = 1600): Bitmap {
+    if (Build.VERSION.SDK_INT >= 28) {
+        return ImageDecoder.decodeBitmap(ImageDecoder.createSource(ByteBuffer.wrap(bytes))) { decoder, info, _ ->
+            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            val longest = maxOf(info.size.width, info.size.height)
+            if (longest > maxSide) {
+                decoder.setTargetSize(
+                    (info.size.width.toLong() * maxSide / longest).coerceAtLeast(1).toInt(),
+                    (info.size.height.toLong() * maxSide / longest).coerceAtLeast(1).toInt(),
+                )
+            }
+        }
+    }
+    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+    val longest = maxOf(options.outWidth, options.outHeight)
+    require(longest > 0)
+    var sample = 1
+    while ((longest.toLong() + sample - 1) / sample > maxSide) sample *= 2
+    options.inSampleSize = sample
+    options.inJustDecodeBounds = false
+    val bitmap = requireNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options))
+    if (options.outMimeType != "image/jpeg") return bitmap
+    val orientation = try {
+        ExifInterface(ByteArrayInputStream(bytes))
+            .getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+    } catch (_: java.io.IOException) {
+        ExifInterface.ORIENTATION_NORMAL
+    }
+    val matrix = Matrix()
+    when (orientation) {
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.setScale(-1f, 1f)
+        ExifInterface.ORIENTATION_ROTATE_180 -> matrix.setRotate(180f)
+        ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.setScale(1f, -1f)
+        ExifInterface.ORIENTATION_TRANSPOSE -> {
+            matrix.setRotate(90f)
+            matrix.postScale(-1f, 1f)
+        }
+        ExifInterface.ORIENTATION_ROTATE_90 -> matrix.setRotate(90f)
+        ExifInterface.ORIENTATION_TRANSVERSE -> {
+            matrix.setRotate(270f)
+            matrix.postScale(-1f, 1f)
+        }
+        ExifInterface.ORIENTATION_ROTATE_270 -> matrix.setRotate(270f)
+        else -> return bitmap
+    }
+    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        .also { if (it !== bitmap) bitmap.recycle() }
 }

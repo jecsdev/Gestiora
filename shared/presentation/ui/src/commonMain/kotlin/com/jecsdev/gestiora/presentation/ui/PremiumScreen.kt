@@ -87,6 +87,7 @@ internal fun PremiumScreen(
     onHistory: (() -> Unit)? = null,
     onStatistics: (() -> Unit)? = null,
     onReport: (() -> Unit)? = null,
+    onJournal: (() -> Unit)? = null,
 ) {
     val ui = LocalUiCopy.current
     var expanded by retain { mutableStateOf<PremiumBenefit?>(PremiumBenefit.History) }
@@ -115,6 +116,7 @@ internal fun PremiumScreen(
                         val action = when (benefit) {
                             PremiumBenefit.Reports -> onReport
                             PremiumBenefit.Statistics -> onStatistics
+                            PremiumBenefit.Journal -> onJournal
                             else -> null
                         }
                         PremiumBenefitRow(benefit, expanded == benefit, action) {

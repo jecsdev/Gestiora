@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,28 +39,33 @@ import gestiora.shared.presentation.ui.generated.resources.*
 import org.koin.compose.koinInject
 
 @Composable
-internal fun PrenatalHistoryRoute(onBack: () -> Unit) {
+internal fun PrenatalHistoryRoute(
+    onBack: () -> Unit,
+    listState: LazyListState = rememberLazyListState(),
+    onReport: (() -> Unit)? = null,
+) {
     val viewModel = koinInject<PrenatalHistoryViewModel>()
     var loadAttempt by remember { mutableIntStateOf(0) }
     var openedEntry by retain { mutableStateOf<PrenatalHistoryEntry?>(null) }
-    val listState = rememberLazyListState()
     val state by produceState<PrenatalHistoryUiState>(PrenatalHistoryUiState.Loading, viewModel, loadAttempt) {
         value = PrenatalHistoryUiState.Loading
         value = viewModel.load()
     }
-    val entry = openedEntry
-    if (entry == null) {
-        PrenatalHistoryScreen(
-            state = state,
-            onBack = onBack,
-            onRetry = { loadAttempt++ },
-            onOpenEntry = { openedEntry = it },
-            listState = listState,
-        )
-    } else {
-        val closeEntry = { openedEntry = null }
-        AppointmentBackHandler(enabled = true, onBack = closeEntry)
-        PrenatalHistoryDetail(entry, onBack = closeEntry)
+    ScreenExchange(openedEntry) { entry ->
+        if (entry == null) {
+            PrenatalHistoryScreen(
+                state = state,
+                onBack = onBack,
+                onRetry = { loadAttempt++ },
+                onOpenEntry = { openedEntry = it },
+                listState = listState,
+                onReport = onReport,
+            )
+        } else {
+            val closeEntry = { openedEntry = null }
+            AppointmentBackHandler(enabled = true, onBack = closeEntry)
+            PrenatalHistoryDetail(entry, onBack = closeEntry)
+        }
     }
 }
 
@@ -70,6 +76,7 @@ private fun PrenatalHistoryScreen(
     onRetry: () -> Unit,
     onOpenEntry: (PrenatalHistoryEntry) -> Unit,
     listState: LazyListState = rememberLazyListState(),
+    onReport: (() -> Unit)? = null,
 ) {
     val ui = LocalUiCopy.current
     LazyColumn(
@@ -94,6 +101,13 @@ private fun PrenatalHistoryScreen(
                 }
             }
             is PrenatalHistoryUiState.Ready -> {
+                if (onReport != null) {
+                    item {
+                        GradientButton(onClick = onReport, modifier = Modifier.fillMaxWidth()) {
+                            Text(ui.s(Res.string.premium_history_create_report))
+                        }
+                    }
+                }
                 if (state.entries.isEmpty()) {
                     item { EditorialEmptyState(ui.s(Res.string.premium_history_empty)) }
                 }
@@ -147,10 +161,12 @@ private fun PrenatalHistoryDetail(entry: PrenatalHistoryEntry, onBack: () -> Uni
                         Text(doctor)
                     }
                     ConsultationRecordDetails(entry.consultation)
+                    ClinicalAttachmentActions(ClinicalAttachmentKind.Consultation, entry.consultation.id, true, showImages = true)
                 }
                 is PrenatalHistoryEntry.Study -> {
                     EditorialStatus(entry.exam.status.label(ui))
                     ExamRecordDetails(entry.exam)
+                    ClinicalAttachmentActions(ClinicalAttachmentKind.Exam, entry.exam.id, true, showImages = true)
                 }
             }
         }

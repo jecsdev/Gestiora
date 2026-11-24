@@ -5,5 +5,6 @@ import androidx.compose.runtime.Composable
 
 @Composable
 internal actual fun AppointmentBackHandler(enabled: Boolean, onBack: () -> Unit) {
-    BackHandler(enabled = enabled, onBack = onBack)
+    val leaving = LocalScreenLeaving.current
+    BackHandler(enabled = enabled) { if (!leaving) onBack() }
 }

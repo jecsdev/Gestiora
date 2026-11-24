@@ -18,4 +18,12 @@
     <string name="attachment_copy_saved">Copie enregistrée.</string>
     <string name="attachment_removed">Pièce jointe retirée.</string>
     <string name="attachment_read_failed">Impossible de lire la pièce jointe enregistrée.</string>
+    <string name="attachment_add_image">Ajouter une image</string>
+    <string name="attachment_view_image">Voir l’image</string>
+    <string name="attachment_invalid_image">Utilisez un JPEG ou un PNG de 4 Mo maximum.</string>
+    <string name="attachment_close_image">Fermer</string>
+    <string name="attachment_images">Images</string>
+    <string name="attachment_add_document">Ajouter un PDF</string>
+    <string name="attachment_images_limit">Jusqu’à %1$d images par dossier.</string>
+    <string name="notification_personal">Vous avez un rappel. Ouvrez Gestiora pour le consulter.</string>
 </resources>

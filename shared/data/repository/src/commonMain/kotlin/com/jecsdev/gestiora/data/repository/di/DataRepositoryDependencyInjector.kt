@@ -41,7 +41,7 @@ object DataRepositoryDependencyInjector : KoinModuleLoader {
         single<PregnancyProfileRepository> { SecurePregnancyProfileRepository(get()) }
         single<AppointmentRepository> { SecureAppointmentRepository(get(), get()) }
         single<PrenatalNoteRepository> { SecurePrenatalNoteRepository(get()) }
-        single<PersonalReminderRepository> { SecurePersonalReminderRepository(get()) }
+        single<PersonalReminderRepository> { SecurePersonalReminderRepository(get(), get()) }
         single<ConsultationRepository> { SecureConsultationRepository(get()) }
         single<VitalRecordRepository> { SecureVitalRecordRepository(get()) }
         single<MedicalConditionRepository> { SecureMedicalConditionRepository(get()) }

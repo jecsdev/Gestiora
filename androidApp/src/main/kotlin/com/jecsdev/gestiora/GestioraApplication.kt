@@ -8,9 +8,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.jecsdev.gestiora.core.di.CoreDependencyInjection
 import com.jecsdev.gestiora.data.datasources.ScheduleChangeNotifier
+import com.jecsdev.gestiora.data.datasources.PREGNANCY_JOURNAL_STORE
 import com.jecsdev.gestiora.data.datasources.core.room.ProtectedClinicalStorage
+import com.jecsdev.gestiora.data.repository.ProtectedPregnancyJournal
 import com.jecsdev.gestiora.domain.repository.AppointmentRepository
 import com.jecsdev.gestiora.domain.repository.ExamRecordRepository
+import com.jecsdev.gestiora.domain.repository.PersonalReminderRepository
 import com.jecsdev.gestiora.reminders.AndroidReminderScheduler
 import com.jecsdev.gestiora.reminders.ReminderReceiver
 import kotlinx.coroutines.*
@@ -25,6 +28,13 @@ class GestioraApplication : Application() {
         koinApplication {
             modules(CoreDependencyInjection.modules + module {
                 single<Context> { this@GestioraApplication }
+                single {
+                    val storage = get<ProtectedClinicalStorage>()
+                    ProtectedPregnancyJournal(
+                        read = { storage.read(PREGNANCY_JOURNAL_STORE) },
+                        write = { storage.write(PREGNANCY_JOURNAL_STORE, it) },
+                    )
+                }
                 single<ScheduleChangeNotifier> { ScheduleChangeNotifier {
                     // The OS owns the queued broadcast even when the Activity leaves the foreground.
                     sendBroadcast(Intent(this@GestioraApplication, ReminderReceiver::class.java)
@@ -48,7 +58,8 @@ class GestioraApplication : Application() {
                         graph.koin.get<ProtectedClinicalStorage>().finishMigration()
                         val appointments = graph.koin.get<AppointmentRepository>().list()
                         val exams = graph.koin.get<ExamRecordRepository>().list()
-                        scheduler.reconcile(appointments, exams, deliverDue)
+                        val personalReminders = graph.koin.get<PersonalReminderRepository>().list()
+                        scheduler.reconcile(appointments, exams, personalReminders, deliverDue)
                     }
                 }
                 withContext(Dispatchers.Main) { reminderRefreshFailed = false }

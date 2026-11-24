@@ -26,9 +26,9 @@ internal object BackupFile {
     private const val NONCE_BYTES = 12
     private const val TAG_BYTES = 16
     private val headerSize = magic.size + 1 + SALT_BYTES + NONCE_BYTES
-    private const val MAX_STORES = 9
+    private const val MAX_STORES = 10
     private const val MAX_PAYLOAD_BYTES = 3_000_000
-    private const val MAX_V1_BYTES = 27_001_024
+    private const val MAX_V1_BYTES = MAX_STORES * MAX_PAYLOAD_BYTES + 1_024
     private const val MAX_V2_BYTES = MAX_V1_BYTES + ClinicalAttachment.MAX_TOTAL_BYTES +
         ClinicalAttachment.MAX_COUNT * 512 + 1
 

@@ -22,6 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -59,7 +60,15 @@ internal enum class AppDestination(val label: StringResource) {
     Home(Res.string.home), Calendar(Res.string.calendar), Records(Res.string.records), Baby(Res.string.my_baby), Profile(Res.string.profile)
 }
 
-private enum class DetailRoute { Settings, Premium, Plans, PlansFromRecords, History, HistoryFromRecords, Statistics, Report }
+private enum class DetailRoute {
+    Settings, Premium, Plans, PlansFromRecords, History, HistoryFromRecords,
+    Statistics, Report, HistoryReport, HistoryReportFromRecords, Journal,
+}
+
+private val premiumAnimatedRoutes = setOf(
+    DetailRoute.History, DetailRoute.HistoryFromRecords, DetailRoute.Report,
+    DetailRoute.HistoryReport, DetailRoute.HistoryReportFromRecords, DetailRoute.Journal,
+)
 
 @Composable
 internal fun NavigationShell(
@@ -92,11 +101,17 @@ internal fun NavigationShell(
     val recordSectionsScroll = key(destination) { retain { ScrollState(0) } }
     val settingsScroll = remember(detailRoute != null) { ScrollState(0) }
     val premiumScroll = remember(
-        detailRoute in setOf(DetailRoute.Premium, DetailRoute.Plans, DetailRoute.History, DetailRoute.Statistics, DetailRoute.Report),
+        detailRoute in setOf(
+            DetailRoute.Premium, DetailRoute.Plans, DetailRoute.History, DetailRoute.Statistics,
+            DetailRoute.Report, DetailRoute.HistoryReport, DetailRoute.Journal,
+        ),
     ) { ScrollState(0) }
+    val historyScroll = rememberLazyListState()
     fun closeDetail() {
         detailRoute = when (detailRoute) {
-            DetailRoute.Plans, DetailRoute.History, DetailRoute.Statistics, DetailRoute.Report -> DetailRoute.Premium
+            DetailRoute.Plans, DetailRoute.History, DetailRoute.Statistics, DetailRoute.Report, DetailRoute.Journal -> DetailRoute.Premium
+            DetailRoute.HistoryReport -> DetailRoute.History
+            DetailRoute.HistoryReportFromRecords -> DetailRoute.HistoryFromRecords
             DetailRoute.Premium -> DetailRoute.Settings
             DetailRoute.Settings, DetailRoute.PlansFromRecords, DetailRoute.HistoryFromRecords, null -> null
         }
@@ -104,90 +119,108 @@ internal fun NavigationShell(
     var catalogOpen by retain { mutableStateOf(false) }
     val catalogTransition = updateTransition(catalogOpen, label = "Learning library")
     val showBabyContent = !catalogTransition.currentState && !catalogTransition.targetState && !catalogTransition.isRunning
-    Scaffold(
-        containerColor = Color.Transparent,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            if (detailRoute != null || (destination == AppDestination.Baby && !showBabyContent)) return@Scaffold
-            Surface(modifier = Modifier.padding(horizontal = 10.dp).navigationBarsPadding().padding(bottom = 6.dp),
-                color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(30.dp), shadowElevation = 3.dp) {
-                NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
-                    AppDestination.entries.forEach { item ->
-                        NavigationBarItem(
-                            selected = destination == item,
-                            enabled = !navigationLocked,
-                            onClick = { calendarDate = null; notesStatus = null; openConditions = false; onDestinationChange(item) },
-                            icon = { DestinationIcon(item) },
-                            label = { Text(ui.s(item.label), fontSize = 10.sp) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            alwaysShowLabel = true,
-                        )
+    ScreenExchange(detailRoute, animate = { from, to -> from in premiumAnimatedRoutes || to in premiumAnimatedRoutes }) { screen ->
+        Scaffold(
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            bottomBar = {
+                if (screen != null || (destination == AppDestination.Baby && !showBabyContent)) return@Scaffold
+                Surface(modifier = Modifier.padding(horizontal = 10.dp).navigationBarsPadding().padding(bottom = 6.dp),
+                    color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(30.dp), shadowElevation = 3.dp) {
+                    NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
+                        AppDestination.entries.forEach { item ->
+                            NavigationBarItem(
+                                selected = destination == item,
+                                enabled = !navigationLocked,
+                                onClick = { calendarDate = null; notesStatus = null; openConditions = false; onDestinationChange(item) },
+                                icon = { DestinationIcon(item) },
+                                label = { Text(ui.s(item.label), fontSize = 10.sp) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
+                                alwaysShowLabel = true,
+                            )
+                        }
                     }
                 }
-            }
-        },
-    ) { padding ->
-        key(destination, detailRoute) {
-            Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).screenEntrance(12.dp)) {
-                AppointmentBackHandler(enabled = detailRoute != null, onBack = ::closeDetail)
-                when (detailRoute) {
-                    DetailRoute.Settings -> SettingsScreen(
-                        preferences, exportBackup, onBack = ::closeDetail,
-                        onPremium = { detailRoute = DetailRoute.Premium }, scrollState = settingsScroll,
-                    )
-                    DetailRoute.Premium -> PremiumScreen(
-                        onBack = ::closeDetail, onPlans = { detailRoute = DetailRoute.Plans },
-                        scrollState = premiumScroll,
-                        onHistory = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.History }) else null,
-                        onStatistics = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.Statistics }) else null,
-                        onReport = if (prenatalHistoryPreview && LocalPrenatalReport.current != null) {
-                            { detailRoute = DetailRoute.Report }
-                        } else null,
-                    )
-                    DetailRoute.Plans, DetailRoute.PlansFromRecords -> PremiumPlansScreen(onBack = ::closeDetail)
-                    DetailRoute.History, DetailRoute.HistoryFromRecords -> PrenatalHistoryRoute(onBack = ::closeDetail)
-                    DetailRoute.Statistics -> PrenatalStatisticsRoute(onBack = ::closeDetail)
-                    DetailRoute.Report -> PrenatalReportRoute(profile, onBack = ::closeDetail)
-                    null -> when (destination) {
-                        AppDestination.Home -> PregnancyDashboard(
-                            profile, viewModel, koinInject<AppointmentViewModel>(),
-                            onProfile = { onDestinationChange(AppDestination.Profile) },
-                            onBaby = { onDestinationChange(AppDestination.Baby) },
-                            onSettings = { detailRoute = DetailRoute.Settings },
-                            followUpContent = {
-                                PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
-                                    openConditions = false
-                                    notesStatus = NoteTaskStatus.PENDING
-                                    onDestinationChange(AppDestination.Records)
-                                }
-                                MedicalFollowUpSection(koinInject<MedicalConditionViewModel>()) {
-                                    notesStatus = null
-                                    openConditions = true
-                                    onDestinationChange(AppDestination.Records)
-                                }
-                            },
-                        ) { date ->
-                            calendarDate = date
-                            onDestinationChange(AppDestination.Calendar)
-                        }
-                        AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
-                        AppDestination.Records -> RecordsScreen(
-                            initialNotesStatus = notesStatus,
-                            selected = recordSection.value,
-                            sectionsScroll = recordSectionsScroll,
-                            onSectionChange = { recordSection.value = it },
-                            onPremiumPlans = { detailRoute = DetailRoute.PlansFromRecords },
-                            onHistory = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.HistoryFromRecords }) else null,
-                            onNavigationLockChange = { navigationLocked = it },
+            },
+        ) { padding ->
+            key(destination, screen) {
+                val entrance = if (screen in premiumAnimatedRoutes) Modifier else Modifier.screenEntrance(12.dp)
+                Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).then(entrance)) {
+                    AppointmentBackHandler(enabled = screen != null, onBack = ::closeDetail)
+                    when (screen) {
+                        DetailRoute.Settings -> SettingsScreen(
+                            preferences, exportBackup, onBack = ::closeDetail,
+                            onPremium = { detailRoute = DetailRoute.Premium }, scrollState = settingsScroll,
                         )
-                        AppDestination.Baby -> BabyScreen(profile, viewModel, catalogTransition, showBabyContent) { catalogOpen = it }
-                        AppDestination.Profile -> ProfileScreen(profile, onEdit)
+                        DetailRoute.Premium -> PremiumScreen(
+                            onBack = ::closeDetail, onPlans = { detailRoute = DetailRoute.Plans },
+                            scrollState = premiumScroll,
+                            onHistory = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.History }) else null,
+                            onStatistics = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.Statistics }) else null,
+                            onReport = if (prenatalHistoryPreview && LocalPrenatalReport.current != null) {
+                                { detailRoute = DetailRoute.Report }
+                            } else null,
+                            onJournal = if (prenatalHistoryPreview && LocalPregnancyJournal.current != null) {
+                                { detailRoute = DetailRoute.Journal }
+                            } else null,
+                        )
+                        DetailRoute.Plans, DetailRoute.PlansFromRecords -> PremiumPlansScreen(onBack = ::closeDetail)
+                        DetailRoute.History, DetailRoute.HistoryFromRecords -> PrenatalHistoryRoute(
+                            onBack = ::closeDetail,
+                            listState = historyScroll,
+                            onReport = if (LocalPrenatalReport.current != null) {
+                                {
+                                    detailRoute = if (screen == DetailRoute.History) DetailRoute.HistoryReport
+                                    else DetailRoute.HistoryReportFromRecords
+                                }
+                            } else null,
+                        )
+                        DetailRoute.Statistics -> PrenatalStatisticsRoute(onBack = ::closeDetail)
+                        DetailRoute.Report -> PrenatalReportRoute(profile, onBack = ::closeDetail)
+                        DetailRoute.HistoryReport, DetailRoute.HistoryReportFromRecords ->
+                            PrenatalReportRoute(profile, onBack = ::closeDetail, historyOnly = true)
+                        DetailRoute.Journal -> PregnancyJournalRoute(onBack = ::closeDetail)
+                        null -> when (destination) {
+                            AppDestination.Home -> PregnancyDashboard(
+                                profile, viewModel, koinInject<AppointmentViewModel>(),
+                                onProfile = { onDestinationChange(AppDestination.Profile) },
+                                onBaby = { onDestinationChange(AppDestination.Baby) },
+                                onSettings = { detailRoute = DetailRoute.Settings },
+                                followUpContent = {
+                                    PendingNotesSection(koinInject<PrenatalNoteViewModel>(), todayIsoDate()) {
+                                        openConditions = false
+                                        notesStatus = NoteTaskStatus.PENDING
+                                        onDestinationChange(AppDestination.Records)
+                                    }
+                                    MedicalFollowUpSection(koinInject<MedicalConditionViewModel>()) {
+                                        notesStatus = null
+                                        openConditions = true
+                                        onDestinationChange(AppDestination.Records)
+                                    }
+                                },
+                            ) { date ->
+                                calendarDate = date
+                                onDestinationChange(AppDestination.Calendar)
+                            }
+                            AppDestination.Calendar -> CalendarScreen(calendarDate) { navigationLocked = it }
+                            AppDestination.Records -> RecordsScreen(
+                                initialNotesStatus = notesStatus,
+                                selected = recordSection.value,
+                                sectionsScroll = recordSectionsScroll,
+                                onSectionChange = { recordSection.value = it },
+                                onPremiumPlans = { detailRoute = DetailRoute.PlansFromRecords },
+                                onHistory = if (prenatalHistoryPreview) ({ detailRoute = DetailRoute.HistoryFromRecords }) else null,
+                                onNavigationLockChange = { navigationLocked = it },
+                            )
+                            AppDestination.Baby -> BabyScreen(profile, viewModel, catalogTransition, showBabyContent) { catalogOpen = it }
+                            AppDestination.Profile -> ProfileScreen(profile, onEdit)
+                        }
                     }
                 }
             }
