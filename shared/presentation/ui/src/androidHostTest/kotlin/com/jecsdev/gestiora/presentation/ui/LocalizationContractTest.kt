@@ -16,16 +16,23 @@ class LocalizationContractTest {
         val factory = DocumentBuilderFactory.newInstance().apply {
             setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
         }
-        val nodes = factory.newDocumentBuilder().parse(File(root, "$folder/strings.xml")).getElementsByTagName("string")
+        val parser = factory.newDocumentBuilder()
+        val directory = File(root, folder)
+        val files = checkNotNull(directory.listFiles()) { "Cannot read translations in $directory" }
+            .filter { it.isFile && it.extension == "xml" }
+            .sortedBy { it.name }
         val result = mutableMapOf<String, String>()
-        for (i in 0 until nodes.length) {
-            val node = nodes.item(i)
-            val name = node.attributes.getNamedItem("name").nodeValue
-            val value = node.textContent.replace("\\n", "\n")
-            assertFalse(value.contains("\\'"), "Compose string contains an Android-style apostrophe escape: $folder/$name")
-            assertFalse(Regex("%([0-9]+)[$]s|%%").replace(value, "").contains('%'), "Invalid format token $folder/$name")
-            assertNull(result.put(name, value), "Duplicate key $folder/$name")
-            assertTrue(value.isNotBlank(), "Empty translation $folder/$name")
+        for (file in files) {
+            val nodes = parser.parse(file).getElementsByTagName("string")
+            for (i in 0 until nodes.length) {
+                val node = nodes.item(i)
+                val name = node.attributes.getNamedItem("name").nodeValue
+                val value = node.textContent.replace("\\n", "\n")
+                assertFalse(value.contains("\\'"), "Compose string contains an Android-style apostrophe escape: $folder/$name")
+                assertFalse(Regex("%([0-9]+)[$]s|%%").replace(value, "").contains('%'), "Invalid format token $folder/$name")
+                assertNull(result.put(name, value), "Duplicate key $folder/$name")
+                assertTrue(value.isNotBlank(), "Empty translation $folder/$name")
+            }
         }
         return result
     }
