@@ -1,8 +1,11 @@
 <resources>
     <string name="app_name">Gestiora</string>
     <string name="notification_channel">Scheduled reminders</string>
-    <string name="notification_appointment">You have an appointment reminder. Open Gestiora to view it.</string>
-    <string name="notification_exam">You have an examination reminder. Open Gestiora to view it.</string>
+    <string name="notification_appointment_title">Appointment reminder</string>
+    <string name="notification_appointment_time">Your appointment is on %1$s at %2$s.</string>
+    <string name="notification_appointment_doctor">Appointment with %1$s on %2$s at %3$s.</string>
+    <string name="notification_public">Open Gestiora to see your reminder.</string>
+    <string name="notification_exam_title">Examination reminder</string>
     <string name="attachment_name">Attachment · %1$s</string>
     <string name="attachment_add">Attach PDF or image</string>
     <string name="attachment_replace">Replace attachment</string>
@@ -26,5 +29,6 @@
     <string name="attachment_images">Images</string>
     <string name="attachment_add_document">Add PDF</string>
     <string name="attachment_images_limit">Up to %1$d images per record.</string>
-    <string name="notification_personal">You have a reminder. Open Gestiora to see it.</string>
+    <string name="notification_medication_title">Medication reminder</string>
+    <string name="notification_personal_title">Reminder</string>
 </resources>

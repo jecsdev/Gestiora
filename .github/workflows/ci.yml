@@ -2,6 +2,7 @@ name: Gestiora CI
 
 on:
   push:
+    branches: [main, master, 'feature/**']
   pull_request:
   workflow_dispatch:
 
@@ -75,7 +76,7 @@ jobs:
           retention-days: 7
 
   ios:
-    name: iOS Simulator build
+    name: iOS Simulator Release build
     runs-on: macos-26
     timeout-minutes: 35
     env:
@@ -97,12 +98,12 @@ jobs:
           chmod +x gradlew
       - name: Bootstrap the Gradle wrapper
         run: ./gradlew --version
-      - name: Link the Kotlin iOS Simulator framework
+      - name: Link the Release Kotlin iOS Simulator framework
         id: ios-framework
         run: |
           mkdir -p "$RUNNER_TEMP/gestiora-ios"
           log="$RUNNER_TEMP/gestiora-ios/kotlin-native.log"
-          if ! ./gradlew --console=plain :shared:presentation:ui:linkDebugFrameworkIosSimulatorArm64 \
+          if ! ./gradlew --console=plain :shared:presentation:ui:linkReleaseFrameworkIosSimulatorArm64 \
             2>&1 | tee "$log"; then
             awk '/^e: / {
               gsub(/%/, "%25")
@@ -113,20 +114,39 @@ jobs:
             exit 1
           fi
           tar -czf "$RUNNER_TEMP/gestiora-ios/Shared-iosSimulatorArm64.tar.gz" \
-            -C shared/presentation/ui/build/bin/iosSimulatorArm64/debugFramework Shared.framework
-      - name: Build the iOS app without signing
+            -C shared/presentation/ui/build/bin/iosSimulatorArm64/releaseFramework Shared.framework
+      - name: Build the iOS Release app without signing
         run: |
           xcodebuild \
             -project iosApp/iosApp.xcodeproj \
             -scheme iosApp \
-            -configuration Debug \
+            -configuration Release \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath "$RUNNER_TEMP/gestiora-ios-derived" \
             -resultBundlePath "$RUNNER_TEMP/gestiora-ios/Build.xcresult" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             build 2>&1 | tee "$RUNNER_TEMP/gestiora-ios/xcodebuild.log"
+      - name: Verify and package the installable simulator app
+        run: |
+          products="$RUNNER_TEMP/gestiora-ios-derived/Build/Products/Release-iphonesimulator"
+          app="$products/Gestiora.app"
+          executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")"
+          xcrun lipo -verify_arch arm64 "$app/$executable"
+          if ! xcrun otool -l "$app/$executable" | awk '
+            $1 == "nlocalsym" { found = 1; if ($2 != 0) unstripped = 1 }
+            END { exit (!found || unstripped) }
+          '; then
+            echo "::error::Expected the Release app to have a stripped local symbol table."
+            exit 1
+          fi
+          app_uuid="$(xcrun dwarfdump --uuid "$app/$executable" | awk '{ print $2 }')"
+          dsym_uuid="$(xcrun dwarfdump --uuid "$products/Gestiora.app.dSYM" | awk '{ print $2 }')"
+          if [[ -z "$app_uuid" || "$app_uuid" != "$dsym_uuid" ]]; then
+            echo "::error::Expected a dSYM matching the Release app."
+            exit 1
+          fi
           tar -czf "$RUNNER_TEMP/gestiora-ios/Gestiora-iosSimulatorArm64.tar.gz" \
-            -C "$RUNNER_TEMP/gestiora-ios-derived/Build/Products/Debug-iphonesimulator" Gestiora.app
+            -C "$products" Gestiora.app
       - name: Upload iOS simulator builds
         if: ${{ !cancelled() && steps.ios-framework.outcome == 'success' }}
         uses: actions/upload-artifact@v6

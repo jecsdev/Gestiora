@@ -1,7 +1,10 @@
 <resources>
     <string name="notification_channel">Avisos programados</string>
-    <string name="notification_appointment">Tienes un aviso de cita. Abre Gestiora para consultarlo.</string>
-    <string name="notification_exam">Tienes un aviso de examen. Abre Gestiora para consultarlo.</string>
+    <string name="notification_appointment_title">Recordatorio de cita</string>
+    <string name="notification_appointment_time">Tienes cita el %1$s a las %2$s.</string>
+    <string name="notification_appointment_doctor">Cita con %1$s el %2$s a las %3$s.</string>
+    <string name="notification_public">Abre Gestiora para ver tu recordatorio.</string>
+    <string name="notification_exam_title">Recordatorio de examen</string>
     <string name="attachment_name">Adjunto · %1$s</string>
     <string name="attachment_add">Adjuntar PDF o imagen</string>
     <string name="attachment_replace">Reemplazar adjunto</string>
@@ -25,5 +28,6 @@
     <string name="attachment_images">Imágenes</string>
     <string name="attachment_add_document">Agregar PDF</string>
     <string name="attachment_images_limit">Hasta %1$d imágenes por registro.</string>
-    <string name="notification_personal">Tienes un recordatorio. Abre Gestiora para consultarlo.</string>
+    <string name="notification_medication_title">Recordatorio de medicamento</string>
+    <string name="notification_personal_title">Recordatorio</string>
 </resources>

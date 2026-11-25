@@ -596,7 +596,9 @@
     <string name="notifications_unavailable">System reminders are not available on this platform yet.</string>
     <string name="notifications_disabled">Notifications are off. Enable them to receive your scheduled reminders.</string>
     <string name="notifications_enabled">Notifications are enabled for your scheduled alerts.</string>
-    <string name="notifications_timing">Android may delay reminders to save battery. Opening a reminder takes you to Gestiora; no medical details appear in the notification.</string>
+    <string name="notifications_timing">Android may delay reminders to save battery. Details can appear in your notifications. Android controls what is shown on the lock screen.</string>
+    <string name="country_search">Search countries and territories</string>
+    <string name="country_no_matches">No matching countries or territories.</string>
     <string name="notifications_manage">Manage notifications</string>
     <string name="notifications_retry_message">We could not verify storage or refresh your reminders. Your records were kept. Retry here.</string>
     <string name="exam_reminder_option">Remind me the day before at 09:00</string>
@@ -703,4 +705,11 @@
     <string name="reminder_all_day_notification_time">All-day reminders are scheduled for 9:00 a.m.</string>
     <string name="reminder_time_am">%1$s:%2$s AM</string>
     <string name="reminder_time_pm">%1$s:%2$s PM</string>
+    <string name="notifications_timing_ios">iOS controls when alerts are shown and what appears in previews.</string>
+    <string name="notification_preview_hidden">You have a reminder.</string>
+    <string name="local_appointment_alert">Appointment reminder</string>
+    <string name="local_exam_alert">Exam reminder</string>
+    <string name="local_medication_alert">Medication reminder</string>
+    <string name="local_personal_alert">Personal reminder</string>
+    <string name="notifications_queue_limit_ios">Gestiora schedules the next 64 alerts on iOS. Open the app again after some are delivered to schedule more.</string>
 </resources>

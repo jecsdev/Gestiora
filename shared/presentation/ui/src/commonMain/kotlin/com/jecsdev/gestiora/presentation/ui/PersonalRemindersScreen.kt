@@ -98,7 +98,7 @@ internal fun PersonalRemindersScreen(viewModel: PersonalReminderViewModel, onNav
                     editing = PersonalReminder("", "", newCalendarEventDate(month, selectedDate, todayIsoDate()))
                     onNavigationLockChange(true)
                 }) { Text(ui.s(Res.string.new_reminder)) }
-                CalendarCard {
+                EditorialRecordCard {
                     ReminderNotificationSettings()
                     if (LocalNotificationControls.current.supported) {
                         Text(ui.s(Res.string.reminder_all_day_notification_time), style = MaterialTheme.typography.bodySmall)

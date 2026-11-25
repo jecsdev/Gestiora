@@ -1,7 +1,10 @@
 <resources>
     <string name="notification_channel">Rappels programmés</string>
-    <string name="notification_appointment">Vous avez un rappel de rendez-vous. Ouvrez Gestiora pour le consulter.</string>
-    <string name="notification_exam">Vous avez un rappel d’examen. Ouvrez Gestiora pour le consulter.</string>
+    <string name="notification_appointment_title">Rappel de rendez-vous</string>
+    <string name="notification_appointment_time">Votre rendez-vous est le %1$s à %2$s.</string>
+    <string name="notification_appointment_doctor">Rendez-vous avec %1$s le %2$s à %3$s.</string>
+    <string name="notification_public">Ouvrez Gestiora pour voir votre rappel.</string>
+    <string name="notification_exam_title">Rappel d’examen</string>
     <string name="attachment_name">Pièce jointe · %1$s</string>
     <string name="attachment_add">Joindre un PDF ou une image</string>
     <string name="attachment_replace">Remplacer la pièce jointe</string>
@@ -25,5 +28,6 @@
     <string name="attachment_images">Images</string>
     <string name="attachment_add_document">Ajouter un PDF</string>
     <string name="attachment_images_limit">Jusqu’à %1$d images par dossier.</string>
-    <string name="notification_personal">Vous avez un rappel. Ouvrez Gestiora pour le consulter.</string>
+    <string name="notification_medication_title">Rappel de médicament</string>
+    <string name="notification_personal_title">Rappel</string>
 </resources>

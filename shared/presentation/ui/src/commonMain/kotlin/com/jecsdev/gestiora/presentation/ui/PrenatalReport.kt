@@ -202,7 +202,7 @@ internal fun PrenatalReportRoute(profile: PregnancyProfile, onBack: () -> Unit, 
             state = key(showingPreview) { rememberLazyListState() },
             modifier = Modifier.fillMaxSize().safeDrawingPadding(),
             contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(if (showingPreview) 20.dp else 18.dp),
         ) {
             item { ScreenBackButton(if (showingPreview) closePreview else onBack) }
             item {
@@ -221,17 +221,20 @@ internal fun PrenatalReportRoute(profile: PregnancyProfile, onBack: () -> Unit, 
                 }
                 if (document != null && pages?.isSuccess == true) {
                     item {
-                        GradientButton(
-                            onClick = { exportRequested = true; controls.export(document) },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = controls.status != PrenatalReportExport.Saving,
-                        ) { Text(ui.s(Res.string.premium_report_export)) }
-                        Text(ui.s(Res.string.premium_report_export_detail), style = MaterialTheme.typography.bodySmall)
-                        if (exportRequested) when (controls.status) {
-                            PrenatalReportExport.Idle -> Unit
-                            PrenatalReportExport.Saving -> LinearProgressIndicator(Modifier.fillMaxWidth())
-                            PrenatalReportExport.Saved -> Text(ui.s(Res.string.premium_report_saved))
-                            PrenatalReportExport.Failed -> Text(ui.s(Res.string.premium_report_failed), color = MaterialTheme.colorScheme.error)
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            GradientButton(
+                                onClick = { exportRequested = true; controls.export(document) },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = controls.status != PrenatalReportExport.Saving,
+                            ) { Text(ui.s(Res.string.premium_report_export)) }
+                            Text(ui.s(Res.string.premium_report_export_detail), style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (exportRequested) when (controls.status) {
+                                PrenatalReportExport.Idle -> Unit
+                                PrenatalReportExport.Saving -> LinearProgressIndicator(Modifier.fillMaxWidth())
+                                PrenatalReportExport.Saved -> Text(ui.s(Res.string.premium_report_saved))
+                                PrenatalReportExport.Failed -> Text(ui.s(Res.string.premium_report_failed), color = MaterialTheme.colorScheme.error)
+                            }
                         }
                     }
                     items(pages?.getOrThrow().orEmpty()) { page ->

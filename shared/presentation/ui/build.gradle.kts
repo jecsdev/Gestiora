@@ -37,6 +37,12 @@ kotlin {
             implementation(libs.koin.compose)
         }
         commonTest.dependencies { implementation(libs.kotlin.test) }
+        iosMain.dependencies {
+            implementation(project(":shared:data:datasources"))
+            implementation(project(":shared:data:datasources-core"))
+            implementation(project(":shared:data:repository"))
+            implementation(project(":shared:domain:repository"))
+        }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.compose.uiToolingPreview)

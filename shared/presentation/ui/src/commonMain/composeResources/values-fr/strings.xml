@@ -596,7 +596,9 @@
     <string name="notifications_unavailable">Les rappels système ne sont pas encore disponibles sur cette plateforme.</string>
     <string name="notifications_disabled">Les notifications sont désactivées. Activez-les pour recevoir vos rappels.</string>
     <string name="notifications_enabled">Les notifications sont activées pour vos alertes programmées.</string>
-    <string name="notifications_timing">Android peut retarder les rappels pour économiser la batterie. Le rappel ouvre Gestiora sans afficher de détails médicaux.</string>
+    <string name="notifications_timing">Android peut retarder les rappels pour économiser la batterie. Les détails peuvent apparaître dans les notifications. Android contrôle leur affichage sur l’écran verrouillé.</string>
+    <string name="country_search">Rechercher un pays ou un territoire</string>
+    <string name="country_no_matches">Aucun pays ou territoire trouvé.</string>
     <string name="notifications_manage">Gérer les notifications</string>
     <string name="notifications_retry_message">Impossible de vérifier le stockage ou de mettre à jour les rappels. Vos données sont conservées. Réessayez ici.</string>
     <string name="exam_reminder_option">Me rappeler la veille à 9 h</string>
@@ -703,4 +705,11 @@
     <string name="reminder_all_day_notification_time">Les rappels de toute la journée sont programmés à 9 h.</string>
     <string name="reminder_time_am">%1$s:%2$s AM</string>
     <string name="reminder_time_pm">%1$s:%2$s PM</string>
+    <string name="notifications_timing_ios">iOS contrôle quand les alertes s’affichent et ce que montrent les aperçus.</string>
+    <string name="notification_preview_hidden">Vous avez un rappel.</string>
+    <string name="local_appointment_alert">Rappel de rendez-vous</string>
+    <string name="local_exam_alert">Rappel d’examen</string>
+    <string name="local_medication_alert">Rappel de médicament</string>
+    <string name="local_personal_alert">Rappel personnel</string>
+    <string name="notifications_queue_limit_ios">Gestiora programme les 64 prochaines alertes sur iOS. Rouvrez lʼapplication après en avoir reçu pour en programmer dʼautres.</string>
 </resources>

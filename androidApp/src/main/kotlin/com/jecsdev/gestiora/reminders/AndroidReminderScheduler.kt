@@ -7,12 +7,15 @@ import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import android.text.format.DateFormat
 import com.jecsdev.gestiora.GestioraApplication
 import com.jecsdev.gestiora.MainActivity
 import com.jecsdev.gestiora.R
 import com.jecsdev.gestiora.domain.models.Appointment
 import com.jecsdev.gestiora.domain.models.ExamRecord
 import com.jecsdev.gestiora.domain.models.PersonalReminder
+import com.jecsdev.gestiora.domain.models.ReminderKind
+import java.util.Date
 import java.util.TimeZone
 
 internal class AndroidReminderScheduler(private val context: Context) {
@@ -38,23 +41,44 @@ internal class AndroidReminderScheduler(private val context: Context) {
         val posted = state.getStringSet("posted", emptySet()).orEmpty().toMutableSet()
         (posted - tokens).forEach { notifications.cancel(it, 0); posted.remove(it) }
         if (deliverDue && notificationsEnabled(context)) {
+            val appointmentsById = appointments.associateBy { it.id }
+            val examsById = exams.associateBy { it.id }
+            val personalById = personalReminders.associateBy { it.id }
             dueReminders(plan, now, armed, delivered).forEach { item ->
                 val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-                val builder = if (Build.VERSION.SDK_INT >= 26) {
-                    Notification.Builder(context, channel)
-                } else {
-                    Notification.Builder(context).setDefaults(Notification.DEFAULT_SOUND or Notification.DEFAULT_VIBRATE)
+                val (title, body) = when (item.kind) {
+                    "appointment" -> {
+                        val appointment = appointmentsById.getValue(item.id)
+                        val event = Date(item.expiresAt)
+                        val date = DateFormat.getMediumDateFormat(context).format(event)
+                        val time = DateFormat.getTimeFormat(context).format(event)
+                        val details = if (appointment.doctor.isBlank()) {
+                            context.getString(R.string.notification_appointment_time, date, time)
+                        } else {
+                            context.getString(R.string.notification_appointment_doctor, appointment.doctor, date, time)
+                        }
+                        R.string.notification_appointment_title to details
+                    }
+                    "exam" -> R.string.notification_exam_title to examsById.getValue(item.id).name
+                    else -> {
+                        val reminder = personalById.getValue(item.id)
+                        val label = if (reminder.kind == ReminderKind.MEDICATION) R.string.notification_medication_title
+                            else R.string.notification_personal_title
+                        label to reminder.title
+                    }
                 }
-                val body = when (item.kind) {
-                    "appointment" -> R.string.notification_appointment
-                    "exam" -> R.string.notification_exam
-                    else -> R.string.notification_personal
-                }
-                val notification = builder.setSmallIcon(R.drawable.ic_notification)
+                val redacted = notificationBuilder(channel)
+                    .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(context.getString(R.string.app_name))
-                    .setContentText(context.getString(body))
+                    .setContentText(context.getString(R.string.notification_public))
+                    .build()
+                val notification = notificationBuilder(channel).setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle(context.getString(title))
+                    .setContentText(body)
+                    .setStyle(Notification.BigTextStyle().bigText(body))
+                    .setPublicVersion(redacted)
                     .setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
                     .setVisibility(Notification.VISIBILITY_PRIVATE).setCategory(Notification.CATEGORY_REMINDER).build()
                 notifications.notify(item.token, 0, notification)
@@ -70,6 +94,10 @@ internal class AndroidReminderScheduler(private val context: Context) {
         alarms.cancel(alarm())
         (future + overdue).minOfOrNull { it.dueAt.coerceAtLeast(now + 1_000) }?.let(::schedule)
     }
+
+    private fun notificationBuilder(channel: String): Notification.Builder =
+        if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, channel)
+        else Notification.Builder(context).setDefaults(Notification.DEFAULT_SOUND or Notification.DEFAULT_VIBRATE)
 
     fun retryLater() { schedule(System.currentTimeMillis() + 15 * 60_000) }
     private fun schedule(at: Long) { alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, alarm()) }

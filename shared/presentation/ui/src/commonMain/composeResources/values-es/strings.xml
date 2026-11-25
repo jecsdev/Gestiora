@@ -596,7 +596,9 @@
     <string name="notifications_unavailable">Los avisos del sistema todavía no están disponibles en esta plataforma.</string>
     <string name="notifications_disabled">Las notificaciones están desactivadas. Actívalas para recibir tus avisos programados.</string>
     <string name="notifications_enabled">Las notificaciones están activadas para tus avisos programados.</string>
-    <string name="notifications_timing">Android puede retrasar los avisos para ahorrar batería. El aviso abre Gestiora y no muestra detalles médicos.</string>
+    <string name="notifications_timing">Android puede retrasar los avisos para ahorrar batería. Los detalles pueden aparecer en las notificaciones. Android controla qué se ve en la pantalla de bloqueo.</string>
+    <string name="country_search">Buscar países y territorios</string>
+    <string name="country_no_matches">No se encontraron países ni territorios.</string>
     <string name="notifications_manage">Configurar notificaciones</string>
     <string name="notifications_retry_message">No pudimos verificar el almacenamiento o actualizar los avisos. Tus registros se conservaron. Reintenta aquí.</string>
     <string name="exam_reminder_option">Avisarme el día anterior a las 9:00</string>
@@ -703,4 +705,11 @@
     <string name="reminder_all_day_notification_time">Los recordatorios de todo el día se programan para las 9:00 a. m.</string>
     <string name="reminder_time_am">%1$s:%2$s a. m.</string>
     <string name="reminder_time_pm">%1$s:%2$s p. m.</string>
+    <string name="notifications_timing_ios">iOS controla cuándo aparecen las alertas y qué se muestra en las vistas previas.</string>
+    <string name="notification_preview_hidden">Tienes un recordatorio.</string>
+    <string name="local_appointment_alert">Recordatorio de cita</string>
+    <string name="local_exam_alert">Recordatorio de examen</string>
+    <string name="local_medication_alert">Recordatorio de medicamento</string>
+    <string name="local_personal_alert">Recordatorio personal</string>
+    <string name="notifications_queue_limit_ios">Gestiora programa las próximas 64 alertas en iOS. Vuelve a abrir la app después de recibir algunas para programar más.</string>
 </resources>
