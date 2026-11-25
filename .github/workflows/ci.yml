@@ -131,7 +131,7 @@ jobs:
           products="$RUNNER_TEMP/gestiora-ios-derived/Build/Products/Release-iphonesimulator"
           app="$products/Gestiora.app"
           executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")"
-          xcrun lipo -verify_arch arm64 "$app/$executable"
+          xcrun lipo "$app/$executable" -verify_arch arm64
           if ! xcrun otool -l "$app/$executable" | awk '
             $1 == "nlocalsym" { found = 1; if ($2 != 0) unstripped = 1 }
             END { exit (!found || unstripped) }
