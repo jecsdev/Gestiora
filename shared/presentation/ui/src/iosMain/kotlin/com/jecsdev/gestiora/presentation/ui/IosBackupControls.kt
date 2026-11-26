@@ -48,13 +48,35 @@ internal class IosBackupFlow(
     private val crypto: IosClinicalCrypto,
     private val storage: () -> ProtectedClinicalStorage,
     private val onRestore: () -> Unit,
-) : NSObject(), UIDocumentPickerDelegateProtocol {
+) {
     private enum class Step { Idle, SelectingFile, Password, Working, SavingFile, Message }
     private var step by mutableStateOf(Step.Idle)
     private var message by mutableStateOf<StringResource?>(null)
     private var source: NSURL? = null
     private var stagedExport: NSURL? = null
     private var restored by mutableStateOf(false)
+
+    // Compose retain inspects the flow's KClass, which requires a Kotlin class without an Objective-C superclass.
+    private val documentPickerDelegate = object : NSObject(), UIDocumentPickerDelegateProtocol {
+        override fun documentPicker(controller: UIDocumentPickerViewController, didPickDocumentsAtURLs: List<*>) {
+            when (step) {
+                Step.SelectingFile -> {
+                    source = didPickDocumentsAtURLs.firstOrNull() as? NSURL
+                    if (source == null) dismiss() else step = Step.Password
+                }
+                Step.SavingFile -> {
+                    removeStagedExport()
+                    show(Res.string.backup_saved)
+                }
+                else -> Unit
+            }
+        }
+
+        override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
+            removeStagedExport()
+            dismiss()
+        }
+    }
 
     fun controls(controller: UIViewController) = BackupControls(
         canRestore = { withContext(Dispatchers.Default) { storage().canRestoreBackup() } },
@@ -80,28 +102,9 @@ internal class IosBackupFlow(
     private fun selectBackup(controller: UIViewController) {
         if (step != Step.Idle) return
         val picker = UIDocumentPickerViewController(forOpeningContentTypes = listOf(UTTypeData), asCopy = false)
-        picker.delegate = this
+        picker.delegate = documentPickerDelegate
         step = Step.SelectingFile
         controller.presentViewController(picker, animated = true, completion = null)
-    }
-
-    override fun documentPicker(controller: UIDocumentPickerViewController, didPickDocumentsAtURLs: List<*>) {
-        when (step) {
-            Step.SelectingFile -> {
-                source = didPickDocumentsAtURLs.firstOrNull() as? NSURL
-                if (source == null) dismiss() else step = Step.Password
-            }
-            Step.SavingFile -> {
-                removeStagedExport()
-                show(Res.string.backup_saved)
-            }
-            else -> Unit
-        }
-    }
-
-    override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
-        removeStagedExport()
-        dismiss()
     }
 
     private fun submit(controller: UIViewController, password: ByteArray, exporting: Boolean) {
@@ -172,7 +175,7 @@ internal class IosBackupFlow(
         val file = checkNotNull(directory.URLByAppendingPathComponent("Gestiora.gestiora"))
         check(crypto.writeBackup(encrypted, file))
         val picker = UIDocumentPickerViewController(forExportingURLs = listOf(file), asCopy = true)
-        picker.delegate = this
+        picker.delegate = documentPickerDelegate
         step = Step.SavingFile
         controller.presentViewController(picker, animated = true, completion = null)
     }
