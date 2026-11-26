@@ -131,15 +131,32 @@ jobs:
           products="$RUNNER_TEMP/gestiora-ios-derived/Build/Products/Release-iphonesimulator"
           app="$products/Gestiora.app"
           executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")"
-          xcrun lipo "$app/$executable" -verify_arch arm64
-          if ! xcrun otool -l "$app/$executable" | awk '
-            $1 == "nlocalsym" { found = 1; if ($2 != 0) unstripped = 1 }
-            END { exit (!found || unstripped) }
-          '; then
-            echo "::error::Expected the Release app to have a stripped local symbol table."
+          binary="$app/$executable"
+          xcrun lipo "$binary" -verify_arch arm64
+
+          local_symbol_count() {
+            xcrun otool -arch arm64 -l "$binary" | awk '$1 == "nlocalsym" { print $2 }'
+          }
+
+          local_symbols="$(local_symbol_count)"
+          if [[ ! "$local_symbols" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not read the arm64 Mach-O local symbol count."
             exit 1
           fi
-          app_uuid="$(xcrun dwarfdump --uuid "$app/$executable" | awk '{ print $2 }')"
+          if [[ "$local_symbols" != 0 ]]; then
+            echo "Removing $local_symbols local symbols from $executable."
+            xcrun strip -x "$binary"
+            # Refresh the ad hoc signature after changing the arm64 executable.
+            codesign --force --sign - "$app"
+            codesign --verify "$app"
+            local_symbols="$(local_symbol_count)"
+            if [[ "$local_symbols" != 0 ]]; then
+              echo "::error::Expected zero local symbols after strip, got '$local_symbols'."
+              exit 1
+            fi
+          fi
+
+          app_uuid="$(xcrun dwarfdump --uuid "$binary" | awk '{ print $2 }')"
           dsym_uuid="$(xcrun dwarfdump --uuid "$products/Gestiora.app.dSYM" | awk '{ print $2 }')"
           if [[ -z "$app_uuid" || "$app_uuid" != "$dsym_uuid" ]]; then
             echo "::error::Expected a dSYM matching the Release app."
