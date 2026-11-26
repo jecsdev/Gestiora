@@ -134,27 +134,27 @@ jobs:
           binary="$app/$executable"
           xcrun lipo "$binary" -verify_arch arm64
 
-          local_symbol_count() {
-            xcrun otool -arch arm64 -l "$binary" | awk '$1 == "nlocalsym" { print $2 }'
-          }
-
-          local_symbols="$(local_symbol_count)"
+          load_commands="$(xcrun otool -arch arm64 -l "$binary")"
+          local_symbols="$(awk '$1 == "nlocalsym" { print $2 }' <<< "$load_commands")"
           if [[ ! "$local_symbols" =~ ^[0-9]+$ ]]; then
             echo "::error::Could not read the arm64 Mach-O local symbol count."
             exit 1
           fi
           if [[ "$local_symbols" != 0 ]]; then
-            echo "Removing $local_symbols local symbols from $executable."
-            xcrun strip -x "$binary"
+            xcrun strip -S -x "$binary"
             # Refresh the ad hoc signature after changing the arm64 executable.
             codesign --force --sign - "$app"
             codesign --verify "$app"
-            local_symbols="$(local_symbol_count)"
-            if [[ "$local_symbols" != 0 ]]; then
-              echo "::error::Expected zero local symbols after strip, got '$local_symbols'."
-              exit 1
-            fi
+            load_commands="$(xcrun otool -arch arm64 -l "$binary")"
           fi
+
+          # Apple strip can retain local symbols referenced by the indirect symbol table.
+          if awk '$1 == "segname" && $2 == "__DWARF" { found = 1 } END { exit !found }' <<< "$load_commands"; then
+            echo "::error::Expected DWARF debug information to be stored only in the dSYM."
+            exit 1
+          fi
+          local_symbols="$(awk '$1 == "nlocalsym" { print $2 }' <<< "$load_commands")"
+          echo "Remaining Mach-O local symbols after stripping: $local_symbols."
 
           app_uuid="$(xcrun dwarfdump --uuid "$binary" | awk '{ print $2 }')"
           dsym_uuid="$(xcrun dwarfdump --uuid "$products/Gestiora.app.dSYM" | awk '{ print $2 }')"
