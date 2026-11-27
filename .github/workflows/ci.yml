@@ -160,8 +160,11 @@ jobs:
           # The simulator app needs its own Keychain access group for clinical storage.
           codesign --force --sign - --entitlements "$entitlements" --generate-entitlement-der "$app"
           codesign --verify "$app"
-          codesign -d --entitlements - "$app" > "$entitlements"
-          test "$(plutil -extract application-identifier raw -o - "$entitlements")" = "$bundle_id"
+          signed_bundle_id="$(codesign -d --entitlements - --xml "$app" | plutil -extract application-identifier raw -o - -)"
+          if [[ "$signed_bundle_id" != "$bundle_id" ]]; then
+            echo "::error::Expected the signed application-identifier to match the bundle ID."
+            exit 1
+          fi
 
           app_uuid="$(xcrun dwarfdump --uuid "$binary" | awk '{ print $2 }')"
           dsym_uuid="$(xcrun dwarfdump --uuid "$products/Gestiora.app.dSYM" | awk '{ print $2 }')"
