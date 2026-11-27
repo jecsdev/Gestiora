@@ -142,9 +142,6 @@ jobs:
           fi
           if [[ "$local_symbols" != 0 ]]; then
             xcrun strip -S -x "$binary"
-            # Refresh the ad hoc signature after changing the arm64 executable.
-            codesign --force --sign - "$app"
-            codesign --verify "$app"
             load_commands="$(xcrun otool -arch arm64 -l "$binary")"
           fi
 
@@ -155,6 +152,16 @@ jobs:
           fi
           local_symbols="$(awk '$1 == "nlocalsym" { print $2 }' <<< "$load_commands")"
           echo "Remaining Mach-O local symbols after stripping: $local_symbols."
+
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")"
+          entitlements="$RUNNER_TEMP/gestiora-ios/simulator-entitlements.plist"
+          plutil -create xml1 "$entitlements"
+          plutil -insert application-identifier -string "$bundle_id" "$entitlements"
+          # The simulator app needs its own Keychain access group for clinical storage.
+          codesign --force --sign - --entitlements "$entitlements" --generate-entitlement-der "$app"
+          codesign --verify "$app"
+          codesign -d --entitlements - "$app" > "$entitlements"
+          test "$(plutil -extract application-identifier raw -o - "$entitlements")" = "$bundle_id"
 
           app_uuid="$(xcrun dwarfdump --uuid "$binary" | awk '{ print $2 }')"
           dsym_uuid="$(xcrun dwarfdump --uuid "$products/Gestiora.app.dSYM" | awk '{ print $2 }')"
