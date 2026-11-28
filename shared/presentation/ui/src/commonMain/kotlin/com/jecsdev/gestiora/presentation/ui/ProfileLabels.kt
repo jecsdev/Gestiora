@@ -1,6 +1,7 @@
 package com.jecsdev.gestiora.presentation.ui
 
 import gestiora.shared.presentation.ui.generated.resources.*
+import androidx.compose.ui.text.intl.Locale
 
 private val countries = mapOf(
     "Argentina" to Res.string.argentina,
@@ -18,7 +19,15 @@ private val countries = mapOf(
     "Venezuela" to Res.string.venezuela,
     "Otro" to Res.string.other
 )
-internal fun countryLabel(value: String, ui: UiCopy): String = countries[value]?.let { ui.s(it) } ?: value
+internal fun countryLabel(value: String, ui: UiCopy): String = when {
+    value in countryCodes -> localizedCountryName(value, countryDisplayLanguage())
+    else -> countries[value]?.let { ui.s(it) } ?: value
+}
+
+internal fun countryDisplayLanguage(): String = when (val language = Locale.current.language) {
+    "es", "fr" -> language
+    else -> "en"
+}
 internal fun languageLabel(value: String, ui: UiCopy): String = when (value) {
     "es", "Español" -> ui.s(Res.string.spanish)
     "en", "English" -> ui.s(Res.string.english)

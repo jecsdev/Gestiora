@@ -24,31 +24,28 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
     var busy by retain { mutableStateOf(false) }
     var editing by retain { mutableStateOf<Consultation?>(null) }
     var deleting by retain { mutableStateOf<Consultation?>(null) }
-    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         consultations = result.getOrNull()
         loadError = result.isFailure
     }
     LaunchedEffect(viewModel) { reload() }
-    AppointmentBackHandler(busy || editing != null || deleting != null) {
+    AppointmentBackHandler(busy || deleting != null) {
         when {
             busy -> Unit
-            discard -> discard = false
             deleting != null -> { deleting = null; onNavigationLockChange(false) }
-            editing != null -> discard = true
         }
     }
-    if (discard) AlertDialog(
-        onDismissRequest = { discard = false },
-        title = { Text(ui.s(Res.string.discard_changes)) },
-        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
-    )
     if (editing != null) {
-        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
-            ConsultationForm(editing!!, busy, operationError, onCancel = { discard = true }) { consultation ->
+        RecordEditorSheet(
+            busy = busy,
+            onClose = {
+                editing = null
+                operationError = false
+                onNavigationLockChange(false)
+            },
+        ) { onCancel, onTextChanges ->
+            ConsultationForm(editing!!, busy, operationError, onCancel = onCancel, onTextChanges = onTextChanges) { consultation ->
                 busy = true
                 scope.launch {
                     try {
@@ -83,14 +80,8 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(consultation.doctor ?: ui.s(Res.string.prenatal_consultation), style = MaterialTheme.typography.titleMedium)
                             Text(dateLabel(ui, consultation.date), style = MaterialTheme.typography.labelLarge)
-                            consultation.gestationalAge?.let { ConsultationDetail(ui.s(Res.string.recorded_gestational_age), it) }
-                            consultation.observations?.let { ConsultationDetail(ui.s(Res.string.observations), it) }
-                            consultation.instructions?.let { ConsultationDetail(ui.s(Res.string.instructions), it) }
-                            consultation.medications?.let { ConsultationDetail(ui.s(Res.string.medications), it) }
-                            consultation.exams?.let { ConsultationDetail(ui.s(Res.string.examinations), it) }
-                            consultation.followUp?.let { ConsultationDetail(ui.s(Res.string.follow_up), it) }
-                            consultation.nextDate?.let { ConsultationDetail(ui.s(Res.string.next_appointment), dateLabel(ui, it)) }
-                            consultation.attachments?.let { ConsultationDetail(ui.s(Res.string.attachments_reference), it) }
+                            ConsultationRecordDetails(consultation)
+                            ClinicalAttachmentActions(ClinicalAttachmentKind.Consultation, consultation.id, !busy)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = consultation; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
                                 TextButton(enabled = !busy, onClick = { deleting = consultation; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }
@@ -125,13 +116,26 @@ internal fun ConsultationsScreen(viewModel: ConsultationViewModel, onNavigationL
 
 
 @Composable
+internal fun ConsultationRecordDetails(consultation: Consultation) {
+    val ui = LocalUiCopy.current
+    consultation.gestationalAge?.let { ConsultationDetail(ui.s(Res.string.recorded_gestational_age), it) }
+    consultation.observations?.let { ConsultationDetail(ui.s(Res.string.observations), it) }
+    consultation.instructions?.let { ConsultationDetail(ui.s(Res.string.instructions), it) }
+    consultation.medications?.let { ConsultationDetail(ui.s(Res.string.medications), it) }
+    consultation.exams?.let { ConsultationDetail(ui.s(Res.string.examinations), it) }
+    consultation.followUp?.let { ConsultationDetail(ui.s(Res.string.follow_up), it) }
+    consultation.nextDate?.let { ConsultationDetail(ui.s(Res.string.next_appointment), dateLabel(ui, it)) }
+    consultation.attachments?.let { ConsultationDetail(ui.s(Res.string.attachments_reference), it) }
+}
+
+@Composable
 private fun ConsultationDetail(label: String, value: String) {
     Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Text(value)
 }
 
 @Composable
-private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (Consultation) -> Unit) {
+private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onTextChanges: (Boolean) -> Unit, onSave: (Consultation) -> Unit) {
     val ui = LocalUiCopy.current
     var date by retain(initial) { mutableStateOf(initial.date) }
     var ga by retain(initial) { mutableStateOf(initial.gestationalAge.orEmpty()) }
@@ -144,6 +148,18 @@ private fun ConsultationForm(initial: Consultation, busy: Boolean, saveError: Bo
     var nextDate by retain(initial) { mutableStateOf(initial.nextDate.orEmpty()) }
     var attachments by retain(initial) { mutableStateOf(initial.attachments.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
+    SideEffect {
+        onTextChanges(
+            ga.hasTextChangedFrom(initial.gestationalAge) ||
+                doctor.hasTextChangedFrom(initial.doctor) ||
+                observations.hasTextChangedFrom(initial.observations) ||
+                instructions.hasTextChangedFrom(initial.instructions) ||
+                medications.hasTextChangedFrom(initial.medications) ||
+                exams.hasTextChangedFrom(initial.exams) ||
+                followUp.hasTextChangedFrom(initial.followUp) ||
+                attachments.hasTextChangedFrom(initial.attachments),
+        )
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_consultation) else ui.s(Res.string.edit_consultation))
         DateField(ui.s(Res.string.consultation_date), date, enabled = !busy) { date = it }

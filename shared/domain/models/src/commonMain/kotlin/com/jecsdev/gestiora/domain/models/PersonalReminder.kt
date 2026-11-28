@@ -1,8 +1,8 @@
 package com.jecsdev.gestiora.domain.models
 
-enum class ReminderKind { APPOINTMENT, EXAM, VACCINE, FOLLOW_UP, PERSONAL }
+enum class ReminderKind { APPOINTMENT, EXAM, VACCINE, FOLLOW_UP, PERSONAL, MEDICATION }
 
-/** An in-app calendar entry; it does not schedule a system notification. */
+/** A calendar reminder scheduled in local civil time on supported platforms. */
 data class PersonalReminder(
     val id: String,
     val title: String,

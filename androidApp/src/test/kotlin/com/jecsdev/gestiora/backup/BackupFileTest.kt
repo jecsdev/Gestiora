@@ -1,6 +1,11 @@
 package com.jecsdev.gestiora.backup
 
+import com.jecsdev.gestiora.data.datasources.core.room.ClinicalBackup
+import com.jecsdev.gestiora.data.datasources.core.room.PortableBackupPayload
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
 import javax.crypto.AEADBadTagException
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
@@ -10,20 +15,22 @@ class BackupFileTest {
     @Test fun roundTripPreservesAllStorePayloadsAndNeverReusesHeader() {
         val stores = listOf(
             "profile", "personal_reminders", "appointments", "consultations", "vital_records",
-            "medical_conditions", "vaccine_records", "exam_records", "prenatal_notes",
+            "medical_conditions", "vaccine_records", "exam_records", "prenatal_notes", "pregnancy_journal",
         )
         val payloads = stores.associateWith { "Lucía — rendez-vous 🌿\n$it" }
         val password = "una frase segura con acento 🍃".toCharArray()
-        val file = BackupFile.encrypt(payloads, password)
+        val backup = ClinicalBackup(payloads)
+        val file = BackupFile.encrypt(backup, password)
 
-        assertEquals(payloads, BackupFile.decrypt(file.inputStream(), password))
+        assertEquals(1, file["GESTIORA".length].toInt())
+        assertEquals(payloads, BackupFile.decrypt(file.inputStream(), password).payloads)
         assertFalse(file.decodeToString().contains("Lucía"))
-        assertFalse(file.contentEquals(BackupFile.encrypt(payloads, password)))
+        assertFalse(file.contentEquals(BackupFile.encrypt(backup, password)))
     }
 
     @Test fun rejectsWrongPasswordTamperedAndIncompatibleFiles() {
         val password = "gestiora test phrase".toCharArray()
-        val file = BackupFile.encrypt(mapOf("profile" to "sample"), password)
+        val file = BackupFile.encrypt(ClinicalBackup(mapOf("profile" to "sample")), password)
         assertThrows(AEADBadTagException::class.java) {
             BackupFile.decrypt(file.inputStream(), "a different password".toCharArray())
         }
@@ -35,6 +42,51 @@ class BackupFileTest {
         unknownVersion["GESTIORA".length] = 99
         assertThrows(UnsupportedBackupVersion::class.java) {
             BackupFile.decrypt(unknownVersion.inputStream(), password)
+        }
+    }
+
+    @Test fun attachmentBackupsPreserveBinaryBytes() {
+        val key = "attachment:exam_records:exam-1"
+        val original = "Résultat.png\n".encodeToByteArray() + byteArrayOf(0, -1, 127)
+        val backup = ClinicalBackup(mapOf("profile" to "sample"), mapOf(key to original))
+        val password = "gestiora test phrase".toCharArray()
+        val file = BackupFile.encrypt(backup, password)
+        assertEquals(2, file["GESTIORA".length].toInt())
+        val restored = BackupFile.decrypt(file.inputStream(), password)
+        assertEquals(backup.payloads, restored.payloads)
+        assertArrayEquals(original, restored.attachments.getValue(key))
+    }
+
+    @Test fun portableBackupPayloadMatchesAndroidV1AndV2Layout() {
+        val payload = "Lucía 🌿"
+        val key = "attachment:exam_records:résultat🌿"
+        val attachment = byteArrayOf(0, -1, 127)
+        for (version in 1..2) {
+            val output = ByteArrayOutputStream()
+            DataOutputStream(output).use {
+                val text = payload.encodeToByteArray()
+                it.writeByte(1)
+                it.writeUTF("profile")
+                it.writeInt(text.size)
+                it.write(text)
+                if (version == 2) {
+                    it.writeByte(1)
+                    it.writeUTF(key)
+                    it.writeInt(attachment.size)
+                    it.write(attachment)
+                }
+            }
+            val backup = ClinicalBackup(mapOf("profile" to payload),
+                if (version == 2) mapOf(key to attachment) else emptyMap())
+            val (actualVersion, bytes) = PortableBackupPayload.encode(backup)
+            assertEquals(version, actualVersion)
+            assertArrayEquals(output.toByteArray(), bytes)
+            val restored = PortableBackupPayload.decode(bytes, version)
+            assertEquals(backup.payloads, restored.payloads)
+            if (version == 2) assertArrayEquals(attachment, restored.attachments.getValue(key))
+            assertThrows(IllegalArgumentException::class.java) {
+                PortableBackupPayload.decode(bytes.copyOf(bytes.size - 1), version)
+            }
         }
     }
 }

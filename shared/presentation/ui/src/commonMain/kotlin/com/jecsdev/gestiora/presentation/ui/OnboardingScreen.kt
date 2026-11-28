@@ -14,18 +14,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,8 +49,6 @@ import com.jecsdev.gestiora.domain.models.DatingMethod
 import com.jecsdev.gestiora.domain.models.PregnancyDating
 import com.jecsdev.gestiora.domain.models.PregnancyProfile
 import com.jecsdev.gestiora.presentation.viewmodels.ProfileViewModel
-
-private val countries = listOf("Argentina", "Bolivia", "Chile", "Colombia", "Ecuador", "España", "Estados Unidos", "México", "Paraguay", "Perú", "República Dominicana", "Uruguay", "Venezuela", "Otro")
 
 @Composable
 fun OnboardingScreen(
@@ -76,9 +77,20 @@ fun OnboardingScreen(
     var referenceDays by retain(initialProfile) { mutableStateOf(initialProfile?.dating?.referenceDays?.toString() ?: "0") }
     var error by retain { mutableStateOf<org.jetbrains.compose.resources.StringResource?>(null) }
     var discardOpen by retain(initialProfile) { mutableStateOf(false) }
+
+    fun requestProfileClose() {
+        val original = initialProfile ?: return
+        if (saving) return
+        val hasTextChanges = motherName.hasTextChangedFrom(original.motherName) ||
+            babyName.hasTextChangedFrom(original.babyName) ||
+            referenceWeeks.hasTextChangedFrom(original.dating.referenceWeeks?.toString()) ||
+            referenceDays.hasTextChangedFrom(original.dating.referenceDays?.toString() ?: "0")
+        if (hasTextChanges) discardOpen = true else onCancel()
+    }
+
     LaunchedEffect(cancelRequested) {
         if (cancelRequested) {
-            if (!saving && initialProfile != null) discardOpen = true
+            requestProfileClose()
             onCancelRequestHandled()
         }
     }
@@ -88,7 +100,7 @@ fun OnboardingScreen(
             OnboardingBackAction.BLOCK, OnboardingBackAction.SYSTEM -> Unit
             OnboardingBackAction.DISMISS_DISCARD -> discardOpen = false
             OnboardingBackAction.PREVIOUS_STEP -> { step--; error = null }
-            OnboardingBackAction.CONFIRM_DISCARD -> discardOpen = true
+            OnboardingBackAction.CONFIRM_DISCARD -> requestProfileClose()
         }
     }
     AppointmentBackHandler(saving || step > 0 || initialProfile != null || discardOpen, ::back)
@@ -143,7 +155,7 @@ fun OnboardingScreen(
         Text(ui.s(Res.string.brand), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextButton(onClick = ::back, enabled = !saving) { Text(ui.s(Res.string.back)) }
+            ScreenBackButton(onBack = ::back, enabled = !saving)
             Column(Modifier.weight(1f)) {
                 Text(ui.s(Res.string.your_setup_of_3, step), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp).semantics {
@@ -203,7 +215,7 @@ fun OnboardingScreen(
                 EditorialRecordCard {
                         Text(ui.s(Res.string.this_profile_will_be_saved_securely_on_this))
                         Text(ui.s(Res.string.gestiora_does_not_diagnose_or_replace_your_care))
-                        Text(ui.s(if (supportsBackup) Res.string.backup_available_in_profile
+                        Text(ui.s(if (supportsBackup) Res.string.backup_available_in_settings
                             else Res.string.data_recovery_on_another_device_is_not_available))
                 }
             }
@@ -232,10 +244,44 @@ fun OnboardingScreen(
 private fun CountryField(value: String, onValueChange: (String) -> Unit) {
     val ui = LocalUiCopy.current
     var expanded by retain { mutableStateOf(false) }
-    Box {
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(if (value.isEmpty()) ui.s(Res.string.country_select) else ui.s(Res.string.country_2, countryLabel(value, ui))) }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            countries.forEach { country -> DropdownMenuItem(text = { Text(countryLabel(country, ui)) }, onClick = { onValueChange(country); expanded = false }) }
+    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+        Text(if (value.isEmpty()) ui.s(Res.string.country_select) else ui.s(Res.string.country_2, countryLabel(value, ui)))
+    }
+    if (expanded) {
+        val language = countryDisplayLanguage()
+        val options = remember(language, ui) {
+            countryCodes.map { it to localizedCountryName(it, language) }.sortedBy { it.second.lowercase() } +
+                ("Otro" to ui.s(Res.string.other))
         }
+        var search by retain { mutableStateOf("") }
+        val query = search.trim()
+        val filtered = remember(options, query) {
+            options.filter { (code, name) -> name.contains(query, ignoreCase = true) || code.equals(query, ignoreCase = true) }
+        }
+        AlertDialog(
+            onDismissRequest = { expanded = false },
+            title = { Text(ui.s(Res.string.country)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = search, onValueChange = { search = it }, singleLine = true,
+                        label = { Text(ui.s(Res.string.country_search)) }, modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (filtered.isEmpty()) {
+                        Text(ui.s(Res.string.country_no_matches))
+                    } else {
+                        LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                            items(filtered, key = { it.first }) { (code, name) ->
+                                DropdownMenuItem(text = { Text(name) }, onClick = {
+                                    onValueChange(code)
+                                    expanded = false
+                                })
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { expanded = false }) { Text(ui.s(Res.string.cancel)) } },
+        )
     }
 }

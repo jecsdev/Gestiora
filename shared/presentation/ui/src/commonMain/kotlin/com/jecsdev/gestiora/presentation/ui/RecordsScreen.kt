@@ -5,7 +5,7 @@ import org.jetbrains.compose.resources.StringResource
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.*
@@ -21,9 +21,16 @@ import com.jecsdev.gestiora.presentation.viewmodels.ExamRecordViewModel
 import org.koin.compose.koinInject
 
 @Composable
-internal fun RecordsScreen(initialNotesStatus: NoteTaskStatus?, initialConditions: Boolean = false, onNavigationLockChange: (Boolean) -> Unit) {
+internal fun RecordsScreen(
+    initialNotesStatus: NoteTaskStatus?,
+    selected: RecordSection,
+    sectionsScroll: ScrollState,
+    onSectionChange: (RecordSection) -> Unit,
+    onPremiumPlans: () -> Unit,
+    onHistory: (() -> Unit)?,
+    onNavigationLockChange: (Boolean) -> Unit,
+) {
     val ui = LocalUiCopy.current
-    var selected by retain { mutableStateOf(if (initialNotesStatus != null) RecordSection.NOTES else if (initialConditions) RecordSection.CONDITIONS else RecordSection.HEALTH) }
     var locked by retain { mutableStateOf(false) }
     val lock: (Boolean) -> Unit = { locked = it; onNavigationLockChange(it) }
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))) {
@@ -32,9 +39,9 @@ internal fun RecordsScreen(initialNotesStatus: NoteTaskStatus?, initialCondition
                 EditorialHeader(ui.s(Res.string.my_records), eyebrow = ui.s(Res.string.your_prenatal_history))
             }
         }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(sectionsScroll).padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RecordSection.entries.forEach { section ->
-                FilterChip(selected == section, { selected = section }, enabled = !locked, label = { Text(ui.s(section.label)) })
+                FilterChip(selected == section, { onSectionChange(section) }, enabled = !locked, label = { Text(ui.s(section.label)) })
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
@@ -44,13 +51,18 @@ internal fun RecordsScreen(initialNotesStatus: NoteTaskStatus?, initialCondition
                 RecordSection.CONSULTATIONS -> ConsultationsScreen(koinInject<ConsultationViewModel>(), lock)
                 RecordSection.CONDITIONS -> MedicalConditionsScreen(koinInject<MedicalConditionViewModel>(), lock)
                 RecordSection.VACCINES -> VaccineRecordsScreen(koinInject<VaccineRecordViewModel>(), lock)
-                RecordSection.EXAMS -> ExamRecordsScreen(koinInject<ExamRecordViewModel>(), lock)
+                RecordSection.EXAMS -> ExamRecordsScreen(
+                    viewModel = koinInject<ExamRecordViewModel>(),
+                    onNavigationLockChange = lock,
+                    onPremiumPlans = onPremiumPlans,
+                    onHistory = onHistory,
+                )
                 RecordSection.NOTES -> PrenatalNotesScreen(koinInject<PrenatalNoteViewModel>(), initialNotesStatus, lock)
             }
         }
     }
 }
 
-private enum class RecordSection(val label: StringResource) {
+internal enum class RecordSection(val label: StringResource) {
     HEALTH(Res.string.health), CONSULTATIONS(Res.string.consultations), CONDITIONS(Res.string.conditions), VACCINES(Res.string.vaccines), EXAMS(Res.string.examinations), NOTES(Res.string.notes_and_tasks)
 }

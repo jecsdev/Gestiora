@@ -15,7 +15,12 @@ import com.jecsdev.gestiora.presentation.viewmodels.ExamRecordViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockChange: (Boolean) -> Unit) {
+internal fun ExamRecordsScreen(
+    viewModel: ExamRecordViewModel,
+    onNavigationLockChange: (Boolean) -> Unit,
+    onPremiumPlans: () -> Unit,
+    onHistory: (() -> Unit)?,
+) {
     val ui = LocalUiCopy.current
     val scope = retainedOperationScope()
     var exams by retain { mutableStateOf<List<ExamRecord>?>(null) }
@@ -24,31 +29,28 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
     var busy by retain { mutableStateOf(false) }
     var editing by retain { mutableStateOf<ExamRecord?>(null) }
     var deleting by retain { mutableStateOf<ExamRecord?>(null) }
-    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         exams = result.getOrNull()
         loadError = result.isFailure
     }
     LaunchedEffect(viewModel) { reload() }
-    AppointmentBackHandler(busy || editing != null || deleting != null) {
+    AppointmentBackHandler(busy || deleting != null) {
         when {
             busy -> Unit
-            discard -> discard = false
             deleting != null -> { deleting = null; onNavigationLockChange(false) }
-            editing != null -> discard = true
         }
     }
-    if (discard) AlertDialog(
-        onDismissRequest = { discard = false },
-        title = { Text(ui.s(Res.string.discard_changes)) },
-        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
-    )
     if (editing != null) {
-        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
-            ExamRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { exam ->
+        RecordEditorSheet(
+            busy = busy,
+            onClose = {
+                editing = null
+                operationError = false
+                onNavigationLockChange(false)
+            },
+        ) { onCancel, onTextChanges ->
+            ExamRecordForm(editing!!, busy, operationError, onCancel = onCancel, onTextChanges = onTextChanges) { exam ->
                 busy = true
                 scope.launch {
                     try {
@@ -83,15 +85,8 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             EditorialStatus(exam.status.label(ui))
                             Text(exam.name, style = MaterialTheme.typography.titleMedium)
-                            Text(exam.kind.label(ui), style = MaterialTheme.typography.labelMedium)
-                            ExamRecordDetail(ui.s(Res.string.reference_date), (exam.completed ?: exam.scheduled ?: exam.requested)?.let { dateLabel(ui, it) } ?: ui.s(Res.string.no_date_recorded))
-                            exam.requested?.let { ExamRecordDetail(ui.s(Res.string.request_date), dateLabel(ui, it)) }
-                            exam.scheduled?.let { ExamRecordDetail(ui.s(Res.string.scheduled_date), dateLabel(ui, it)) }
-                            exam.completed?.let { ExamRecordDetail(ui.s(Res.string.recorded_completion_date), dateLabel(ui, it)) }
-                            exam.physician?.let { ExamRecordDetail(ui.s(Res.string.requesting_doctor), it) }
-                            exam.results?.let { ExamRecordDetail(ui.s(Res.string.results_summary), it) }
-                            exam.notes?.let { ExamRecordDetail(ui.s(Res.string.medical_observations), it) }
-                            exam.attachment?.let { ExamRecordDetail(ui.s(Res.string.document_or_image_reference), it) }
+                            ExamRecordDetails(exam)
+                            ClinicalAttachmentActions(ClinicalAttachmentKind.Exam, exam.id, !busy)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(enabled = !busy, onClick = { operationError = false; editing = exam; onNavigationLockChange(true) }) { Text(ui.s(Res.string.edit)) }
                                 TextButton(enabled = !busy, onClick = { deleting = exam; onNavigationLockChange(true) }) { Text(ui.s(Res.string.delete)) }
@@ -100,6 +95,9 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
                     }
                 }
                 if (operationError) Text(ui.s(Res.string.we_couldn_t_delete_the_examination_try_again), color = MaterialTheme.colorScheme.error)
+                if (!busy && editing == null && deleting == null) {
+                    PremiumRecordsBanner(onPlans = onPremiumPlans, onHistory = onHistory)
+                }
             }
         }
     }
@@ -128,13 +126,28 @@ internal fun ExamRecordsScreen(viewModel: ExamRecordViewModel, onNavigationLockC
 
 
 @Composable
+internal fun ExamRecordDetails(exam: ExamRecord) {
+    val ui = LocalUiCopy.current
+    Text(exam.kind.label(ui), style = MaterialTheme.typography.labelMedium)
+    val referenceDate = exam.completed ?: exam.scheduled ?: exam.requested
+    ExamRecordDetail(ui.s(Res.string.reference_date), referenceDate?.let { dateLabel(ui, it) } ?: ui.s(Res.string.no_date_recorded))
+    exam.requested?.let { ExamRecordDetail(ui.s(Res.string.request_date), dateLabel(ui, it)) }
+    exam.scheduled?.let { ExamRecordDetail(ui.s(Res.string.scheduled_date), dateLabel(ui, it)) }
+    exam.completed?.let { ExamRecordDetail(ui.s(Res.string.recorded_completion_date), dateLabel(ui, it)) }
+    exam.physician?.let { ExamRecordDetail(ui.s(Res.string.requesting_doctor), it) }
+    exam.results?.let { ExamRecordDetail(ui.s(Res.string.results_summary), it) }
+    exam.notes?.let { ExamRecordDetail(ui.s(Res.string.medical_observations), it) }
+    exam.attachment?.let { ExamRecordDetail(ui.s(Res.string.document_or_image_reference), it) }
+}
+
+@Composable
 private fun ExamRecordDetail(label: String, value: String) {
     Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Text(value)
 }
 
 @Composable
-private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (ExamRecord) -> Unit) {
+private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onTextChanges: (Boolean) -> Unit, onSave: (ExamRecord) -> Unit) {
     val ui = LocalUiCopy.current
     var name by retain(initial) { mutableStateOf(initial.name) }
     var kind by retain(initial) { mutableStateOf(initial.kind) }
@@ -149,6 +162,15 @@ private fun ExamRecordForm(initial: ExamRecord, busy: Boolean, saveError: Boolea
     var reminder by retain(initial) { mutableStateOf(initial.reminder) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var kindMenu by retain(initial) { mutableStateOf(false) }
+    SideEffect {
+        onTextChanges(
+            name.hasTextChangedFrom(initial.name) ||
+                physician.hasTextChangedFrom(initial.physician) ||
+                results.hasTextChangedFrom(initial.results) ||
+                notes.hasTextChangedFrom(initial.notes) ||
+                attachment.hasTextChangedFrom(initial.attachment),
+        )
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_examination) else ui.s(Res.string.edit_examination))
         ExamRecordTextField(ui.s(Res.string.examination_name), name, 512, busy, invalid && name.isBlank()) { name = it }

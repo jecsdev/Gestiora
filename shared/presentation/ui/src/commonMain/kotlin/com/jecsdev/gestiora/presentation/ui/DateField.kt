@@ -2,14 +2,15 @@ package com.jecsdev.gestiora.presentation.ui
 
 import gestiora.shared.presentation.ui.generated.resources.*
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -18,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,12 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 /** Stores calendar days as ISO strings. */
 @Composable
@@ -81,8 +82,21 @@ private fun DateSelectionDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        DateSelectionContent(value, maxDate, initialMonth, todayIsoDate(), onDismiss, onConfirm)
+    }
+}
+
+@Composable
+private fun DateSelectionContent(
+    value: String,
+    maxDate: String?,
+    initialMonth: String?,
+    today: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
     val ui = LocalUiCopy.current
-    val today = todayIsoDate()
     val maximum = maxDate?.takeIf { isoToUtcMillis(it) != null }
     val startingDate = value.takeIf { isoToUtcMillis(it) != null && (maximum == null || it <= maximum) }
     val startingMonth = startingDate?.take(7)
@@ -93,70 +107,93 @@ private fun DateSelectionDialog(
     var selectedDate by remember { mutableStateOf(startingDate.orEmpty()) }
     var month by remember { mutableStateOf(startingMonth) }
     var choosingYear by remember { mutableStateOf(false) }
-    val colors = MaterialTheme.colorScheme
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
-                .widthIn(max = 420.dp).fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = lerp(colors.surface, colors.primaryContainer, 0.24f),
-            contentColor = colors.onSurface,
-            border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.65f)),
+    Box(contentAlignment = Alignment.Center) {
+        CalendarCard(
+            modifier = Modifier.safeDrawingPadding().padding(12.dp)
+                .widthIn(max = 440.dp).fillMaxWidth(),
         ) {
-            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.padding(start = 10.dp, top = 6.dp, end = 10.dp)) {
-                    EditorialHeader(ui.s(Res.string.select_a_date), compact = true)
-                }
-                Box(Modifier.weight(1f, fill = false).fillMaxWidth()) {
-                    if (choosingYear) {
-                        val currentYear = month.take(4).toInt()
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp),
-                            state = rememberLazyListState(initialFirstVisibleItemIndex = (currentYear - yearRange.first - 2).coerceAtLeast(0)),
-                        ) {
-                            items(yearRange.last - yearRange.first + 1) { index ->
-                                val year = yearRange.first + index
-                                TextButton(onClick = {
-                                    month = year.toString().padStart(4, '0') + month.drop(4)
-                                    choosingYear = false
-                                }, modifier = Modifier.fillMaxWidth()) {
-                                    Text(year.toString())
-                                }
+            EditorialHeader(ui.s(Res.string.select_a_date), compact = true)
+            Box(Modifier.weight(1f, fill = false).fillMaxWidth().padding(top = 12.dp)) {
+                if (choosingYear) {
+                    val currentYear = month.take(4).toInt()
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp),
+                        state = rememberLazyListState(initialFirstVisibleItemIndex = (currentYear - yearRange.first - 2).coerceAtLeast(0)),
+                    ) {
+                        items(yearRange.last - yearRange.first + 1) { index ->
+                            val year = yearRange.first + index
+                            TextButton(onClick = {
+                                month = year.toString().padStart(4, '0') + month.drop(4)
+                                choosingYear = false
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                Text(year.toString())
                             }
                         }
-                    } else {
-                        Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 3.dp)) {
-                            MonthCalendar(
-                                month = month,
-                                selectedDate = selectedDate,
-                                today = today,
-                                markedDates = emptySet(),
-                                enabled = true,
-                                onMonthChange = { month = it },
-                                onDateSelect = { selectedDate = it; month = it.take(7) },
-                                yearRange = yearRange,
-                                maxDate = maximum,
-                                onChooseYear = { choosingYear = true },
-                            )
-                        }
                     }
-                }
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    itemVerticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (choosingYear) {
-                        TextButton(onClick = { choosingYear = false }) { Text(ui.s(Res.string.back)) }
-                    } else {
-                        TextButton(onClick = onDismiss) { Text(ui.s(Res.string.cancel)) }
-                        GradientButton(
-                            onClick = { onConfirm(selectedDate) },
-                            enabled = selectedDate.isNotEmpty() && (maximum == null || selectedDate <= maximum),
-                        ) { Text(ui.s(Res.string.ok)) }
+                } else {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        MonthCalendar(
+                            month = month,
+                            selectedDate = selectedDate,
+                            today = today,
+                            markedDates = emptySet(),
+                            enabled = true,
+                            onMonthChange = { month = it },
+                            onDateSelect = { selectedDate = it; month = it.take(7) },
+                            yearRange = yearRange,
+                            maxDate = maximum,
+                            onChooseYear = { choosingYear = true },
+                        )
                     }
                 }
             }
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (choosingYear) {
+                    TextButton(onClick = { choosingYear = false }) { Text(ui.s(Res.string.back)) }
+                } else {
+                    TextButton(onClick = onDismiss) { Text(ui.s(Res.string.cancel)) }
+                    GradientButton(
+                        onClick = { onConfirm(selectedDate) },
+                        enabled = selectedDate.isNotEmpty() && (maximum == null || selectedDate <= maximum),
+                    ) { Text(ui.s(Res.string.ok)) }
+                }
+            }
+        }
+    }
+}
+
+@Preview(name = "Date picker · selected · dark", widthDp = 384, heightDp = 680, locale = "en")
+@Composable
+private fun DateSelectionDarkPreview() {
+    DateSelectionPreview(dark = true, value = "2026-08-19")
+}
+
+@Preview(name = "Date picker · six weeks · compact dark", widthDp = 320, heightDp = 560, locale = "es")
+@Composable
+private fun DateSelectionCompactPreview() {
+    DateSelectionPreview(dark = true, value = "")
+}
+
+@Composable
+private fun DateSelectionPreview(dark: Boolean, value: String) {
+    PreviewContent(dark) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            DateSelectionContent(value, "2026-08-23", "2026-08", "2026-08-23", {}, {})
+        }
+    }
+}
+
+@Preview(name = "Date field · empty and selected", widthDp = 384, heightDp = 250, locale = "en")
+@Composable
+private fun DateFieldPreview() {
+    PreviewContent {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            DateField("Appointment date", "", initialMonth = "2026-08") {}
+            DateField("Follow-up date", "2026-08-26", clearable = true) {}
         }
     }
 }

@@ -15,7 +15,7 @@ import com.jecsdev.gestiora.domain.models.*
 import com.jecsdev.gestiora.presentation.viewmodels.PrenatalNoteViewModel
 import kotlinx.coroutines.launch
 
-private fun NoteCategory.label(ui: UiCopy) = when (this) {
+internal fun NoteCategory.label(ui: UiCopy) = when (this) {
     NoteCategory.MEDICAL_INSTRUCTIONS -> ui.s(Res.string.medical_instructions)
     NoteCategory.DOCTOR_QUESTIONS -> ui.s(Res.string.questions_for_the_doctor)
     NoteCategory.MEDICATIONS -> ui.s(Res.string.medications)
@@ -23,7 +23,7 @@ private fun NoteCategory.label(ui: UiCopy) = when (this) {
     NoteCategory.SYMPTOMS -> ui.s(Res.string.symptoms)
     NoteCategory.GENERAL -> ui.s(Res.string.general_notes)
 }
-private fun NoteTaskStatus.label(ui: UiCopy) = when (this) {
+internal fun NoteTaskStatus.label(ui: UiCopy) = when (this) {
     NoteTaskStatus.NONE -> ui.s(Res.string.no_task)
     NoteTaskStatus.PENDING -> ui.s(Res.string.pending)
     NoteTaskStatus.COMPLETED -> ui.s(Res.string.completed)
@@ -39,7 +39,6 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
     var busy by retain { mutableStateOf(false) }
     var editing by retain { mutableStateOf<PrenatalNote?>(null) }
     var deleting by retain { mutableStateOf<PrenatalNote?>(null) }
-    var discard by retain { mutableStateOf(false) }
     var query by retain { mutableStateOf("") }
     var statusFilter by retain { mutableStateOf(initialStatus) }
     suspend fun reload() {
@@ -48,24 +47,22 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
         loadError = result.isFailure
     }
     LaunchedEffect(viewModel) { reload() }
-    AppointmentBackHandler(busy || editing != null || deleting != null) {
+    AppointmentBackHandler(busy || deleting != null) {
         when {
             busy -> Unit
-            discard -> discard = false
             deleting != null -> { deleting = null; onNavigationLockChange(false) }
-            editing != null -> discard = true
         }
     }
-    if (discard) AlertDialog(
-        onDismissRequest = { discard = false },
-        title = { Text(ui.s(Res.string.discard_changes)) },
-        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
-    )
     if (editing != null) {
-        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
-            PrenatalNoteForm(editing!!, busy, operationError, onCancel = { discard = true }) { note ->
+        RecordEditorSheet(
+            busy = busy,
+            onClose = {
+                editing = null
+                operationError = false
+                onNavigationLockChange(false)
+            },
+        ) { onCancel, onTextChanges ->
+            PrenatalNoteForm(editing!!, busy, operationError, onCancel = onCancel, onTextChanges = onTextChanges) { note ->
                 busy = true
                 scope.launch {
                     try {
@@ -148,7 +145,7 @@ internal fun PrenatalNotesScreen(viewModel: PrenatalNoteViewModel, initialStatus
 }
 
 @Composable
-private fun PrenatalNoteForm(initial: PrenatalNote, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (PrenatalNote) -> Unit) {
+private fun PrenatalNoteForm(initial: PrenatalNote, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onTextChanges: (Boolean) -> Unit, onSave: (PrenatalNote) -> Unit) {
     val ui = LocalUiCopy.current
     var title by retain(initial) { mutableStateOf(initial.title) }
     var body by retain(initial) { mutableStateOf(initial.body.orEmpty()) }
@@ -156,6 +153,12 @@ private fun PrenatalNoteForm(initial: PrenatalNote, busy: Boolean, saveError: Bo
     var status by retain(initial) { mutableStateOf(initial.status) }
     var followUp by retain(initial) { mutableStateOf(initial.followUp.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
+    SideEffect {
+        onTextChanges(
+            title.hasTextChangedFrom(initial.title) ||
+                body.hasTextChangedFrom(initial.body),
+        )
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_note) else ui.s(Res.string.edit_note))
         PastelTextField(title, { title = it }, label = { Text(ui.s(Res.string.title)) }, singleLine = true, enabled = !busy, isError = title.length > 512, supportingText = { Text("${title.length}/512") }, modifier = Modifier.fillMaxWidth())

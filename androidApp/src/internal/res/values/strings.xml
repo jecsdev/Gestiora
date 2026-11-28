@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name" translatable="false">Gestiora Debug</string>
+    <string name="native_ad_label">Ad</string>
+    <string name="ad_privacy_options">Ad privacy options</string>
 </resources>

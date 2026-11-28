@@ -24,31 +24,28 @@ internal fun MedicalConditionsScreen(viewModel: MedicalConditionViewModel, onNav
     var busy by retain { mutableStateOf(false) }
     var editing by retain { mutableStateOf<MedicalCondition?>(null) }
     var deleting by retain { mutableStateOf<MedicalCondition?>(null) }
-    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         conditions = result.getOrNull()
         loadError = result.isFailure
     }
     LaunchedEffect(viewModel) { reload() }
-    AppointmentBackHandler(busy || editing != null || deleting != null) {
+    AppointmentBackHandler(busy || deleting != null) {
         when {
             busy -> Unit
-            discard -> discard = false
             deleting != null -> { deleting = null; onNavigationLockChange(false) }
-            editing != null -> discard = true
         }
     }
-    if (discard) AlertDialog(
-        onDismissRequest = { discard = false },
-        title = { Text(ui.s(Res.string.discard_changes)) },
-        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
-    )
     if (editing != null) {
-        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
-            MedicalConditionForm(editing!!, busy, operationError, onCancel = { discard = true }) { condition ->
+        RecordEditorSheet(
+            busy = busy,
+            onClose = {
+                editing = null
+                operationError = false
+                onNavigationLockChange(false)
+            },
+        ) { onCancel, onTextChanges ->
+            MedicalConditionForm(editing!!, busy, operationError, onCancel = onCancel, onTextChanges = onTextChanges) { condition ->
                 busy = true
                 scope.launch {
                     try {
@@ -131,7 +128,7 @@ private fun MedicalConditionDetail(label: String, value: String) {
 
 
 @Composable
-private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (MedicalCondition) -> Unit) {
+private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onTextChanges: (Boolean) -> Unit, onSave: (MedicalCondition) -> Unit) {
     val ui = LocalUiCopy.current
     var name by retain(initial) { mutableStateOf(initial.name) }
     var date by retain(initial) { mutableStateOf(initial.date) }
@@ -143,6 +140,16 @@ private fun MedicalConditionForm(initial: MedicalCondition, busy: Boolean, saveE
     var status by retain(initial) { mutableStateOf(initial.status) }
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
+    SideEffect {
+        onTextChanges(
+            name.hasTextChangedFrom(initial.name) ||
+                professional.hasTextChangedFrom(initial.professional) ||
+                instructions.hasTextChangedFrom(initial.instructions) ||
+                treatment.hasTextChangedFrom(initial.treatment) ||
+                monitoring.hasTextChangedFrom(initial.monitoring) ||
+                notes.hasTextChangedFrom(initial.notes),
+        )
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_condition) else ui.s(Res.string.edit_condition))
         Text(ui.s(Res.string.only_conditions_and_risks_identified_by_a_health), style = MaterialTheme.typography.bodySmall)

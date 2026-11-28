@@ -27,22 +27,28 @@ import androidx.compose.ui.semantics.semantics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun TimeField(value: String, enabled: Boolean, onValueChange: (String) -> Unit) {
+internal fun TimeField(
+    value: String,
+    enabled: Boolean,
+    use12HourClock: Boolean = false,
+    onValueChange: (String) -> Unit,
+) {
     val ui = LocalUiCopy.current
+    val display = if (use12HourClock) reminderTimeLabel(ui, value) else value.ifEmpty { ui.s(Res.string.all_day) }
     var open by remember { mutableStateOf(false) }
     Column {
         Text(ui.s(Res.string.time), style = MaterialTheme.typography.labelLarge)
         OutlinedButton(onClick = { open = true }, enabled = enabled, colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface), modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics {
-            contentDescription = ui.s(Res.string.time_accessibility, value.ifEmpty { ui.s(Res.string.all_day) })
+            contentDescription = ui.s(Res.string.time_accessibility, display)
         }) {
-            Text(value.ifEmpty { ui.s(Res.string.all_day) }, modifier = Modifier.clearAndSetSemantics { })
+            Text(display, modifier = Modifier.clearAndSetSemantics { })
         }
     }
     if (open) {
         val state = rememberTimePickerState(
             initialHour = value.take(2).toIntOrNull()?.coerceIn(0, 23) ?: 9,
             initialMinute = value.takeLast(2).toIntOrNull()?.coerceIn(0, 59) ?: 0,
-            is24Hour = true,
+            is24Hour = !use12HourClock,
         )
         AlertDialog(
             onDismissRequest = { open = false },
@@ -57,4 +63,12 @@ internal fun TimeField(value: String, enabled: Boolean, onValueChange: (String) 
             dismissButton = { TextButton(onClick = { open = false }) { Text(ui.s(Res.string.cancel)) } },
         )
     }
+}
+
+internal fun reminderTimeLabel(ui: UiCopy, time: String?): String {
+    if (time.isNullOrEmpty()) return ui.s(Res.string.all_day)
+    val hour = time.take(2).toInt()
+    val clockHour = (hour % 12).takeUnless { it == 0 } ?: 12
+    val format = if (hour < 12) Res.string.reminder_time_am else Res.string.reminder_time_pm
+    return ui.s(format, clockHour, time.takeLast(2))
 }

@@ -1,0 +1,14 @@
+<resources>
+    <string name="backup_restore">Import encrypted backup</string>
+    <string name="backup_export">Export encrypted backup</string>
+    <string name="backup_password">Backup password</string>
+    <string name="backup_password_confirm">Confirm backup password</string>
+    <string name="backup_password_help">Use a long passphrase (at least 15 characters). Keep it somewhere safe. You will need it to restore this backup.</string>
+    <string name="backup_choose_destination">Choose where to save</string>
+    <string name="backup_saved">Encrypted backup saved.</string>
+    <string name="backup_operation_failed">The backup could not be saved or opened. Try again.</string>
+    <string name="backup_unsupported_version">This backup was created with an unsupported format version.</string>
+    <string name="backup_auth_failed">The password is incorrect or the backup was modified.</string>
+    <string name="backup_invalid">This backup could not be restored. Check the file and try again.</string>
+    <string name="backup_restore_blocked">Backups can only be restored before setting up this installation.</string>
+</resources>

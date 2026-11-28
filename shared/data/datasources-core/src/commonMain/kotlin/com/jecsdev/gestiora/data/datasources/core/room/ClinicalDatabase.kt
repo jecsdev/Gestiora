@@ -19,6 +19,8 @@ data class ProtectedPayload(@PrimaryKey val store: String, val ciphertext: ByteA
 @Entity(tableName = "legacy_imports")
 data class LegacyImport(@PrimaryKey val id: String)
 
+data class AttachmentRowSize(val store: String, val size: Int)
+
 @Dao
 abstract class ProtectedPayloadDao {
     @Query("SELECT * FROM protected_payloads WHERE store = :store")
@@ -42,12 +44,19 @@ abstract class ProtectedPayloadDao {
     @Query("DELETE FROM protected_payloads WHERE store = :store")
     abstract suspend fun delete(store: String)
 
+    @Query("SELECT store, length(ciphertext) AS size FROM protected_payloads WHERE store GLOB 'attachment:*'")
+    abstract suspend fun attachmentSizes(): List<AttachmentRowSize>
+
+    @Query("DELETE FROM protected_payloads WHERE store IN (:stores)")
+    abstract suspend fun deleteAttachments(stores: List<String>)
+
     @Transaction
     open suspend fun snapshot(stores: List<String>): List<ProtectedPayload> = stores.mapNotNull { read(it) }
 
     @Transaction
-    open suspend fun writeClinicalData(payload: ProtectedPayload) {
+    open suspend fun writeClinicalData(payload: ProtectedPayload, removedAttachments: List<String> = emptyList()) {
         write(payload)
+        if (removedAttachments.isNotEmpty()) deleteAttachments(removedAttachments)
         markClinicalDataUsed()
     }
 

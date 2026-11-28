@@ -47,14 +47,29 @@ fun App(
     applicationGraph: org.koin.core.KoinApplication? = null,
     notificationControls: NotificationControls = NotificationControls(),
     backupControls: BackupControls? = null,
+    nativeAd: NativeAdContent? = null,
+    prenatalHistoryPreview: Boolean = false,
+    premiumActive: Boolean = false,
+    clinicalAttachment: ClinicalAttachmentContent? = null,
+    prenatalReport: PrenatalReportControls? = null,
+    pregnancyJournal: PregnancyJournalControls? = null,
 ) {
     val application = applicationGraph ?: retain { RetainedAppGraph(CoreDependencyInjection.modules + platformModules) }.application
     KoinIsolatedContext(context = application) {
         // Material controls also use rememberSaveable internally. Medical drafts stay in RAM.
-        CompositionLocalProvider(LocalSaveableStateRegistry provides null, LocalNotificationControls provides notificationControls) {
+        CompositionLocalProvider(
+            LocalSaveableStateRegistry provides null,
+            LocalNotificationControls provides notificationControls,
+            LocalNativeAd provides nativeAd.takeUnless { premiumActive },
+            LocalClinicalAttachment provides clinicalAttachment,
+            LocalPrenatalReport provides prenatalReport,
+            LocalPregnancyJournal provides pregnancyJournal,
+        ) {
             UiCopyProvider {
                 MotionPreferences {
-                    ThemeRoot(koinInject()) { preferences -> ProfileRoot(koinInject(), preferences, backupControls) }
+                    ThemeRoot(koinInject()) { preferences ->
+                        ProfileRoot(koinInject(), preferences, backupControls, prenatalHistoryPreview || premiumActive)
+                    }
                 }
             }
         }
@@ -62,7 +77,12 @@ fun App(
 }
 
 @Composable
-private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable () -> Unit, backup: BackupControls?) {
+private fun ProfileRoot(
+    viewModel: ProfileViewModel,
+    preferences: @Composable () -> Unit,
+    backup: BackupControls?,
+    prenatalHistoryPreview: Boolean,
+) {
     val ui = LocalUiCopy.current
     var loadAttempt by retain { mutableIntStateOf(0) }
     var state by retain { mutableStateOf<ProfileLoad>(ProfileLoad.Loading) }
@@ -126,7 +146,8 @@ private fun ProfileRoot(viewModel: ProfileViewModel, preferences: @Composable ()
         )
         is ProfileLoad.Ready -> {
             NavigationShell(current.profile, viewModel, destination, onDestinationChange = { destination = it },
-                onEdit = { editing = true }, preferences = preferences, exportBackup = backup?.exportAction)
+                onEdit = { editing = true }, preferences = preferences, exportBackup = backup?.exportAction,
+                prenatalHistoryPreview = prenatalHistoryPreview)
             if (editing) {
                 RecordFormSheet(busy = saving, onDismissRequest = { requestEditCancel = true }) {
                     OnboardingScreen(

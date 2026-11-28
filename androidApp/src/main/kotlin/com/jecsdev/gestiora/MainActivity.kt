@@ -1,7 +1,6 @@
 package com.jecsdev.gestiora
 
 import android.os.Bundle
-import android.content.Context
 import android.content.Intent
 import android.Manifest
 import android.content.pm.PackageManager
@@ -10,20 +9,22 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import com.jecsdev.gestiora.backup.rememberBackupControls
+import com.jecsdev.gestiora.attachments.rememberClinicalAttachments
 import com.jecsdev.gestiora.presentation.ui.App
 import com.jecsdev.gestiora.presentation.ui.NotificationControls
 import com.jecsdev.gestiora.reminders.AndroidReminderScheduler
-import org.koin.dsl.module
+import com.jecsdev.gestiora.report.rememberPrenatalReport
+import com.jecsdev.gestiora.data.repository.ProtectedPregnancyJournal
+import com.jecsdev.gestiora.presentation.ui.PregnancyJournalControls
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private var resumed by mutableIntStateOf(0)
@@ -46,6 +47,14 @@ class MainActivity : ComponentActivity() {
                 app.refreshReminders()
             }
             val enabled = remember(resumed) { AndroidReminderScheduler.notificationsEnabled(this) }
+            val journal = remember(app) {
+                val repository = app.graph.koin.get<ProtectedPregnancyJournal>()
+                PregnancyJournalControls(
+                    load = { withContext(Dispatchers.IO) { repository.list() } },
+                    save = { entry -> withContext(Dispatchers.IO) { repository.save(entry) } },
+                    delete = { id -> withContext(Dispatchers.IO) { repository.delete(id) } },
+                )
+            }
             App(applicationGraph = app.graph, backupControls = rememberBackupControls(app), notificationControls = NotificationControls(
                 supported = true,
                 enabled = enabled,
@@ -57,17 +66,21 @@ class MainActivity : ComponentActivity() {
                         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED && !preferences.getBoolean("requested", false)) {
                             preferences.edit().putBoolean("requested", true).apply()
                             permission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+                        } else {
+                            val settings = if (Build.VERSION.SDK_INT >= 26 && AndroidReminderScheduler.appNotificationsEnabled(this)) {
+                                Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                                    .putExtra(Settings.EXTRA_CHANNEL_ID, AndroidReminderScheduler.channelId(this))
+                            } else {
+                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            }
+                            startActivity(settings.putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+                        }
                     }
                 },
-            ))
+            ), nativeAd = rememberNativeAdContent(this), prenatalHistoryPreview = premiumFeaturePreview,
+                clinicalAttachment = rememberClinicalAttachments(app, allowImport = premiumFeaturePreview),
+                prenatalReport = rememberPrenatalReport(app),
+                pregnancyJournal = journal)
         }
     }
-}
-
-@Preview
-@Composable
-fun AppAndroidPreview() {
-    val context = LocalContext.current.applicationContext
-    App(remember(context) { listOf(module { single<Context> { context } }) })
 }

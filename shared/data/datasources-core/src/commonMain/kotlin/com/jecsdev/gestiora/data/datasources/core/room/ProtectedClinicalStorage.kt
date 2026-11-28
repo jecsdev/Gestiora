@@ -1,14 +1,25 @@
 package com.jecsdev.gestiora.data.datasources.core.room
 
 import com.jecsdev.gestiora.data.datasources.LegacyClinicalPayloadValidator
+import com.jecsdev.gestiora.data.datasources.PREGNANCY_JOURNAL_STORE
 import com.jecsdev.gestiora.data.datasources.SecurePersonalRemindersStore
 import com.jecsdev.gestiora.data.datasources.SecureProfileStore
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 interface ClinicalPayloadCipher {
-    fun encrypt(store: String, payload: String): ByteArray
-    fun decrypt(store: String, ciphertext: ByteArray): String
+    fun encryptBytes(store: String, payload: ByteArray): ByteArray
+    fun decryptBytes(store: String, ciphertext: ByteArray): ByteArray
+
+    fun encrypt(store: String, payload: String): ByteArray {
+        val bytes = payload.encodeToByteArray()
+        return try { encryptBytes(store, bytes) } finally { bytes.fill(0) }
+    }
+
+    fun decrypt(store: String, ciphertext: ByteArray): String {
+        val bytes = decryptBytes(store, ciphertext)
+        return try { bytes.decodeToString(throwOnInvalidSequence = true) } finally { bytes.fill(0) }
+    }
 }
 
 /** Two durable import groups preserve previously migrated profile/reminder state. */
@@ -22,7 +33,8 @@ class ProtectedClinicalStorage(
     private val cleanupLegacy: (verifiedStores: Set<String>) -> Unit = {},
 ) {
     private val mutex = Mutex()
-    private val stores = listOf(PROFILE, REMINDERS) + COLLECTIONS
+    private val legacyStores = listOf(PROFILE, REMINDERS) + COLLECTIONS
+    private val stores = legacyStores + PREGNANCY_JOURNAL_STORE
 
     suspend fun canRestoreBackup(): Boolean = mutex.withLock {
         ensureImported()
@@ -30,24 +42,92 @@ class ProtectedClinicalStorage(
         dao.canRestoreBackup()
     }
 
-    suspend fun backupSnapshot(): Map<String, String> = mutex.withLock {
+    suspend fun backupSnapshot(): ClinicalBackup = mutex.withLock {
         ensureImported()
         ensureCollectionsImported()
-        dao.snapshot(stores).associate { row ->
+        val attachmentSizes = dao.attachmentSizes()
+        check(attachmentSizes.size <= ClinicalAttachment.MAX_COUNT)
+        check(attachmentSizes.sumOf { it.size.toLong() - ClinicalAttachment.CIPHER_OVERHEAD } <= ClinicalAttachment.MAX_TOTAL_BYTES)
+        val rows = dao.snapshot(stores + attachmentSizes.map { it.store })
+        val payloads = rows.filter { it.store in stores }.associate { row ->
             val payload = cipher.decrypt(row.store, row.ciphertext)
             validate(row.store, payload)
             row.store to payload
         }.also { check(PROFILE in it) }
+        val attachments = mutableMapOf<String, ByteArray>()
+        try {
+            for (row in rows.filterNot { it.store in stores }) {
+                attachments[row.store] = cipher.decryptBytes(row.store, row.ciphertext)
+            }
+            validateAttachments(payloads, attachments)
+            ClinicalBackup(payloads, attachments)
+        } catch (failure: Throwable) {
+            attachments.values.forEach { it.fill(0) }
+            throw failure
+        }
     }
 
-    suspend fun restoreBackup(payloads: Map<String, String>): Boolean = mutex.withLock {
+    suspend fun restoreBackup(backup: ClinicalBackup): Boolean = mutex.withLock {
         ensureImported()
         ensureCollectionsImported()
         if (!dao.canRestoreBackup()) return@withLock false
+        val payloads = backup.payloads
         require(PROFILE in payloads && stores.containsAll(payloads.keys))
-        payloads.forEach(::validate)
-        val rows = payloads.map { (store, payload) -> ProtectedPayload(store, cipher.encrypt(store, payload)) }
+        payloads.forEach { (store, payload) -> validate(store, payload) }
+        validateAttachments(payloads, backup.attachments)
+        val rows = payloads.map { (store, payload) -> ProtectedPayload(store, cipher.encrypt(store, payload)) } +
+            backup.attachments.map { (key, bytes) -> ProtectedPayload(key, cipher.encryptBytes(key, bytes)) }
         dao.restoreBackup(rows)
+    }
+
+    suspend fun readAttachment(
+        collection: AttachmentCollection,
+        id: String,
+        imageSlot: Int? = null,
+    ): ClinicalAttachment? = mutex.withLock {
+        readAttachmentByKey(collection.key(id, imageSlot))
+    }
+
+    suspend fun imageSlots(collection: AttachmentCollection, id: String): List<Int> = mutex.withLock {
+        val keys = dao.attachmentSizes().mapTo(mutableSetOf()) { it.store }
+        (1..AttachmentCollection.MAX_IMAGES_PER_RECORD).filter { collection.key(id, it) in keys }
+    }
+
+    private suspend fun readAttachmentByKey(key: String): ClinicalAttachment? = dao.read(key)?.let { row ->
+        val plain = cipher.decryptBytes(key, row.ciphertext)
+        try { ClinicalAttachment.decode(plain) } finally { plain.fill(0) }
+    }
+
+    suspend fun writeAttachment(
+        collection: AttachmentCollection,
+        id: String,
+        attachment: ClinicalAttachment,
+        imageSlot: Int? = null,
+    ) = mutex.withLock {
+        collection.requireAllowed(attachment)
+        require(imageSlot == null || attachment.mimeType.startsWith("image/"))
+        ensureImported()
+        ensureCollectionsImported()
+        val key = collection.key(id, imageSlot)
+        val owner = checkNotNull(dao.read(collection.store))
+        val payload = cipher.decrypt(collection.store, owner.ciphertext)
+        require(id in validator.attachmentOwnerIds(collection.store, payload))
+        val plain = attachment.encode()
+        try {
+            val others = dao.attachmentSizes().filterNot { it.store == key }
+            val available = ClinicalAttachment.MAX_TOTAL_BYTES -
+                others.sumOf { it.size.toLong() - ClinicalAttachment.CIPHER_OVERHEAD }
+            if (others.size >= ClinicalAttachment.MAX_COUNT || plain.size > available) {
+                throw AttachmentStorageLimitException()
+            }
+            dao.writeClinicalData(ProtectedPayload(key, cipher.encryptBytes(key, plain)))
+        } finally {
+            plain.fill(0)
+        }
+    }
+
+    suspend fun deleteAttachment(collection: AttachmentCollection, id: String, imageSlot: Int? = null) = mutex.withLock {
+        dao.delete(collection.key(id, imageSlot))
     }
 
     /** Import both groups, then authenticate/validate EVERY destination before source removal.
@@ -57,7 +137,7 @@ class ProtectedClinicalStorage(
         ensureImported()
         ensureCollectionsImported()
         val verified = mutableSetOf<String>()
-        stores.forEach { store ->
+        legacyStores.forEach { store ->
             dao.read(store)?.let {
                 validate(store, cipher.decrypt(store, it.ciphertext))
                 verified.add(store)
@@ -80,7 +160,14 @@ class ProtectedClinicalStorage(
         validate(store, payload)
         // Authenticate existing content even for direct storage clients before replacing it.
         dao.read(store)?.let { validate(store, cipher.decrypt(store, it.ciphertext)) }
-        dao.writeClinicalData(ProtectedPayload(store, cipher.encrypt(store, payload)))
+        val collection = AttachmentCollection.entries.find { it.store == store }
+        val attachments = if (collection == null) emptyList() else
+            dao.attachmentSizes().map { it.store }.filter { collection.ownerId(it) != null }
+        val removed = if (collection == null || attachments.isEmpty()) emptyList() else {
+            val remaining = validator.attachmentOwnerIds(store, payload)
+            attachments.filter { collection.ownerId(it) !in remaining }
+        }
+        dao.writeClinicalData(ProtectedPayload(store, cipher.encrypt(store, payload)), removed)
     }
 
     suspend fun clearProfile() = mutex.withLock {
@@ -119,11 +206,33 @@ class ProtectedClinicalStorage(
     private fun validate(store: String, payload: String) = when (store) {
         PROFILE -> validator.validateProfile(payload)
         REMINDERS -> validator.validatePersonalReminders(payload)
-        in COLLECTIONS -> validator.validateCollection(store, payload)
+        PREGNANCY_JOURNAL_STORE, in COLLECTIONS -> validator.validateCollection(store, payload)
         else -> error("Unknown clinical store")
     }
 
-    private fun requireStore(store: String) { require(store == PROFILE || store == REMINDERS || store in COLLECTIONS) }
+    private fun requireStore(store: String) { require(store in stores) }
+
+    private fun validateAttachments(payloads: Map<String, String>, attachments: Map<String, ByteArray>) {
+        require(attachments.size <= ClinicalAttachment.MAX_COUNT)
+        require(attachments.values.sumOf { it.size.toLong() } <= ClinicalAttachment.MAX_TOTAL_BYTES)
+        val owners = mutableMapOf<AttachmentCollection, Set<String>>()
+        for ((key, bytes) in attachments) {
+            val collection = requireNotNull(AttachmentCollection.entries.find { it.ownerId(key) != null })
+            val id = requireNotNull(collection.ownerId(key))
+            val matching = owners.getOrPut(collection) {
+                validator.attachmentOwnerIds(collection.store, requireNotNull(payloads[collection.store]))
+            }
+            require(id in matching)
+            require(bytes.size in 1..ClinicalAttachment.MAX_ENVELOPE_BYTES)
+            val attachment = ClinicalAttachment.decode(bytes)
+            try {
+                collection.requireAllowed(attachment)
+                require(key == collection.key(id) || attachment.mimeType.startsWith("image/"))
+            } finally {
+                attachment.bytes.fill(0)
+            }
+        }
+    }
 
     companion object {
         const val PROFILE = "profile"

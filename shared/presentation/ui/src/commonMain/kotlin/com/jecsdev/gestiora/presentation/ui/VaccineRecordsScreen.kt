@@ -24,31 +24,28 @@ internal fun VaccineRecordsScreen(viewModel: VaccineRecordViewModel, onNavigatio
     var busy by retain { mutableStateOf(false) }
     var editing by retain { mutableStateOf<VaccineRecord?>(null) }
     var deleting by retain { mutableStateOf<VaccineRecord?>(null) }
-    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         vaccines = result.getOrNull()
         loadError = result.isFailure
     }
     LaunchedEffect(viewModel) { reload() }
-    AppointmentBackHandler(busy || editing != null || deleting != null) {
+    AppointmentBackHandler(busy || deleting != null) {
         when {
             busy -> Unit
-            discard -> discard = false
             deleting != null -> { deleting = null; onNavigationLockChange(false) }
-            editing != null -> discard = true
         }
     }
-    if (discard) AlertDialog(
-        onDismissRequest = { discard = false },
-        title = { Text(ui.s(Res.string.discard_changes)) },
-        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
-    )
     if (editing != null) {
-        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
-            VaccineRecordForm(editing!!, busy, operationError, onCancel = { discard = true }) { vaccine ->
+        RecordEditorSheet(
+            busy = busy,
+            onClose = {
+                editing = null
+                operationError = false
+                onNavigationLockChange(false)
+            },
+        ) { onCancel, onTextChanges ->
+            VaccineRecordForm(editing!!, busy, operationError, onCancel = onCancel, onTextChanges = onTextChanges) { vaccine ->
                 busy = true
                 scope.launch {
                     try {
@@ -133,7 +130,7 @@ private fun VaccineRecordDetail(label: String, value: String) {
 }
 
 @Composable
-private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onSave: (VaccineRecord) -> Unit) {
+private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: Boolean, onCancel: () -> Unit, onTextChanges: (Boolean) -> Unit, onSave: (VaccineRecord) -> Unit) {
     val ui = LocalUiCopy.current
     var name by retain(initial) { mutableStateOf(initial.name) }
     var dose by retain(initial) { mutableStateOf(initial.dose.orEmpty()) }
@@ -145,6 +142,16 @@ private fun VaccineRecordForm(initial: VaccineRecord, busy: Boolean, saveError: 
     var proof by retain(initial) { mutableStateOf(initial.proof.orEmpty()) }
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
+    SideEffect {
+        onTextChanges(
+            name.hasTextChangedFrom(initial.name) ||
+                dose.hasTextChangedFrom(initial.dose) ||
+                provider.hasTextChangedFrom(initial.provider) ||
+                location.hasTextChangedFrom(initial.location) ||
+                proof.hasTextChangedFrom(initial.proof) ||
+                notes.hasTextChangedFrom(initial.notes),
+        )
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_vaccination) else ui.s(Res.string.edit_vaccination))
         VaccineRecordTextField(ui.s(Res.string.vaccine), name, 512, busy, invalid && name.isBlank()) { name = it }

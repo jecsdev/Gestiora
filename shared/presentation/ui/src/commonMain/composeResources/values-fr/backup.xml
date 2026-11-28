@@ -1,0 +1,14 @@
+<resources>
+    <string name="backup_restore">Importer une sauvegarde chiffrée</string>
+    <string name="backup_export">Exporter une sauvegarde chiffrée</string>
+    <string name="backup_password">Mot de passe de la sauvegarde</string>
+    <string name="backup_password_confirm">Confirmer le mot de passe</string>
+    <string name="backup_password_help">Choisissez une phrase secrète longue (au moins 15 caractères). Gardez-la en lieu sûr. Elle sera nécessaire pour restaurer cette sauvegarde.</string>
+    <string name="backup_choose_destination">Choisir où enregistrer</string>
+    <string name="backup_saved">Sauvegarde chiffrée enregistrée.</string>
+    <string name="backup_operation_failed">Impossible d’ouvrir ou d’enregistrer la sauvegarde. Réessayez.</string>
+    <string name="backup_unsupported_version">Cette sauvegarde utilise une version de format incompatible.</string>
+    <string name="backup_auth_failed">Le mot de passe est incorrect ou la sauvegarde a été modifiée.</string>
+    <string name="backup_invalid">Impossible de restaurer cette sauvegarde. Vérifiez le fichier et réessayez.</string>
+    <string name="backup_restore_blocked">La restauration est possible uniquement avant la configuration de cette installation.</string>
+</resources>

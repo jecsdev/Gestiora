@@ -8,6 +8,7 @@ import com.jecsdev.gestiora.presentation.viewmodels.PregnancyDatingViewModel
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import com.jecsdev.gestiora.presentation.viewmodels.PrenatalNoteViewModel
+import com.jecsdev.gestiora.presentation.viewmodels.PrenatalHistoryViewModel
 import com.jecsdev.gestiora.presentation.viewmodels.PersonalReminderViewModel
 
 import com.jecsdev.gestiora.presentation.viewmodels.ConsultationViewModel
@@ -34,6 +35,7 @@ object PresentationViewModelsDependencyInjector : KoinModuleLoader {
         single { MedicalConditionViewModel(get()) }
         single { VaccineRecordViewModel(get()) }
         single { ExamRecordViewModel(get()) }
+        factory { PrenatalHistoryViewModel(get(), get()) }
         single { ThemePreferenceViewModel(get()) }
     })
 }

@@ -1,16 +1,21 @@
 package com.jecsdev.gestiora.presentation.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -18,13 +23,43 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import gestiora.shared.presentation.ui.generated.resources.Res
+import gestiora.shared.presentation.ui.generated.resources.back
+
+@Composable
+internal fun ScreenBackButton(onBack: () -> Unit, enabled: Boolean = true) {
+    val ui = LocalUiCopy.current
+    TextButton(onClick = onBack, enabled = enabled) {
+        val arrowColor = LocalContentColor.current
+        Canvas(Modifier.size(20.dp)) {
+            val middle = size.height / 2
+            val tip = size.width * 0.2f
+            val wing = size.width * 0.5f
+            val arrow = Path().apply {
+                moveTo(wing, size.height * 0.2f)
+                lineTo(tip, middle)
+                lineTo(wing, size.height * 0.8f)
+            }
+            val strokeWidth = 2.dp.toPx()
+            drawPath(arrow, arrowColor, style = Stroke(strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawLine(arrowColor, Offset(tip, middle), Offset(size.width * 0.85f, middle), strokeWidth, StrokeCap.Round)
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(ui.s(Res.string.back))
+    }
+}
 
 @Composable
 internal fun EditorialHeader(title: String, supporting: String? = null, eyebrow: String? = null, compact: Boolean = false) {

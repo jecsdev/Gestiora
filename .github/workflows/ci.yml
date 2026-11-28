@@ -1,0 +1,193 @@
+name: Gestiora CI
+
+on:
+  push:
+    branches: [main, master, 'feature/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  android:
+    name: Android build and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Build Android variants and run host tests
+        id: android-build
+        run: |
+          chmod +x gradlew
+          ./gradlew --console=plain \
+            :androidApp:assembleInternalDebug \
+            :androidApp:bundleProductionRelease \
+            :androidApp:testInternalDebugUnitTest \
+            testAndroidHostTest
+      - name: Enable KVM for the Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' |
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run Android instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          script: ./gradlew --console=plain :shared:data:datasources-core:connectedAndroidDeviceTest
+      - name: Upload Android builds
+        if: ${{ !cancelled() && steps.android-build.outcome == 'success' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-builds
+          path: |
+            androidApp/build/outputs/apk/internal/debug/*.apk
+            androidApp/build/outputs/bundle/productionRelease/*.aab
+          if-no-files-found: error
+          retention-days: 3
+      - name: Upload Android test reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-test-reports
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
+            **/build/reports/androidTests/
+            **/build/outputs/androidTest-results/
+          retention-days: 7
+
+  ios:
+    name: iOS Simulator Release build
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.4.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Verify the Xcode and Apple Silicon toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-version
+          chmod +x gradlew
+      - name: Bootstrap the Gradle wrapper
+        run: ./gradlew --version
+      - name: Link the Release Kotlin iOS Simulator framework
+        id: ios-framework
+        run: |
+          mkdir -p "$RUNNER_TEMP/gestiora-ios"
+          log="$RUNNER_TEMP/gestiora-ios/kotlin-native.log"
+          if ! ./gradlew --console=plain :shared:presentation:ui:linkReleaseFrameworkIosSimulatorArm64 \
+            2>&1 | tee "$log"; then
+            awk '/^e: / {
+              gsub(/%/, "%25")
+              sub(/\r$/, "")
+              print "::error title=Kotlin/Native::" $0
+              if (++errors == 8) exit
+            }' "$log"
+            exit 1
+          fi
+          tar -czf "$RUNNER_TEMP/gestiora-ios/Shared-iosSimulatorArm64.tar.gz" \
+            -C shared/presentation/ui/build/bin/iosSimulatorArm64/releaseFramework Shared.framework
+      - name: Build the iOS Release app without signing
+        run: |
+          xcodebuild \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/gestiora-ios-derived" \
+            -resultBundlePath "$RUNNER_TEMP/gestiora-ios/Build.xcresult" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee "$RUNNER_TEMP/gestiora-ios/xcodebuild.log"
+      - name: Verify and package the installable simulator app
+        run: |
+          products="$RUNNER_TEMP/gestiora-ios-derived/Build/Products/Release-iphonesimulator"
+          app="$products/Gestiora.app"
+          executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")"
+          binary="$app/$executable"
+          xcrun lipo "$binary" -verify_arch arm64
+
+          load_commands="$(xcrun otool -arch arm64 -l "$binary")"
+          local_symbols="$(awk '$1 == "nlocalsym" { print $2 }' <<< "$load_commands")"
+          if [[ ! "$local_symbols" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not read the arm64 Mach-O local symbol count."
+            exit 1
+          fi
+          if [[ "$local_symbols" != 0 ]]; then
+            xcrun strip -S -x "$binary"
+            load_commands="$(xcrun otool -arch arm64 -l "$binary")"
+          fi
+
+          # Apple strip can retain local symbols referenced by the indirect symbol table.
+          if awk '$1 == "segname" && $2 == "__DWARF" { found = 1 } END { exit !found }' <<< "$load_commands"; then
+            echo "::error::Expected DWARF debug information to be stored only in the dSYM."
+            exit 1
+          fi
+          local_symbols="$(awk '$1 == "nlocalsym" { print $2 }' <<< "$load_commands")"
+          echo "Remaining Mach-O local symbols after stripping: $local_symbols."
+
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")"
+          entitlements="$RUNNER_TEMP/gestiora-ios/simulator-entitlements.plist"
+          plutil -create xml1 "$entitlements"
+          plutil -insert application-identifier -string "$bundle_id" "$entitlements"
+          # The simulator app needs its own Keychain access group for clinical storage.
+          codesign --force --sign - --entitlements "$entitlements" --generate-entitlement-der "$app"
+          codesign --verify "$app"
+          signed_bundle_id="$(codesign -d --entitlements - --xml "$app" | plutil -extract application-identifier raw -o - -)"
+          if [[ "$signed_bundle_id" != "$bundle_id" ]]; then
+            echo "::error::Expected the signed application-identifier to match the bundle ID."
+            exit 1
+          fi
+
+          app_uuid="$(xcrun dwarfdump --uuid "$binary" | awk '{ print $2 }')"
+          dsym_uuid="$(xcrun dwarfdump --uuid "$products/Gestiora.app.dSYM" | awk '{ print $2 }')"
+          if [[ -z "$app_uuid" || "$app_uuid" != "$dsym_uuid" ]]; then
+            echo "::error::Expected a dSYM matching the Release app."
+            exit 1
+          fi
+          tar -czf "$RUNNER_TEMP/gestiora-ios/Gestiora-iosSimulatorArm64.tar.gz" \
+            -C "$products" Gestiora.app
+      - name: Upload iOS simulator builds
+        if: ${{ !cancelled() && steps.ios-framework.outcome == 'success' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-simulator-builds
+          path: ${{ runner.temp }}/gestiora-ios/*.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+      - name: Upload iOS diagnostics
+        if: ${{ !cancelled() && steps.ios-framework.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-build-diagnostics
+          path: |
+            ${{ runner.temp }}/gestiora-ios/*.log
+            ${{ runner.temp }}/gestiora-ios/Build.xcresult/
+          retention-days: 7

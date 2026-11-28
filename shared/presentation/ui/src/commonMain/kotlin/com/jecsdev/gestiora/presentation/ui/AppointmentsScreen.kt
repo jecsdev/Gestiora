@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -56,36 +57,16 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
     var busy by retain { mutableStateOf(false) }
     var editing by retain { mutableStateOf<Appointment?>(null) }
     var deleting by retain { mutableStateOf<Appointment?>(null) }
-    var confirmDiscard by retain { mutableStateOf(false) }
     val today = todayIsoDate()
     val validInitialDate = initialDate?.takeIf { isoToUtcMillis(it) != null }
     var selectedDate by retain { mutableStateOf(validInitialDate.orEmpty()) }
     var displayedMonth by retain { mutableStateOf((validInitialDate ?: today).take(7)) }
 
-    AppointmentBackHandler(enabled = busy || editing != null || deleting != null) {
+    AppointmentBackHandler(enabled = busy || deleting != null) {
         when {
             busy -> Unit
-            confirmDiscard -> confirmDiscard = false
             deleting != null -> { deleting = null; onNavigationLockChange(false) }
-            editing != null -> confirmDiscard = true
         }
-    }
-
-    if (confirmDiscard) {
-        AlertDialog(
-            onDismissRequest = { confirmDiscard = false },
-            title = { Text(ui.s(Res.string.discard_changes)) },
-            text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDiscard = false
-                    editing = null
-                    operationError = false
-                    onNavigationLockChange(false)
-                }) { Text(ui.s(Res.string.discard)) }
-            },
-            dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text(ui.s(Res.string.keep_editing)) } },
-        )
     }
 
     suspend fun reload() {
@@ -97,8 +78,15 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
     LaunchedEffect(viewModel) { reload() }
 
     if (editing != null) {
-        RecordFormSheet(busy = busy, onDismissRequest = { confirmDiscard = true }) {
-            AppointmentForm(editing!!, busy, operationError, displayedMonth, onCancel = { confirmDiscard = true }) { appointment ->
+        RecordEditorSheet(
+            busy = busy,
+            onClose = {
+                editing = null
+                operationError = false
+                onNavigationLockChange(false)
+            },
+        ) { onCancel, onTextChanges ->
+            AppointmentForm(editing!!, busy, operationError, displayedMonth, onCancel = onCancel, onTextChanges = onTextChanges) { appointment ->
                 busy = true
                 scope.launch {
                     try {
@@ -133,18 +121,20 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
             }
             appointments == null -> CircularProgressIndicator()
             else -> {
-                MonthCalendar(
-                    month = displayedMonth,
-                    selectedDate = selectedDate,
-                    today = today,
-                    markedDates = appointments!!.map { it.date }.toSet(),
-                    enabled = !busy,
-                    onMonthChange = {
-                        displayedMonth = it
-                        selectedDate = ""
-                    },
-                    onDateSelect = { selectedDate = it; displayedMonth = it.take(7) },
-                )
+                CalendarCard {
+                    MonthCalendar(
+                        month = displayedMonth,
+                        selectedDate = selectedDate,
+                        today = today,
+                        markedDates = appointments!!.map { it.date }.toSet(),
+                        enabled = !busy,
+                        onMonthChange = {
+                            displayedMonth = it
+                            selectedDate = ""
+                        },
+                        onDateSelect = { selectedDate = it; displayedMonth = it.take(7) },
+                    )
+                }
                 if (selectedDate.isNotEmpty()) {
                     Text(ui.s(Res.string.appointments_on, dateLabel(ui, selectedDate)), style = MaterialTheme.typography.titleMedium)
                     TextButton(onClick = { selectedDate = "" }, enabled = !busy) { Text(ui.s(Res.string.view_all_appointments)) }
@@ -208,7 +198,7 @@ internal fun AppointmentsScreen(viewModel: AppointmentViewModel, initialDate: St
 }
 
 @Composable
-private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Boolean, calendarMonth: String, onCancel: () -> Unit, onSave: (Appointment) -> Unit) {
+private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Boolean, calendarMonth: String, onCancel: () -> Unit, onTextChanges: (Boolean) -> Unit, onSave: (Appointment) -> Unit) {
     val ui = LocalUiCopy.current
     var date by retain(initial) { mutableStateOf(initial.date) }
     var time by retain(initial) { mutableStateOf(initial.time) }
@@ -220,6 +210,15 @@ private fun AppointmentForm(initial: Appointment, busy: Boolean, saveError: Bool
     var status by retain(initial) { mutableStateOf(initial.status) }
     var reminder by retain(initial) { mutableStateOf(initial.reminder) }
     var invalid by retain(initial) { mutableStateOf(false) }
+    SideEffect {
+        onTextChanges(
+            doctor.hasTextChangedFrom(initial.doctor) ||
+                specialty.hasTextChangedFrom(initial.specialty) ||
+                clinic.hasTextChangedFrom(initial.clinic) ||
+                reason.hasTextChangedFrom(initial.reason) ||
+                notes.hasTextChangedFrom(initial.notes),
+        )
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_appointment) else ui.s(Res.string.edit_appointment))
         DateField(ui.s(Res.string.date), date, enabled = !busy, initialMonth = calendarMonth) { date = it }

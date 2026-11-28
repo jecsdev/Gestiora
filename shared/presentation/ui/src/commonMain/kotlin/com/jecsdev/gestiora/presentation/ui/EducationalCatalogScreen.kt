@@ -2,7 +2,6 @@ package com.jecsdev.gestiora.presentation.ui
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,11 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
@@ -67,24 +61,7 @@ internal fun EducationalCatalogScreen(viewModel: EducationViewModel, onBack: () 
         contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            TextButton(onClick = onBack) {
-                val arrowColor = LocalContentColor.current
-                Canvas(Modifier.size(20.dp)) {
-                    val center = size.height / 2
-                    val tip = size.width * 0.2f
-                    val wing = size.width * 0.5f
-                    val arrow = Path().apply {
-                        moveTo(wing, size.height * 0.2f)
-                        lineTo(tip, center)
-                        lineTo(wing, size.height * 0.8f)
-                    }
-                    val strokeWidth = 2.dp.toPx()
-                    drawPath(arrow, arrowColor, style = Stroke(strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                    drawLine(arrowColor, Offset(tip, center), Offset(size.width * 0.85f, center), strokeWidth, StrokeCap.Round)
-                }
-                Spacer(Modifier.width(8.dp))
-                Text(ui.s(Res.string.back))
-            }
+            ScreenBackButton(onBack)
             EditorialHeader(ui.s(Res.string.catalog_title), eyebrow = ui.s(Res.string.catalog_offline))
         }
         item {

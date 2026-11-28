@@ -5,4 +5,5 @@ interface LegacyClinicalPayloadValidator {
     fun validateProfile(payload: String)
     fun validatePersonalReminders(payload: String)
     fun validateCollection(store: String, payload: String)
+    fun attachmentOwnerIds(store: String, payload: String): Set<String> = error("Unsupported attachment collection")
 }

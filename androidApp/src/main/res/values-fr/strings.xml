@@ -1,5 +1,33 @@
 <resources>
     <string name="notification_channel">Rappels programmés</string>
-    <string name="notification_appointment">Vous avez un rappel de rendez-vous. Ouvrez Gestiora pour le consulter.</string>
-    <string name="notification_exam">Vous avez un rappel d’examen. Ouvrez Gestiora pour le consulter.</string>
+    <string name="notification_appointment_title">Rappel de rendez-vous</string>
+    <string name="notification_appointment_time">Votre rendez-vous est le %1$s à %2$s.</string>
+    <string name="notification_appointment_doctor">Rendez-vous avec %1$s le %2$s à %3$s.</string>
+    <string name="notification_public">Ouvrez Gestiora pour voir votre rappel.</string>
+    <string name="notification_exam_title">Rappel d’examen</string>
+    <string name="attachment_name">Pièce jointe · %1$s</string>
+    <string name="attachment_add">Joindre un PDF ou une image</string>
+    <string name="attachment_replace">Remplacer la pièce jointe</string>
+    <string name="attachment_save_copy">Enregistrer une copie</string>
+    <string name="attachment_remove">Retirer la pièce jointe</string>
+    <string name="attachment_replace_warning">Le fichier actuel sera remplacé une fois le nouveau fichier enregistré.</string>
+    <string name="attachment_copy_warning">La copie est enregistrée sans chiffrement. Choisissez un emplacement de confiance.</string>
+    <string name="attachment_remove_warning">La pièce jointe enregistrée sera retirée de Gestiora.</string>
+    <string name="attachment_working">Traitement en cours…</string>
+    <string name="attachment_failed">Impossible de terminer cette opération. Réessayez.</string>
+    <string name="attachment_invalid">Utilisez un PDF, un JPEG ou un PNG de 4 Mo maximum.</string>
+    <string name="attachment_storage_limit">La limite de stockage est atteinte (64 fichiers ou 16 Mo au total).</string>
+    <string name="attachment_added">Pièce jointe enregistrée.</string>
+    <string name="attachment_copy_saved">Copie enregistrée.</string>
+    <string name="attachment_removed">Pièce jointe retirée.</string>
+    <string name="attachment_read_failed">Impossible de lire la pièce jointe enregistrée.</string>
+    <string name="attachment_add_image">Ajouter une image</string>
+    <string name="attachment_view_image">Voir l’image</string>
+    <string name="attachment_invalid_image">Utilisez un JPEG ou un PNG de 4 Mo maximum.</string>
+    <string name="attachment_close_image">Fermer</string>
+    <string name="attachment_images">Images</string>
+    <string name="attachment_add_document">Ajouter un PDF</string>
+    <string name="attachment_images_limit">Jusqu’à %1$d images par dossier.</string>
+    <string name="notification_medication_title">Rappel de médicament</string>
+    <string name="notification_personal_title">Rappel</string>
 </resources>

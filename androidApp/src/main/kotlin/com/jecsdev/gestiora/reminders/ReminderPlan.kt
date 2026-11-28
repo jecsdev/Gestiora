@@ -23,7 +23,10 @@ internal fun dueReminders(plan: List<PlannedReminder>, now: Long, armed: Set<Str
  * DST gaps roll forward; overlaps use Calendar's standard-time occurrence.
  */
 internal fun reminderPlan(
-    appointments: List<Appointment>, exams: List<ExamRecord>, zone: TimeZone,
+    appointments: List<Appointment>,
+    exams: List<ExamRecord>,
+    zone: TimeZone,
+    personalReminders: List<PersonalReminder> = emptyList(),
 ): List<PlannedReminder> = buildList {
     fun civil(date: String, time: String): Calendar = GregorianCalendar(zone).apply {
         clear()
@@ -49,5 +52,10 @@ internal fun reminderPlan(
         val expiry = civil(requireNotNull(item.scheduled), "00:00").apply { add(Calendar.DAY_OF_MONTH, 1) }.timeInMillis
         event.add(Calendar.DAY_OF_MONTH, -1)
         add(PlannedReminder("exam", item.id, event.timeInMillis, expiry))
+    }
+    personalReminders.filterNot { it.done }.forEach { item ->
+        val due = civil(item.date, item.time ?: "09:00").timeInMillis
+        val expiry = civil(item.date, "00:00").apply { add(Calendar.DAY_OF_MONTH, 1) }.timeInMillis
+        add(PlannedReminder("personal", item.id, due, expiry))
     }
 }.sortedBy { it.dueAt }

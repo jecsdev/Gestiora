@@ -6,11 +6,13 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.jecsdev.gestiora.core.ui.AppTheme
@@ -74,7 +76,7 @@ internal fun ThemeRoot(
 internal expect fun SystemAppearance(dark: Boolean, followSystem: Boolean)
 
 @Composable
-private fun ThemePreferences(
+internal fun ThemePreferences(
     mode: ThemeMode,
     busy: Boolean,
     readFailed: Boolean,
@@ -94,7 +96,7 @@ private fun ThemePreferences(
                 } else {
                     ThemeMode.entries.forEach { option ->
                         Row(
-                            Modifier.fillMaxWidth().selectable(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).selectable(
                                 selected = mode == option,
                                 enabled = !busy,
                                 role = Role.RadioButton,

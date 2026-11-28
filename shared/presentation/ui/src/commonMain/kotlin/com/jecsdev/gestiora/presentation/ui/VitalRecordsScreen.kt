@@ -25,31 +25,28 @@ internal fun VitalRecordsScreen(viewModel: VitalRecordViewModel, onNavigationLoc
     var busy by retain { mutableStateOf(false) }
     var editing by retain { mutableStateOf<VitalRecord?>(null) }
     var deleting by retain { mutableStateOf<VitalRecord?>(null) }
-    var discard by retain { mutableStateOf(false) }
     suspend fun reload() {
         val result = viewModel.load()
         records = result.getOrNull()
         loadError = result.isFailure
     }
     LaunchedEffect(viewModel) { reload() }
-    AppointmentBackHandler(busy || editing != null || deleting != null) {
+    AppointmentBackHandler(busy || deleting != null) {
         when {
             busy -> Unit
-            discard -> discard = false
             deleting != null -> { deleting = null; onNavigationLockChange(false) }
-            editing != null -> discard = true
         }
     }
-    if (discard) AlertDialog(
-        onDismissRequest = { discard = false },
-        title = { Text(ui.s(Res.string.discard_changes)) },
-        text = { Text(ui.s(Res.string.changes_you_haven_t_saved_will_be_lost)) },
-        confirmButton = { TextButton(onClick = { discard = false; editing = null; operationError = false; onNavigationLockChange(false) }) { Text(ui.s(Res.string.discard)) } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text(ui.s(Res.string.keep_editing)) } },
-    )
     if (editing != null) {
-        RecordFormSheet(busy = busy, onDismissRequest = { discard = true }) {
-            VitalRecordForm(editing!!, busy, operationError, weightUnit, { weightUnit = it }, onCancel = { discard = true }) { record ->
+        RecordEditorSheet(
+            busy = busy,
+            onClose = {
+                editing = null
+                operationError = false
+                onNavigationLockChange(false)
+            },
+        ) { onCancel, onTextChanges ->
+            VitalRecordForm(editing!!, busy, operationError, weightUnit, { weightUnit = it }, onCancel = onCancel, onTextChanges = onTextChanges) { record ->
                 busy = true
                 scope.launch {
                     try {
@@ -158,7 +155,7 @@ private fun LatestVitalSummaries(records: List<VitalRecord>, weightUnit: WeightU
 }
 
 @Composable
-private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Boolean, preferredWeightUnit: WeightUnit, onWeightUnitChange: (WeightUnit) -> Unit, onCancel: () -> Unit, onSave: (VitalRecord) -> Unit) {
+private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Boolean, preferredWeightUnit: WeightUnit, onWeightUnitChange: (WeightUnit) -> Unit, onCancel: () -> Unit, onTextChanges: (Boolean) -> Unit, onSave: (VitalRecord) -> Unit) {
     val ui = LocalUiCopy.current
     var date by retain(initial) { mutableStateOf(initial.date) }
     var type by retain(initial) { mutableStateOf(initial.type) }
@@ -170,6 +167,17 @@ private fun VitalRecordForm(initial: VitalRecord, busy: Boolean, saveError: Bool
     var notes by retain(initial) { mutableStateOf(initial.notes.orEmpty()) }
     var invalid by retain(initial) { mutableStateOf(false) }
     var typeMenu by retain(initial) { mutableStateOf(false) }
+    val initialWeightInput = WeightEntry.fromKilograms(initial.value.takeIf { initial.type == VitalType.WEIGHT }, weightEntry.unit).input
+    SideEffect {
+        onTextChanges(
+            value.hasTextChangedFrom(initial.value?.let(::formatVitalNumber)) ||
+                value2.hasTextChangedFrom(initial.value2?.let(::formatVitalNumber)) ||
+                label.hasTextChangedFrom(initial.label) ||
+                text.hasTextChangedFrom(initial.text) ||
+                notes.hasTextChangedFrom(initial.notes) ||
+                weightEntry.input.hasTextChangedFrom(initialWeightInput),
+        )
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         EditorialHeader(if (initial.id.isEmpty()) ui.s(Res.string.new_health_record) else ui.s(Res.string.edit_health_record))
         DateField(ui.s(Res.string.date), date, enabled = !busy) { date = it }

@@ -18,6 +18,7 @@ dependencies {
     implementation(project(":shared:domain:repository"))
     implementation(project(":shared:data:datasources"))
     implementation(project(":shared:data:datasources-core"))
+    implementation(project(":shared:data:repository"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.compose.material3)
     implementation(libs.compose.foundation)
@@ -80,4 +81,9 @@ androidComponents {
         val isInternal = variant.productFlavors.any { it == ("distribution" to "internal") }
         variant.enable = if (isInternal) variant.buildType == "debug" else variant.buildType == "release"
     }
+}
+
+dependencies {
+    add("internalImplementation", libs.google.mobile.ads)
+    add("internalImplementation", libs.google.ump)
 }
